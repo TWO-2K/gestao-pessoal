@@ -7,10 +7,12 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Users } from "lucide-react";
 import { useUsuarios } from "@/hooks/useUsuarios";
+import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 
 export default function Usuarios() {
   const [open, setOpen] = useState(false);
   const { usuarios, isLoading, toggleAtivo, criarUsuario } = useUsuarios();
+  const { usuario: usuarioAtual } = useUsuarioAtual();
 
   const handleSaved = async (form) => {
     await criarUsuario(form);
@@ -38,23 +40,31 @@ export default function Usuarios() {
         </div>
       ) : (
         <div className="rounded-xl border border-ink-200 bg-white divide-y divide-ink-100 overflow-hidden">
-          {usuarios.map((u) => (
-            <div key={u.id} className="flex items-center justify-between px-4 py-3.5">
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-ink-900">{u.nome}</p>
-                  <Badge variant={u.role === "admin" ? "default" : "secondary"}>
-                    {u.role === "admin" ? "Admin" : "Usuário"}
-                  </Badge>
+          {usuarios.map((u) => {
+            const isSelf = u.id === usuarioAtual?.id;
+            return (
+              <div key={u.id} className="flex items-center justify-between px-4 py-3.5">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-ink-900">{u.nome}</p>
+                    <Badge variant={u.role === "admin" ? "default" : "secondary"}>
+                      {u.role === "admin" ? "Admin" : "Usuário"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-ink-400 font-mono">{u.email}</p>
                 </div>
-                <p className="text-xs text-ink-400 font-mono">{u.email}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-ink-400">{u.ativo ? "Ativo" : "Inativo"}</span>
+                  <Switch
+                    checked={u.ativo}
+                    disabled={isSelf}
+                    title={isSelf ? "Você não pode inativar a própria conta" : undefined}
+                    onCheckedChange={() => toggleAtivo(u)}
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-ink-400">{u.ativo ? "Ativo" : "Inativo"}</span>
-                <Switch checked={u.ativo} onCheckedChange={() => toggleAtivo(u)} />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
