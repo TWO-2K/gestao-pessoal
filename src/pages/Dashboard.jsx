@@ -1,17 +1,20 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import PageHeader from "@/components/PageHeader";
-import { ArrowUpCircle, ArrowDownCircle, AlertTriangle, CheckCircle2, CalendarDays } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, AlertTriangle, CheckCircle2, CalendarDays, PieChart } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import CalendarView from "@/components/CalendarView";
+import { isInMonth } from "@/components/MonthFilter";
 import { useContas } from "@/hooks/useContas";
 import { useDividas } from "@/hooks/useDividas";
+import { useGastos } from "@/hooks/useGastos";
 
 export default function Dashboard() {
   const { contas, isLoading: isLoadingContas } = useContas();
   const { dividas, parcelas, isLoading: isLoadingDividas } = useDividas();
+  const { gastos, catMap, isLoading: isLoadingGastos } = useGastos();
 
-  const isLoading = isLoadingContas || isLoadingDividas;
+  const isLoading = isLoadingContas || isLoadingDividas || isLoadingGastos;
 
   const aPagar = contas.filter((c) => c.status === "pendente").reduce((s, c) => s + (c.valor || 0), 0);
 
@@ -26,6 +29,27 @@ export default function Dashboard() {
   const hoje = new Date().toISOString().slice(0, 10);
   const vencidas = contas.filter((c) => c.status === "pendente" && c.vencimento < hoje);
   const proximas = contas.filter((c) => c.status === "pendente" && c.vencimento >= hoje).slice(0, 5);
+
+  const now = new Date();
+  const gastosPorCategoria = useMemo(() => {
+    const totals = {};
+    const add = (categoriaId, valor) => {
+      const key = categoriaId || "sem-categoria";
+      totals[key] = (totals[key] || 0) + (valor || 0);
+    };
+
+    contas
+      .filter((c) => c.status === "pago" && isInMonth(c.vencimento, now.getMonth(), now.getFullYear()))
+      .forEach((c) => add(c.categoria_id, c.valor));
+
+    gastos
+      .filter((g) => isInMonth(g.data, now.getMonth(), now.getFullYear()))
+      .forEach((g) => add(g.categoria_id, g.valor));
+
+    return Object.entries(totals)
+      .map(([categoriaId, total]) => ({ categoriaId, total, categoria: catMap[categoriaId] }))
+      .sort((a, b) => b.total - a.total);
+  }, [contas, gastos, catMap, now.getMonth(), now.getFullYear()]);
 
   if (isLoading) return <div className="text-ink-400 text-sm">Carregando...</div>;
 
@@ -67,6 +91,32 @@ export default function Dashboard() {
       </h2>
       <div className="mb-8">
         <CalendarView contas={contas} parcelas={parcelas} />
+      </div>
+
+      <h2 className="font-display text-lg text-ink-900 mb-3 flex items-center gap-2">
+        <PieChart className="h-4 w-4 text-ink-400" /> Gastos por categoria (mês atual)
+      </h2>
+      <div className="mb-8">
+        {gastosPorCategoria.length === 0 ? (
+          <div className="rounded-xl border border-ink-200 bg-white px-5 py-8 text-center text-ink-400">
+            <p className="text-sm">Nenhum gasto ou conta paga neste mês ainda.</p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-ink-200 bg-white divide-y divide-ink-100 overflow-hidden">
+            {gastosPorCategoria.map(({ categoriaId, total, categoria }) => (
+              <div key={categoriaId} className="flex items-center justify-between px-4 py-3.5">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: categoria?.cor || "#a3a3a3" }}
+                  />
+                  <p className="font-medium text-ink-900">{categoria?.nome || "Sem categoria"}</p>
+                </div>
+                <p className="font-mono font-semibold tabular-nums text-ink-800">{formatCurrency(total)}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <h2 className="text-xs font-semibold text-ink-500 uppercase tracking-[0.1em] mb-3">Próximos vencimentos</h2>

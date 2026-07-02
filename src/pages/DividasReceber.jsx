@@ -4,7 +4,7 @@ import DividaForm from "@/components/DividaForm";
 import PagamentoForm from "./PagamentoForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Trash2, ArrowDownCircle, ChevronDown, ChevronUp, DollarSign } from "lucide-react";
+import { Plus, Trash2, Pencil, ArrowDownCircle, ChevronDown, ChevronUp, DollarSign } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import MonthFilter, { isInMonth } from "@/components/MonthFilter";
 import { useDividas } from "@/hooks/useDividas";
@@ -13,6 +13,8 @@ export default function DividasReceber() {
   const [dividaFormOpen, setDividaFormOpen] = useState(false);
   const [pagamentoFormOpen, setPagamentoFormOpen] = useState(false);
   const [dividaSelecionada, setDividaSelecionada] = useState(null);
+  const [dividaEditando, setDividaEditando] = useState(null);
+  const [pagamentoSelecionado, setPagamentoSelecionado] = useState(null);
   const [expanded, setExpanded] = useState(null);
   const [mes, setMes] = useState(null);
 
@@ -23,28 +25,68 @@ export default function DividasReceber() {
     deleteDivida,
     deletePagamento,
     createDivida,
+    updateDivida,
     createPagamento,
+    updatePagamento,
     parcelasDe,
   } = useDividas();
 
   const handleDividaSaved = async (formData) => {
-    await createDivida({
+    const payload = {
       ...formData,
       valor_total: parseFloat(formData.valor_total),
       num_parcelas: parseInt(formData.num_parcelas, 10) || 1,
-    });
+    };
+    if (dividaEditando) {
+      await updateDivida(payload);
+    } else {
+      await createDivida(payload);
+    }
     setDividaFormOpen(false);
+    setDividaEditando(null);
+  };
+
+  const openNovaDivida = () => {
+    setDividaEditando(null);
+    setDividaFormOpen(true);
+  };
+
+  const openEditarDivida = (divida) => {
+    setDividaEditando(divida);
+    setDividaFormOpen(true);
   };
   const handlePagamentoSaved = async (formData) => {
-    await createPagamento({ ...formData, valor: parseFloat(formData.valor) });
+    if (pagamentoSelecionado) {
+      await updatePagamento({ ...formData, valor: parseFloat(formData.valor) });
+    } else {
+      await createPagamento({ ...formData, valor: parseFloat(formData.valor) });
+    }
     setPagamentoFormOpen(false);
     setDividaSelecionada(null);
+    setPagamentoSelecionado(null);
   };
 
   const openPagamentoForm = (divida) => {
     setDividaSelecionada(divida);
+    setPagamentoSelecionado(null);
     setPagamentoFormOpen(true);
   };
+
+  const openEditarPagamento = (divida, pagamento) => {
+    setDividaSelecionada(divida);
+    setPagamentoSelecionado(pagamento);
+    setPagamentoFormOpen(true);
+  };
+
+  // Quanto ainda pode ser recebido para a dívida selecionada, descontando o próprio
+  // pagamento em edição (para não contá-lo duas vezes no teto).
+  const limiteRecebimento = useMemo(() => {
+    if (!dividaSelecionada) return null;
+    const jaRecebido = parcelasDe(dividaSelecionada.id)
+      .filter((p) => p.id !== pagamentoSelecionado?.id)
+      .reduce((s, p) => s + (p.valor || 0), 0);
+    return dividaSelecionada.valor_total - jaRecebido;
+  }, [dividaSelecionada, pagamentoSelecionado, parcelasDe]);
 
   // Only show dívidas that have at least one parcela in the selected month
   const dividasVisiveis = useMemo(() => (mes
@@ -57,7 +99,7 @@ export default function DividasReceber() {
         title="A Receber"
         subtitle="Valores que outras pessoas te devem"
         action={
-          <Button onClick={() => setDividaFormOpen(true)}>
+          <Button onClick={openNovaDivida}>
             <Plus className="h-4 w-4 mr-1.5" /> Nova dívida
           </Button>
         }
@@ -113,6 +155,9 @@ export default function DividasReceber() {
                     <button onClick={() => openPagamentoForm(d)} className="p-2 text-ink-400 hover:text-forest-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Registrar pagamento">
                       <DollarSign className="h-4 w-4" />
                     </button>
+                    <button onClick={() => openEditarDivida(d)} className="p-2 text-ink-400 hover:text-ink-900 opacity-0 group-hover:opacity-100 transition-opacity" title="Editar dívida">
+                      <Pencil className="h-4 w-4" />
+                    </button>
                     <button onClick={() => deleteDivida(d)} className="p-2 text-ink-400 hover:text-rust-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Excluir dívida">
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -130,6 +175,9 @@ export default function DividasReceber() {
                           <div key={p.id} className="flex items-center gap-3 text-sm group/item">
                             <span className="text-ink-400 flex-1">Recebido em {formatDate(p.data_recebimento || p.vencimento)}</span>
                             <span className="font-mono font-medium tabular-nums text-forest-600">{formatCurrency(p.valor)}</span>
+                            <button onClick={() => openEditarPagamento(d, p)} className="p-1 text-ink-400 hover:text-ink-900 opacity-0 group-hover/item:opacity-100 transition-opacity" title="Editar pagamento">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
                             <button onClick={() => deletePagamento(p.id)} className="p-1 text-ink-400 hover:text-rust-600 opacity-0 group-hover/item:opacity-100 transition-opacity" title="Excluir pagamento">
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -145,17 +193,25 @@ export default function DividasReceber() {
         </div>
       )}
 
-      <Dialog open={dividaFormOpen} onOpenChange={setDividaFormOpen}>
+      <Dialog open={dividaFormOpen} onOpenChange={(v) => { setDividaFormOpen(v); if (!v) setDividaEditando(null); }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Nova dívida a receber</DialogTitle></DialogHeader>
-          <DividaForm onSaved={handleDividaSaved} onCancel={() => setDividaFormOpen(false)} />
+          <DialogHeader><DialogTitle>{dividaEditando ? "Editar dívida" : "Nova dívida a receber"}</DialogTitle></DialogHeader>
+          <DividaForm divida={dividaEditando} onSaved={handleDividaSaved} onCancel={() => setDividaFormOpen(false)} />
         </DialogContent>
       </Dialog>
 
-      <Dialog open={pagamentoFormOpen} onOpenChange={setPagamentoFormOpen}>
+      <Dialog open={pagamentoFormOpen} onOpenChange={(v) => { setPagamentoFormOpen(v); if (!v) { setDividaSelecionada(null); setPagamentoSelecionado(null); } }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Registrar Pagamento</DialogTitle></DialogHeader>
-          {dividaSelecionada && <PagamentoForm divida={dividaSelecionada} onSaved={handlePagamentoSaved} onCancel={() => setPagamentoFormOpen(false)} />}
+          <DialogHeader><DialogTitle>{pagamentoSelecionado ? "Editar Pagamento" : "Registrar Pagamento"}</DialogTitle></DialogHeader>
+          {(dividaSelecionada || pagamentoSelecionado) && (
+            <PagamentoForm
+              divida={dividaSelecionada}
+              pagamento={pagamentoSelecionado}
+              limite={limiteRecebimento}
+              onSaved={handlePagamentoSaved}
+              onCancel={() => setPagamentoFormOpen(false)}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
