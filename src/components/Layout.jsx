@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, Wallet, LogOut, Users } from "lucide-react";
+import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, Wallet, LogOut, Users, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 import { supabase } from "@/lib/supabaseClient";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 const nav = [
   { to: "/", label: "Painel", icon: LayoutDashboard },
@@ -15,14 +16,24 @@ const nav = [
   { to: "/contas-pagamento", label: "Contas/Cartões", icon: CreditCard },
 ];
 
+// No mobile só os itens de uso mais frequente cabem na barra; o resto vai no menu "Mais".
+const mobilePrimaryNav = nav.slice(0, 4);
+const mobileMoreNav = nav.slice(4);
+
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { usuario } = useUsuarioAtual();
-  const items = usuario?.role === "admin"
+  const isAdmin = usuario?.role === "admin";
+  const items = isAdmin
     ? [...nav, { to: "/usuarios", label: "Usuários", icon: Users }]
     : nav;
+  const moreNavItems = isAdmin
+    ? [...mobileMoreNav, { to: "/usuarios", label: "Usuários", icon: Users }]
+    : mobileMoreNav;
+  const [moreOpen, setMoreOpen] = useState(false);
+  const isMoreActive = moreNavItems.some((item) => item.to === location.pathname);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -84,32 +95,69 @@ export default function Layout() {
         </div>
       </main>
 
-      {/* Bottom nav mobile */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 bg-ink-900 flex justify-around px-2 py-2">
-        {nav.map((item) => {
+      {/* Bottom nav mobile — só os itens principais; o resto fica no menu "Mais" */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 bg-ink-900 flex justify-around px-1 py-2">
+        {mobilePrimaryNav.map((item) => {
           const active = location.pathname === item.to;
           return (
             <Link
               key={item.to}
               to={item.to}
               className={cn(
-                "flex flex-col items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium",
+                "flex flex-1 flex-col items-center gap-1 px-1 py-1 rounded-lg text-[10px] font-medium",
                 active ? "text-gold-400" : "text-ink-50/50"
               )}
             >
               <item.icon className="h-5 w-5" />
-              {item.label}
+              <span className="truncate max-w-full">{item.label}</span>
             </Link>
           );
         })}
         <button
-          onClick={handleLogout}
-          className="flex flex-col items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-ink-50/50"
+          onClick={() => setMoreOpen(true)}
+          className={cn(
+            "flex flex-1 flex-col items-center gap-1 px-1 py-1 rounded-lg text-[10px] font-medium",
+            isMoreActive ? "text-gold-400" : "text-ink-50/50"
+          )}
         >
-          <LogOut className="h-5 w-5" />
-          Sair
+          <MoreHorizontal className="h-5 w-5" />
+          Mais
         </button>
       </nav>
+
+      <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+        <SheetContent side="bottom" className="md:hidden rounded-t-2xl">
+          <SheetHeader>
+            <SheetTitle>Mais opções</SheetTitle>
+          </SheetHeader>
+          <div className="grid grid-cols-3 gap-3 py-4">
+            {moreNavItems.map((item) => {
+              const active = location.pathname === item.to;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setMoreOpen(false)}
+                  className={cn(
+                    "flex flex-col items-center gap-2 rounded-xl border px-3 py-4 text-xs font-medium",
+                    active ? "border-gold-400 text-gold-600 bg-gold-50" : "border-ink-200 text-ink-600"
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => { setMoreOpen(false); handleLogout(); }}
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-rust-200 px-3 py-3 text-sm font-medium text-rust-600"
+          >
+            <LogOut className="h-4 w-4" />
+            Sair
+          </button>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
