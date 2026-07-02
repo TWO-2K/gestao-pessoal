@@ -12,6 +12,7 @@ import ContasPagar from '@/pages/ContasPagar';
 import Gastos from '@/pages/Gastos';
 import DividasReceber from '@/pages/DividasReceber';
 import Categorias from '@/pages/Categorias';
+import ContasPagamento from '@/pages/ContasPagamento';
 import Usuarios from '@/pages/Usuarios';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -33,6 +34,7 @@ function App() {
                 <Route path="/gastos" element={<Gastos />} />
                 <Route path="/receber" element={<DividasReceber />} />
                 <Route path="/categorias" element={<Categorias />} />
+                <Route path="/contas-pagamento" element={<ContasPagamento />} />
                 <Route element={<AdminRoute />}>
                   <Route path="/usuarios" element={<Usuarios />} />
                 </Route>

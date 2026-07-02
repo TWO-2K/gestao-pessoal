@@ -23,19 +23,21 @@ export function useContas() {
   const { data, isLoading } = useQuery({
     queryKey: ["contas", "categorias"],
     queryFn: async () => {
-      const [contasRes, categoriasRes] = await Promise.all([
+      const [contasRes, categoriasRes, contasPagamentoRes] = await Promise.all([
         supabase.from('contas_pagar').select('*').order('vencimento', { ascending: true }),
         supabase.from('categorias').select('*'),
+        supabase.from('contas_pagamento').select('*'),
       ]);
 
       if (contasRes.error) throw new Error(contasRes.error.message);
       if (categoriasRes.error) throw new Error(categoriasRes.error.message);
+      if (contasPagamentoRes.error) throw new Error(contasPagamentoRes.error.message);
 
-      return { contas: contasRes.data, categorias: categoriasRes.data };
+      return { contas: contasRes.data, categorias: categoriasRes.data, contasPagamento: contasPagamentoRes.data };
     },
   });
 
-  const { contas = [], categorias = [] } = data || {};
+  const { contas = [], categorias = [], contasPagamento = [] } = data || {};
 
   const mutationOptions = {
     onSuccess: () => {
@@ -143,14 +145,17 @@ export function useContas() {
   });
 
   const catMap = useMemo(() => Object.fromEntries(categorias.map((c) => [c.id, c])), [categorias]);
+  const contaPagamentoMap = useMemo(() => Object.fromEntries(contasPagamento.map((c) => [c.id, c])), [contasPagamento]);
 
   return {
     contas,
     categorias,
+    contasPagamento,
     isLoading,
     deleteConta: deleteMutation.mutate,
     toggleStatusConta: toggleStatusMutation.mutate,
     createOrUpdateConta: createOrUpdateMutation.mutateAsync,
     catMap,
+    contaPagamentoMap,
   };
 }

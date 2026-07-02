@@ -18,11 +18,13 @@ export default function ContasPagar() {
   const {
     contas,
     categorias,
+    contasPagamento,
     isLoading,
     deleteConta,
     toggleStatusConta,
     createOrUpdateConta,
     catMap,
+    contaPagamentoMap,
   } = useContas();
 
   const handleSaved = async (formData) => {
@@ -85,6 +87,7 @@ export default function ContasPagar() {
         <div className="space-y-2.5">
           {filtradas.map((conta) => {
             const cat = catMap[conta.categoria_id];
+            const contaPagamento = contaPagamentoMap[conta.conta_pagamento_id];
             const pago = conta.status === "pago";
             return (
               <div key={conta.id} className="group flex items-center gap-4 rounded-2xl border border-ink-200 bg-white px-4 py-3.5">
@@ -114,6 +117,12 @@ export default function ContasPagar() {
                         {cat.nome}
                       </span>
                     )}
+                    {contaPagamento && (
+                      <span className="flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: contaPagamento.cor }} />
+                        {contaPagamento.nome}
+                      </span>
+                    )}
                     <span>Vence {formatDate(conta.vencimento)}</span>
                   </div>
                   {conta.observacao && (
@@ -138,7 +147,7 @@ export default function ContasPagar() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar conta" : "Nova conta"}</DialogTitle></DialogHeader>
-          <ContaForm conta={editing} categorias={categorias} onSaved={handleSaved} onCancel={() => setOpen(false)} />
+          <ContaForm conta={editing} categorias={categorias} contasPagamento={contasPagamento} onSaved={handleSaved} onCancel={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </div>

@@ -6,15 +6,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 
-const FORMAS_PAGAMENTO = ["Pix", "Dinheiro", "Cartão de Débito", "Cartão de Crédito", "Outro"];
-
-export default function GastoForm({ gasto, categorias, onSaved, onCancel }) {
+export default function GastoForm({ gasto, categorias, contasPagamento, onSaved, onCancel }) {
   const [form, setForm] = useState({
     descricao: "",
     valor: "",
     data: new Date().toISOString().slice(0, 10),
     categoria_id: null,
-    forma_pagamento: null,
+    conta_pagamento_id: null,
     observacao: "",
   });
   const [saving, setSaving] = useState(false);
@@ -27,7 +25,7 @@ export default function GastoForm({ gasto, categorias, onSaved, onCancel }) {
         valor: gasto.valor,
         data: gasto.data,
         categoria_id: gasto.categoria_id,
-        forma_pagamento: gasto.forma_pagamento || null,
+        conta_pagamento_id: gasto.conta_pagamento_id,
         observacao: gasto.observacao || "",
       });
     } else {
@@ -36,7 +34,7 @@ export default function GastoForm({ gasto, categorias, onSaved, onCancel }) {
         valor: "",
         data: new Date().toISOString().slice(0, 10),
         categoria_id: null,
-        forma_pagamento: null,
+        conta_pagamento_id: null,
         observacao: "",
       });
     }
@@ -94,14 +92,14 @@ export default function GastoForm({ gasto, categorias, onSaved, onCancel }) {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Forma de pagamento</Label>
-          <Select value={form.forma_pagamento} onValueChange={(v) => set("forma_pagamento", v)}>
+          <Label>Conta/Cartão</Label>
+          <Select value={form.conta_pagamento_id} onValueChange={(v) => set("conta_pagamento_id", v)}>
             <SelectTrigger>
-              <SelectValue placeholder="Como foi pago?" />
+              <SelectValue placeholder="De onde saiu?" />
             </SelectTrigger>
             <SelectContent>
-              {FORMAS_PAGAMENTO.map((f) => (
-                <SelectItem key={f} value={f}>{f}</SelectItem>
+              {contasPagamento.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
               ))}
             </SelectContent>
           </Select>
