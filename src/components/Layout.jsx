@@ -1,6 +1,6 @@
 import React from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Tag, Wallet, LogOut, Users } from "lucide-react";
+import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, Wallet, LogOut, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabaseClient";
 const nav = [
   { to: "/", label: "Painel", icon: LayoutDashboard },
   { to: "/contas", label: "Contas a Pagar", icon: ArrowUpCircle },
+  { to: "/gastos", label: "Gastos", icon: Receipt },
   { to: "/receber", label: "A Receber", icon: ArrowDownCircle },
   { to: "/categorias", label: "Categorias", icon: Tag },
 ];

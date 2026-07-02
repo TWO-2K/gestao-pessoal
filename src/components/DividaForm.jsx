@@ -1,21 +1,39 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 
-export default function DividaForm({ onSaved, onCancel }) {
-  const [form, setForm] = useState({
-    devedor: "",
-    descricao: "",
-    valor_total: "",
-    num_parcelas: "1",
-    data_inicio: new Date().toISOString().slice(0, 10),
-    observacao: "",
-  });
+const emptyForm = {
+  devedor: "",
+  descricao: "",
+  valor_total: "",
+  num_parcelas: "1",
+  data_inicio: new Date().toISOString().slice(0, 10),
+  observacao: "",
+};
+
+export default function DividaForm({ divida, onSaved, onCancel }) {
+  const isEditing = !!divida;
+  const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (divida) {
+      setForm({
+        devedor: divida.devedor || "",
+        descricao: divida.descricao || "",
+        valor_total: String(divida.valor_total ?? ""),
+        num_parcelas: String(divida.num_parcelas ?? "1"),
+        data_inicio: (divida.data_inicio || new Date().toISOString()).slice(0, 10),
+        observacao: divida.observacao || "",
+      });
+    } else {
+      setForm(emptyForm);
+    }
+  }, [divida]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -26,7 +44,7 @@ export default function DividaForm({ onSaved, onCancel }) {
 
     setSaving(true);
     try {
-      await onSaved(form);
+      await onSaved(isEditing ? { ...form, id: divida.id } : form);
     } catch (error) {
       toast({
         variant: "destructive",
@@ -68,7 +86,7 @@ export default function DividaForm({ onSaved, onCancel }) {
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="ghost" onClick={onCancel}>Cancelar</Button>
-        <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar Dívida"}</Button>
+        <Button type="submit" disabled={saving}>{saving ? "Salvando..." : isEditing ? "Salvar Alterações" : "Salvar Dívida"}</Button>
       </div>
     </form>
   );

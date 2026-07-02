@@ -9,6 +9,7 @@ import Layout from '@/components/Layout';
 import { ProtectedRoute, PublicOnlyRoute, AdminRoute } from '@/components/ProtectedRoute';
 import Dashboard from '@/pages/Dashboard';
 import ContasPagar from '@/pages/ContasPagar';
+import Gastos from '@/pages/Gastos';
 import DividasReceber from '@/pages/DividasReceber';
 import Categorias from '@/pages/Categorias';
 import Usuarios from '@/pages/Usuarios';
@@ -29,6 +30,7 @@ function App() {
               <Route element={<Layout />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/contas" element={<ContasPagar />} />
+                <Route path="/gastos" element={<Gastos />} />
                 <Route path="/receber" element={<DividasReceber />} />
                 <Route path="/categorias" element={<Categorias />} />
                 <Route element={<AdminRoute />}>

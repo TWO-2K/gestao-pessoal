@@ -53,6 +53,14 @@ export function useDividas() {
     ...mutationOptions,
   });
 
+  const updateDividaMutation = useMutation({
+    mutationFn: async ({ id, ...form }) => {
+      const { error } = await supabase.from('dividas_receber').update(form).match({ id });
+      if (error) throw new Error(error.message);
+    },
+    ...mutationOptions,
+  });
+
   const createPagamentoMutation = useMutation({
     mutationFn: async (form) => {
       const user = session?.user;
@@ -66,6 +74,14 @@ export function useDividas() {
   const deletePagamentoMutation = useMutation({
     mutationFn: async (pagamentoId) => {
       const { error } = await supabase.from('parcelas_divida').delete().match({ id: pagamentoId });
+      if (error) throw new Error(error.message);
+    },
+    ...mutationOptions,
+  });
+
+  const updatePagamentoMutation = useMutation({
+    mutationFn: async ({ id, ...form }) => {
+      const { error } = await supabase.from('parcelas_divida').update(form).match({ id });
       if (error) throw new Error(error.message);
     },
     ...mutationOptions,
@@ -90,7 +106,9 @@ export function useDividas() {
     deleteDivida: deleteMutation.mutate,
     deletePagamento: deletePagamentoMutation.mutate,
     createDivida: createDividaMutation.mutateAsync,
+    updateDivida: updateDividaMutation.mutateAsync,
     createPagamento: createPagamentoMutation.mutateAsync,
+    updatePagamento: updatePagamentoMutation.mutateAsync,
     parcelasDe,
   };
 }
