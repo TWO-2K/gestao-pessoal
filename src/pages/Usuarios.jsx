@@ -5,18 +5,34 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, Pencil } from "lucide-react";
 import { useUsuarios } from "@/hooks/useUsuarios";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 
 export default function Usuarios() {
   const [open, setOpen] = useState(false);
-  const { usuarios, isLoading, toggleAtivo, criarUsuario } = useUsuarios();
+  const [editando, setEditando] = useState(null);
+  const { usuarios, isLoading, toggleAtivo, criarUsuario, editarUsuario } = useUsuarios();
   const { usuario: usuarioAtual } = useUsuarioAtual();
 
   const handleSaved = async (form) => {
-    await criarUsuario(form);
+    if (editando) {
+      await editarUsuario(form);
+    } else {
+      await criarUsuario(form);
+    }
     setOpen(false);
+    setEditando(null);
+  };
+
+  const openCriar = () => {
+    setEditando(null);
+    setOpen(true);
+  };
+
+  const openEditar = (usuario) => {
+    setEditando(usuario);
+    setOpen(true);
   };
 
   return (
@@ -25,7 +41,7 @@ export default function Usuarios() {
         title="Usuários"
         subtitle="Quem tem acesso ao sistema"
         action={
-          <Button onClick={() => setOpen(true)}>
+          <Button onClick={openCriar}>
             <Plus className="h-4 w-4 mr-1.5" /> Novo usuário
           </Button>
         }
@@ -61,6 +77,9 @@ export default function Usuarios() {
                     title={isSelf ? "Você não pode inativar a própria conta" : undefined}
                     onCheckedChange={() => toggleAtivo(u)}
                   />
+                  <Button variant="ghost" size="icon" onClick={() => openEditar(u)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             );
@@ -68,10 +87,10 @@ export default function Usuarios() {
         </div>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Novo usuário</DialogTitle></DialogHeader>
-          <UsuarioForm onSaved={handleSaved} onCancel={() => setOpen(false)} />
+          <DialogHeader><DialogTitle>{editando ? "Editar usuário" : "Novo usuário"}</DialogTitle></DialogHeader>
+          <UsuarioForm usuario={editando} onSaved={handleSaved} onCancel={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </div>

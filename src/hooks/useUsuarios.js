@@ -44,10 +44,22 @@ export function useUsuarios() {
     ...mutationOptions,
   });
 
+  const editarUsuarioMutation = useMutation({
+    mutationFn: async (form) => {
+      const { data, error } = await supabase.functions.invoke("editar-usuario", {
+        body: form,
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+    },
+    ...mutationOptions,
+  });
+
   return {
     usuarios,
     isLoading,
     toggleAtivo: toggleAtivoMutation.mutate,
     criarUsuario: criarUsuarioMutation.mutateAsync,
+    editarUsuario: editarUsuarioMutation.mutateAsync,
   };
 }
