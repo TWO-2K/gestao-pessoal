@@ -16,10 +16,12 @@ export default function Gastos() {
   const {
     gastos,
     categorias,
+    contasPagamento,
     isLoading,
     deleteGasto,
     createOrUpdateGasto,
     catMap,
+    contaPagamentoMap,
   } = useGastos();
 
   const handleSaved = async (formData) => {
@@ -61,6 +63,7 @@ export default function Gastos() {
         <div className="space-y-2.5">
           {filtrados.map((gasto) => {
             const cat = catMap[gasto.categoria_id];
+            const contaPagamento = contaPagamentoMap[gasto.conta_pagamento_id];
             return (
               <div key={gasto.id} className="group flex items-center gap-4 rounded-2xl border border-ink-200 bg-white px-4 py-3.5">
                 <div className="flex-1 min-w-0">
@@ -73,7 +76,12 @@ export default function Gastos() {
                       </span>
                     )}
                     <span>{formatDate(gasto.data)}</span>
-                    {gasto.forma_pagamento && <span>· {gasto.forma_pagamento}</span>}
+                    {contaPagamento && (
+                      <span className="flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: contaPagamento.cor }} />
+                        {contaPagamento.nome}
+                      </span>
+                    )}
                   </div>
                   {gasto.observacao && (
                     <p className="mt-1 text-xs text-ink-400 truncate">{gasto.observacao}</p>
@@ -97,7 +105,7 @@ export default function Gastos() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar gasto" : "Novo gasto"}</DialogTitle></DialogHeader>
-          <GastoForm gasto={editing} categorias={categorias} onSaved={handleSaved} onCancel={() => setOpen(false)} />
+          <GastoForm gasto={editing} categorias={categorias} contasPagamento={contasPagamento} onSaved={handleSaved} onCancel={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </div>

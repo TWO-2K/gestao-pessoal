@@ -1,6 +1,6 @@
 import React from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, Wallet, LogOut, Users } from "lucide-react";
+import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, Wallet, LogOut, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
@@ -12,6 +12,7 @@ const nav = [
   { to: "/gastos", label: "Gastos", icon: Receipt },
   { to: "/receber", label: "A Receber", icon: ArrowDownCircle },
   { to: "/categorias", label: "Categorias", icon: Tag },
+  { to: "/contas-pagamento", label: "Contas/Cartões", icon: CreditCard },
 ];
 
 export default function Layout() {

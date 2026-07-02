@@ -7,12 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 
-export default function ContaForm({ conta, categorias, onSaved, onCancel }) {
+export default function ContaForm({ conta, categorias, contasPagamento, onSaved, onCancel }) {
   const [form, setForm] = useState({
     descricao: "",
     valor: "",
     vencimento: new Date().toISOString().slice(0, 10),
     categoria_id: null,
+    conta_pagamento_id: null,
     recorrente: false,
     parcelado: false,
     total_parcelas: "2",
@@ -28,6 +29,7 @@ export default function ContaForm({ conta, categorias, onSaved, onCancel }) {
         valor: conta.valor,
         vencimento: conta.vencimento,
         categoria_id: conta.categoria_id,
+        conta_pagamento_id: conta.conta_pagamento_id,
         recorrente: conta.recorrente,
         parcelado: conta.parcelado || conta.total_parcelas > 1,
         total_parcelas: String(conta.total_parcelas || 1),
@@ -40,6 +42,7 @@ export default function ContaForm({ conta, categorias, onSaved, onCancel }) {
         valor: "",
         vencimento: new Date().toISOString().slice(0, 10),
         categoria_id: null,
+        conta_pagamento_id: null,
         recorrente: false,
         parcelado: false,
         total_parcelas: "2",
@@ -85,18 +88,33 @@ export default function ContaForm({ conta, categorias, onSaved, onCancel }) {
           <Input id="vencimento" type="date" value={form.vencimento} onChange={(e) => set("vencimento", e.target.value)} required />
         </div>
       </div>
-      <div className="space-y-2">
-        <Label>Categoria</Label>
-        <Select value={form.categoria_id} onValueChange={(v) => set("categoria_id", v)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione uma categoria" />
-          </SelectTrigger>
-          <SelectContent>
-            {categorias.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Categoria</Label>
+          <Select value={form.categoria_id} onValueChange={(v) => set("categoria_id", v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione uma categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              {categorias.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Conta/Cartão</Label>
+          <Select value={form.conta_pagamento_id} onValueChange={(v) => set("conta_pagamento_id", v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="De onde saiu?" />
+            </SelectTrigger>
+            <SelectContent>
+              {contasPagamento.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div className="flex items-center space-x-2">
         <Checkbox id="recorrente" checked={form.recorrente} onCheckedChange={(c) => set("recorrente", c)} />
