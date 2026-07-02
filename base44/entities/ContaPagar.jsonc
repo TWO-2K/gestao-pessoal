@@ -1,0 +1,45 @@
+{
+  "name": "ContaPagar",
+  "type": "object",
+  "properties": {
+    "descricao": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o da conta (ex: Cart\u00e3o Nubank)"
+    },
+    "categoria_id": {
+      "type": "string",
+      "description": "ID da categoria relacionada"
+    },
+    "valor": {
+      "type": "number",
+      "description": "Valor da conta"
+    },
+    "vencimento": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de vencimento"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "pago"
+      ],
+      "default": "pendente"
+    },
+    "recorrente": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se \u00e9 uma conta mensal recorrente"
+    },
+    "observacao": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es adicionais"
+    }
+  },
+  "required": [
+    "descricao",
+    "valor",
+    "vencimento"
+  ]
+}

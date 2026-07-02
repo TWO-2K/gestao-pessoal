@@ -1,0 +1,36 @@
+{
+  "name": "DividaReceber",
+  "type": "object",
+  "properties": {
+    "devedor": {
+      "type": "string",
+      "description": "Nome de quem deve pagar"
+    },
+    "descricao": {
+      "type": "string",
+      "description": "O que foi vendido/emprestado (ex: Notebook Dell)"
+    },
+    "valor_total": {
+      "type": "number",
+      "description": "Valor total a receber"
+    },
+    "num_parcelas": {
+      "type": "integer",
+      "default": 1,
+      "description": "N\u00famero de parcelas"
+    },
+    "data_inicio": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da primeira parcela"
+    },
+    "observacao": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es adicionais"
+    }
+  },
+  "required": [
+    "devedor",
+    "valor_total"
+  ]
+}
