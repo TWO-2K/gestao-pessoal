@@ -1,0 +1,41 @@
+{
+  "name": "ParcelaDivida",
+  "type": "object",
+  "properties": {
+    "divida_id": {
+      "type": "string",
+      "description": "ID da d\u00edvida relacionada"
+    },
+    "numero": {
+      "type": "integer",
+      "description": "N\u00famero da parcela (1, 2, 3...)"
+    },
+    "valor": {
+      "type": "number",
+      "description": "Valor da parcela"
+    },
+    "vencimento": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de vencimento da parcela"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "recebido"
+      ],
+      "default": "pendente"
+    },
+    "data_recebimento": {
+      "type": "string",
+      "format": "date",
+      "description": "Quando foi efetivamente recebida"
+    }
+  },
+  "required": [
+    "divida_id",
+    "numero",
+    "valor"
+  ]
+}
