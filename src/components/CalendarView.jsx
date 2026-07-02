@@ -85,8 +85,8 @@ export default function CalendarView({ contas, parcelas }) {
             const evts = eventsByDay[cell.dateStr];
             const isToday = cell.dateStr === todayStr;
             const isSelected = cell.dateStr === selected;
-            const hasPagar = evts?.pagar.length;
-            const hasReceber = evts?.receber.length;
+            const hasPagar = !!evts?.pagar.length;
+            const hasReceber = !!evts?.receber.length;
             return (
               <button
                 key={cell.dateStr}
