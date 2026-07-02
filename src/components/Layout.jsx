@@ -1,8 +1,9 @@
 import React from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Tag, Wallet, LogOut } from "lucide-react";
+import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Tag, Wallet, LogOut, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
+import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 import { supabase } from "@/lib/supabaseClient";
 
 const nav = [
@@ -16,6 +17,10 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { usuario } = useUsuarioAtual();
+  const items = usuario?.role === "admin"
+    ? [...nav, { to: "/usuarios", label: "Usuários", icon: Users }]
+    : nav;
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -37,7 +42,7 @@ export default function Layout() {
           </div>
         </div>
         <nav className="flex-1 space-y-1">
-          {nav.map((item) => {
+          {items.map((item) => {
             const active = location.pathname === item.to;
             return (
               <Link

@@ -6,11 +6,12 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import ScrollToTop from './components/ScrollToTop';
 import Layout from '@/components/Layout';
-import { ProtectedRoute, PublicOnlyRoute } from '@/components/ProtectedRoute';
+import { ProtectedRoute, PublicOnlyRoute, AdminRoute } from '@/components/ProtectedRoute';
 import Dashboard from '@/pages/Dashboard';
 import ContasPagar from '@/pages/ContasPagar';
 import DividasReceber from '@/pages/DividasReceber';
 import Categorias from '@/pages/Categorias';
+import Usuarios from '@/pages/Usuarios';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -30,6 +31,9 @@ function App() {
                 <Route path="/contas" element={<ContasPagar />} />
                 <Route path="/receber" element={<DividasReceber />} />
                 <Route path="/categorias" element={<Categorias />} />
+                <Route element={<AdminRoute />}>
+                  <Route path="/usuarios" element={<Usuarios />} />
+                </Route>
               </Route>
             </Route>
 
