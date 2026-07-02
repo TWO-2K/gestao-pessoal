@@ -59,16 +59,16 @@ Isso fecha a brecha de login com Google criar acesso automático sem o admin ter
 
 ## 3. Criação de usuários (função privilegiada)
 
-Criar um login exige a service role key do Supabase, que não pode existir no navegador. Isso roda em uma função Base44 (Deno, backend):
+Criar um login exige a service role key do Supabase, que não pode existir no navegador. O app já é 100% Supabase nativo (auth, tabelas e migrations geridos via `supabase/` + Supabase CLI — o `base44Client.js` existente está vazio e não é usado por nenhuma página), então a função privilegiada é uma **Supabase Edge Function**, consistente com o resto do backend:
 
-`base44/functions/criar-usuario/entry.ts`:
-1. Recebe `{ nome, email, senha, role }` do frontend autenticado.
-2. Valida que quem chama é admin (verifica o JWT do caller contra `usuarios.role`, usando o client Supabase com a anon key do caller para reconfirmar identidade, e depois o client admin/service-role para as ações privilegiadas).
-3. Usa `supabase.auth.admin.createUser({ email, password: senha, email_confirm: true })` (service role) para criar o login já confirmado.
-4. Insere a linha correspondente em `public.usuarios` (`id`, `nome`, `email`, `role`).
-5. Devolve sucesso/erro para o frontend.
+`supabase/functions/criar-usuario/index.ts`:
+1. Recebe `{ nome, email, senha, role }` do frontend autenticado, com o JWT do usuário no header `Authorization` (o client Supabase já envia isso automaticamente em `functions.invoke`).
+2. Cria um client Supabase com a **anon key** e esse JWT para confirmar a identidade de quem chama (`supabase.auth.getUser()`), e consulta `usuarios` com esse client para confirmar `role = 'admin'`. Rejeita com 403 se não for admin.
+3. Cria um segundo client com a **service role key** (nunca exposta ao navegador) e chama `supabase.auth.admin.createUser({ email, password: senha, email_confirm: true })` para criar o login já confirmado.
+4. Com o client service role, insere a linha correspondente em `public.usuarios` (`id`, `nome`, `email`, `role`).
+5. Devolve sucesso/erro (JSON) para o frontend.
 
-A service role key é armazenada como secret do Base44 (`base44 secrets set SUPABASE_SERVICE_ROLE_KEY=...`), nunca commitada.
+A service role key é armazenada como secret da Edge Function (`supabase secrets set SUPABASE_SERVICE_ROLE_KEY=...`), nunca commitada. O frontend chama via `supabase.functions.invoke('criar-usuario', { body: {...} })`.
 
 ## 4. Frontend
 
