@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 import { supabase } from "@/lib/supabaseClient";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import IosInstallHint from "@/components/IosInstallHint";
 
 const nav = [
   { to: "/", label: "Painel", icon: LayoutDashboard },
@@ -90,6 +91,7 @@ export default function Layout() {
 
       {/* Main */}
       <main className="md:pl-64 pb-24 md:pb-0">
+        <IosInstallHint />
         <div className="mx-auto max-w-5xl px-5 py-8 md:py-10">
           <Outlet />
         </div>
