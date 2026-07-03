@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import IosInstallHint from "@/components/IosInstallHint";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function Login() {
@@ -37,6 +38,10 @@ export default function Login() {
   };
 
   return (
+    <>
+    <div className="fixed top-0 inset-x-0 z-30">
+      <IosInstallHint />
+    </div>
     <AuthLayout
       icon={LogIn}
       title="Bem-vindo de volta"
@@ -125,5 +130,6 @@ export default function Login() {
         </Button>
       </form>
     </AuthLayout>
+    </>
   );
 }
