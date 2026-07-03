@@ -56,7 +56,14 @@ export default function ContaForm({ conta, categorias, contasPagamento, onSaved,
   const handleSubmit = async (e) => {
     e.preventDefault();
     const valor = parseFloat(form.valor);
-    if (!form.descricao || !valor || valor <= 0) return;
+    if (!form.descricao) {
+      toast({ variant: "destructive", title: "Erro ao salvar", description: "Informe uma descrição." });
+      return;
+    }
+    if (Number.isNaN(valor) || valor <= 0) {
+      toast({ variant: "destructive", title: "Erro ao salvar", description: "Informe um valor maior que zero." });
+      return;
+    }
 
     setSaving(true);
     try {
