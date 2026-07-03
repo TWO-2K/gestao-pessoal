@@ -119,20 +119,34 @@ export function useContas() {
       if (isPaying && conta.recorrente) {
         const proximoVencimento = new Date(conta.vencimento + "T00:00:00");
         proximoVencimento.setMonth(proximoVencimento.getMonth() + 1);
+        const proximoVencimentoStr = proximoVencimento.toISOString().slice(0, 10);
 
-        const novaContaRecorrente = {
-          ...conta,
-          vencimento: proximoVencimento.toISOString().slice(0, 10),
-          status: "pendente",
-          recorrente: true,
-        };
-        delete novaContaRecorrente.id;
+        const { data: existentes, error: checkError } = await supabase
+          .from('contas_pagar')
+          .select('id')
+          .match({
+            descricao: conta.descricao,
+            vencimento: proximoVencimentoStr,
+          })
+          .limit(1);
+        if (checkError) throw checkError;
 
-        const payload = user ? { ...novaContaRecorrente, user_id: user.id } : novaContaRecorrente;
-        const { error: createError } = await supabase.from('contas_pagar').insert([payload]);
-        if (createError) throw createError;
+        if (!existentes || existentes.length === 0) {
+          const novaContaRecorrente = {
+            ...conta,
+            valor: 0,
+            vencimento: proximoVencimentoStr,
+            status: "pendente",
+            recorrente: true,
+          };
+          delete novaContaRecorrente.id;
 
-        const { error: updateError } = await supabase.from('contas_pagar').update({ status: "pago", recorrente: false }).match({ id: conta.id });
+          const payload = user ? { ...novaContaRecorrente, user_id: user.id } : novaContaRecorrente;
+          const { error: createError } = await supabase.from('contas_pagar').insert([payload]);
+          if (createError) throw createError;
+        }
+
+        const { error: updateError } = await supabase.from('contas_pagar').update({ status: "pago" }).match({ id: conta.id });
         if (updateError) throw updateError;
         return;
       }
