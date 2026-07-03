@@ -8,6 +8,7 @@ import ScrollToTop from './components/ScrollToTop';
 import Layout from '@/components/Layout';
 import { ProtectedRoute, PublicOnlyRoute, AdminRoute } from '@/components/ProtectedRoute';
 import Dashboard from '@/pages/Dashboard';
+import Relatorios from '@/pages/Relatorios';
 import ContasPagar from '@/pages/ContasPagar';
 import Gastos from '@/pages/Gastos';
 import DividasReceber from '@/pages/DividasReceber';
@@ -30,6 +31,7 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/relatorios" element={<Relatorios />} />
                 <Route path="/contas" element={<ContasPagar />} />
                 <Route path="/gastos" element={<Gastos />} />
                 <Route path="/receber" element={<DividasReceber />} />

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, Wallet, LogOut, Users, MoreHorizontal } from "lucide-react";
+import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, Wallet, LogOut, Users, MoreHorizontal, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
@@ -10,6 +10,7 @@ import IosInstallHint from "@/components/IosInstallHint";
 
 const nav = [
   { to: "/", label: "Painel", icon: LayoutDashboard },
+  { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { to: "/contas", label: "Contas a Pagar", icon: ArrowUpCircle },
   { to: "/gastos", label: "Gastos", icon: Receipt },
   { to: "/receber", label: "A Receber", icon: ArrowDownCircle },
