@@ -65,20 +65,23 @@ export default function Gastos() {
             const cat = catMap[gasto.categoria_id];
             const contaPagamento = contaPagamentoMap[gasto.conta_pagamento_id];
             return (
-              <div key={gasto.id} className="group flex items-center gap-4 rounded-2xl border border-ink-200 bg-white px-4 py-3.5">
+              <div key={gasto.id} className="group flex items-start gap-3 rounded-2xl border border-ink-200 bg-white px-4 py-3.5">
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{gasto.descricao}</p>
-                  <div className="flex items-center gap-2 mt-0.5 text-xs text-ink-400">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-medium truncate min-w-0">{gasto.descricao}</p>
+                    <p className="flex-shrink-0 font-mono font-semibold tabular-nums">{formatCurrency(gasto.valor)}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-ink-400">
                     {cat && (
                       <span className="flex items-center gap-1">
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.cor }} />
+                        <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.cor }} />
                         {cat.nome}
                       </span>
                     )}
                     <span>{formatDate(gasto.data)}</span>
                     {contaPagamento && (
                       <span className="flex items-center gap-1">
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: contaPagamento.cor }} />
+                        <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: contaPagamento.cor }} />
                         {contaPagamento.nome}
                       </span>
                     )}
@@ -87,8 +90,7 @@ export default function Gastos() {
                     <p className="mt-1 text-xs text-ink-400 truncate">{gasto.observacao}</p>
                   )}
                 </div>
-                <p className="font-mono font-semibold tabular-nums">{formatCurrency(gasto.valor)}</p>
-                <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex flex-col gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                   <button onClick={() => { setEditing(gasto); setOpen(true); }} className="p-2 text-ink-400 hover:text-ink-900">
                     <Pencil className="h-4 w-4" />
                   </button>
