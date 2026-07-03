@@ -12,8 +12,11 @@ import { useContas } from "@/hooks/useContas";
 export default function ContasPagar() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [filtro, setFiltro] = useState("todas");
-  const [mes, setMes] = useState(null);
+  const [filtro, setFiltro] = useState("pendente");
+  const [mes, setMes] = useState(() => {
+    const now = new Date();
+    return { month: now.getMonth(), year: now.getFullYear() };
+  });
 
   const {
     contas,
