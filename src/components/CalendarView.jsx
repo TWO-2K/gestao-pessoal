@@ -99,19 +99,19 @@ export default function CalendarView({ contas, parcelas }) {
                 )}
               >
                 <span className={cn("font-medium", isToday && !isSelected && "text-ink-900")}>{cell.day}</span>
-                {pagarPago && (
-                  <span
-                    className={cn(
-                      "absolute top-1 right-1 h-3.5 w-3.5 rounded-full flex items-center justify-center",
-                      isSelected ? "bg-forest-300 text-ink-900" : "bg-forest-500 text-white"
-                    )}
-                  >
-                    <Check className="h-2.5 w-2.5" strokeWidth={3} />
-                  </span>
-                )}
-                {(pagarPendente || hasReceber) && (
-                  <div className="flex gap-0.5 absolute bottom-1.5">
+                {(pagarPendente || pagarPago || hasReceber) && (
+                  <div className="flex items-center gap-0.5 absolute bottom-1.5">
                     {pagarPendente && <span className={cn("h-1.5 w-1.5 rounded-full", isSelected ? "bg-ink-50" : "bg-ink-700")} />}
+                    {pagarPago && (
+                      <span
+                        className={cn(
+                          "h-3 w-3 rounded-full flex items-center justify-center",
+                          isSelected ? "bg-forest-300 text-ink-900" : "bg-forest-500 text-white"
+                        )}
+                      >
+                        <Check className="h-2 w-2" strokeWidth={3} />
+                      </span>
+                    )}
                     {hasReceber && <span className={cn("h-1.5 w-1.5 rounded-full", isSelected ? "bg-gold-300" : "bg-gold-500")} />}
                   </div>
                 )}
@@ -125,13 +125,13 @@ export default function CalendarView({ contas, parcelas }) {
             <span className="h-2.5 w-2.5 rounded-full bg-ink-700" /> A pagar
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-3.5 w-3.5 rounded-full bg-gold-500 text-white flex items-center justify-center">
+            <span className="h-3.5 w-3.5 rounded-full bg-forest-500 text-white flex items-center justify-center">
               <Check className="h-2.5 w-2.5" strokeWidth={3} />
             </span>
             Pago
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-forest-500" /> A receber
+            <span className="h-2.5 w-2.5 rounded-full bg-gold-500" /> A receber
           </span>
         </div>
       </div>
@@ -152,15 +152,15 @@ export default function CalendarView({ contas, parcelas }) {
               </div>
             )}
             {totalPago > 0 && (
-              <div className="rounded-xl bg-ink-50 px-3 py-2">
-                <p className="text-[11px] text-ink-400">Pago</p>
-                <p className="font-semibold text-ink-400 text-sm tabular-nums line-through">{formatCurrency(totalPago)}</p>
+              <div className="rounded-xl bg-forest-50 px-3 py-2">
+                <p className="text-[11px] text-forest-600">Pago</p>
+                <p className="font-semibold text-forest-700 text-sm tabular-nums line-through">{formatCurrency(totalPago)}</p>
               </div>
             )}
             {totalReceber > 0 && (
-              <div className="rounded-xl bg-forest-50 px-3 py-2">
-                <p className="text-[11px] text-forest-600">A receber</p>
-                <p className="font-semibold text-forest-700 text-sm tabular-nums">{formatCurrency(totalReceber)}</p>
+              <div className="rounded-xl bg-gold-500/10 px-3 py-2">
+                <p className="text-[11px] text-gold-600">A receber</p>
+                <p className="font-semibold text-gold-600 text-sm tabular-nums">{formatCurrency(totalReceber)}</p>
               </div>
             )}
           </div>
@@ -175,7 +175,7 @@ export default function CalendarView({ contas, parcelas }) {
               return (
                 <div key={c.id} className="flex items-center gap-2.5 text-sm">
                   {pago ? (
-                    <Check className="h-3 w-3 text-ink-300 flex-shrink-0" />
+                    <Check className="h-3 w-3 text-forest-500 flex-shrink-0" />
                   ) : (
                     <span className="h-2 w-2 rounded-full bg-ink-700 flex-shrink-0" />
                   )}
@@ -186,9 +186,9 @@ export default function CalendarView({ contas, parcelas }) {
             })}
             {selectedEvents.receber.map((p) => (
               <div key={p.id} className="flex items-center gap-2.5 text-sm">
-                <span className="h-2 w-2 rounded-full bg-forest-500 flex-shrink-0" />
+                <span className="h-2 w-2 rounded-full bg-gold-500 flex-shrink-0" />
                 <span className="flex-1 truncate">{p.numero}ª parcela</span>
-                <span className="font-mono font-medium tabular-nums text-forest-600">{formatCurrency(p.valor)}</span>
+                <span className="font-mono font-medium tabular-nums text-gold-600">{formatCurrency(p.valor)}</span>
               </div>
             ))}
           </div>
