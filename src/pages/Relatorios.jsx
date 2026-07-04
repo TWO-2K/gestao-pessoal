@@ -90,6 +90,20 @@ export default function Relatorios() {
     }));
   }, [parcelas, mes]);
 
+  const contasPagasPorMes = useMemo(() => {
+    const meses = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(mes.year, mes.month - i, 1);
+      meses.push({ month: d.getMonth(), year: d.getFullYear() });
+    }
+    return meses.map(({ month, year }) => ({
+      label: `${MESES_ABREV[month]}/${String(year).slice(2)}`,
+      total: contas
+        .filter((c) => c.status === "pago" && isInMonth(c.vencimento, month, year))
+        .reduce((s, c) => s + (c.valor || 0), 0),
+    }));
+  }, [contas, mes]);
+
   const maioresGastos = useMemo(() => {
     const itens = [
       ...contasDoMes.filter((c) => c.status === "pago").map((c) => ({
@@ -179,6 +193,21 @@ export default function Relatorios() {
             </ChartContainer>
           )}
         </div>
+      </div>
+
+      <div className="mb-8">
+        <h2 className="font-display text-lg text-ink-900 mb-3 flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-ink-400" /> Contas pagas (últimos 6 meses)
+        </h2>
+        <ChartContainer config={{}} className="max-h-[260px] w-full">
+          <RechartsPrimitive.BarChart data={contasPagasPorMes}>
+            <RechartsPrimitive.CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <RechartsPrimitive.XAxis dataKey="label" tickLine={false} axisLine={false} />
+            <RechartsPrimitive.YAxis tickLine={false} axisLine={false} width={40} />
+            <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+            <RechartsPrimitive.Bar dataKey="total" fill="#c25b3f" radius={4} />
+          </RechartsPrimitive.BarChart>
+        </ChartContainer>
       </div>
 
       <div className="mb-8">
