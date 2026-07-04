@@ -3,11 +3,22 @@ import PageHeader from "@/components/PageHeader";
 import ContaForm from "@/components/ContaForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, ArrowUpCircle, Check, Repeat } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUpCircle, Check, Repeat, AlertTriangle, Clock } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import MonthFilter, { isInMonth } from "@/components/MonthFilter";
 import { useContas } from "@/hooks/useContas";
+
+const DIAS_AVISO_VENCIMENTO = 2;
+
+// Retorna quantos dias faltam até o vencimento (negativo se já venceu).
+const diasAteVencimento = (vencimento) => {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const [y, m, d] = vencimento.split("-").map(Number);
+  const dataVencimento = new Date(y, m - 1, d);
+  return Math.round((dataVencimento - hoje) / (1000 * 60 * 60 * 24));
+};
 
 export default function ContasPagar() {
   const [open, setOpen] = useState(false);
@@ -92,8 +103,17 @@ export default function ContasPagar() {
             const cat = catMap[conta.categoria_id];
             const contaPagamento = contaPagamentoMap[conta.conta_pagamento_id];
             const pago = conta.status === "pago";
+            const dias = !pago ? diasAteVencimento(conta.vencimento) : null;
+            const vencida = dias !== null && dias < 0;
+            const prestesAVencer = dias !== null && dias >= 0 && dias <= DIAS_AVISO_VENCIMENTO;
             return (
-              <div key={conta.id} className="group flex items-start gap-3 rounded-2xl border border-ink-200 bg-white px-4 py-3.5">
+              <div
+                key={conta.id}
+                className={cn(
+                  "group flex items-start gap-3 rounded-2xl border bg-white px-4 py-3.5",
+                  vencida ? "border-rust-200 bg-rust-50/40" : prestesAVencer ? "border-amber-200 bg-amber-50/40" : "border-ink-200"
+                )}
+              >
                 <button
                   onClick={() => toggleStatusConta(conta)}
                   className={cn(
@@ -130,6 +150,16 @@ export default function ContasPagar() {
                       </span>
                     )}
                     <span>Vence {formatDate(conta.vencimento)}</span>
+                    {vencida && (
+                      <span className="flex items-center gap-1 rounded-full bg-rust-100 px-2 py-0.5 font-medium text-rust-700">
+                        <AlertTriangle className="h-3 w-3" /> Vencida
+                      </span>
+                    )}
+                    {prestesAVencer && (
+                      <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-700">
+                        <Clock className="h-3 w-3" /> {dias === 0 ? "Vence hoje" : dias === 1 ? "Vence amanhã" : `Vence em ${dias} dias`}
+                      </span>
+                    )}
                   </div>
                   {conta.observacao && (
                     <p className="mt-1 text-xs text-ink-400 truncate">{conta.observacao}</p>
