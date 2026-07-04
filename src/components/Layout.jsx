@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, Wallet, LogOut, Users, MoreHorizontal, BarChart3 } from "lucide-react";
+import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, Wallet, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
@@ -8,19 +8,31 @@ import { supabase } from "@/lib/supabaseClient";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import IosInstallHint from "@/components/IosInstallHint";
 
-const nav = [
-  { to: "/", label: "Painel", icon: LayoutDashboard },
-  { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
-  { to: "/contas", label: "Contas a Pagar", icon: ArrowUpCircle },
-  { to: "/gastos", label: "Gastos", icon: Receipt },
-  { to: "/receber", label: "A Receber", icon: ArrowDownCircle },
-  { to: "/categorias", label: "Categorias", icon: Tag },
-  { to: "/contas-pagamento", label: "Contas/Cartões", icon: CreditCard },
+const navSections = [
+  {
+    section: "Financeiro",
+    items: [
+      { to: "/", label: "Painel", icon: LayoutDashboard },
+      { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
+      { to: "/contas", label: "Contas a Pagar", icon: ArrowUpCircle },
+      { to: "/gastos", label: "Gastos", icon: Receipt },
+      { to: "/receber", label: "A Receber", icon: ArrowDownCircle },
+      { to: "/categorias", label: "Categorias", icon: Tag },
+      { to: "/contas-pagamento", label: "Contas/Cartões", icon: CreditCard },
+    ],
+  },
+  {
+    section: "Planner",
+    items: [
+      { to: "/planner", label: "Tarefas", icon: CheckSquare },
+    ],
+  },
 ];
 
 // No mobile só os itens de uso mais frequente cabem na barra; o resto vai no menu "Mais".
-const mobilePrimaryNav = nav.slice(0, 4);
-const mobileMoreNav = nav.slice(4);
+const flatNav = navSections.flatMap((s) => s.items);
+const mobilePrimaryNav = flatNav.slice(0, 4);
+const mobileMoreNav = flatNav.slice(4);
 
 export default function Layout() {
   const location = useLocation();
@@ -28,9 +40,9 @@ export default function Layout() {
   const { user } = useAuth();
   const { usuario } = useUsuarioAtual();
   const isAdmin = usuario?.role === "admin";
-  const items = isAdmin
-    ? [...nav, { to: "/usuarios", label: "Usuários", icon: Users }]
-    : nav;
+  const sectionsWithAdmin = isAdmin
+    ? [...navSections, { section: "Administração", items: [{ to: "/usuarios", label: "Usuários", icon: Users }] }]
+    : navSections;
   const moreNavItems = isAdmin
     ? [...mobileMoreNav, { to: "/usuarios", label: "Usuários", icon: Users }]
     : mobileMoreNav;
@@ -56,23 +68,30 @@ export default function Layout() {
             <p className="text-[11px] uppercase tracking-[0.14em] text-ink-50/40 leading-tight">Livro-caixa</p>
           </div>
         </div>
-        <nav className="flex-1 space-y-1">
-          {items.map((item) => {
-            const active = location.pathname === item.to;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  active ? "bg-ink-50/10 text-gold-400" : "text-ink-50/60 hover:bg-ink-50/5 hover:text-ink-50"
-                )}
-              >
-                <item.icon className="h-[18px] w-[18px]" />
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 space-y-5">
+          {sectionsWithAdmin.map((sec) => (
+            <div key={sec.section}>
+              <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-50/35">{sec.section}</p>
+              <div className="space-y-1">
+                {sec.items.map((item) => {
+                  const active = location.pathname === item.to;
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                        active ? "bg-ink-50/10 text-gold-400" : "text-ink-50/60 hover:bg-ink-50/5 hover:text-ink-50"
+                      )}
+                    >
+                      <item.icon className="h-[18px] w-[18px]" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="border-t border-ink-50/10 pt-4 mt-2">
