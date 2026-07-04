@@ -4,6 +4,7 @@ import PlannerTarefaForm from "@/components/PlannerTarefaForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import WeekStrip from "@/components/WeekStrip";
@@ -37,7 +38,7 @@ export default function Planner() {
 
   const [deleting, setDeleting] = useState(null);
   const [selectedQuadro, setSelectedQuadro] = useState(null);
-  const [quadroDialogOpen, setQuadroDialogOpen] = useState(false);
+  const [manageQuadrosOpen, setManageQuadrosOpen] = useState(false);
   const [novoQuadroNome, setNovoQuadroNome] = useState("");
   const [deletingQuadro, setDeletingQuadro] = useState(null);
   const { toast } = useToast();
@@ -51,7 +52,6 @@ export default function Planner() {
       const created = await createQuadro(novoQuadroNome.trim());
       setSelectedQuadro(created.id);
       setNovoQuadroNome("");
-      setQuadroDialogOpen(false);
     } catch (error) {
       toast({ variant: "destructive", title: "Erro ao criar quadro", description: error.message });
     }
@@ -158,44 +158,27 @@ export default function Planner() {
 
       <WeekStrip value={selectedDate} onChange={setSelectedDate} />
 
-      <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
-        <button
-          onClick={() => setSelectedQuadro(null)}
-          className={cn(
-            "flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
-            selectedQuadro === null ? "bg-ink-900 text-white" : "bg-ink-100 text-ink-500 hover:bg-ink-200"
-          )}
+      <div className="flex items-center gap-2 mb-4">
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-400 flex-shrink-0">
+          <span className="h-2 w-2 rounded-full bg-sky-400" /> Quadro
+        </span>
+        <Select
+          value={selectedQuadro ?? "geral"}
+          onValueChange={(v) => setSelectedQuadro(v === "geral" ? null : v)}
         >
-          Geral
-        </button>
-        {quadros.map((q) => (
-          <div key={q.id} className="group relative flex-shrink-0">
-            <button
-              onClick={() => setSelectedQuadro(q.id)}
-              className={cn(
-                "rounded-full px-3 py-1.5 pr-6 text-xs font-semibold transition-colors",
-                selectedQuadro === q.id ? "bg-ink-900 text-white" : "bg-ink-100 text-ink-500 hover:bg-ink-200"
-              )}
-            >
-              {q.nome}
-            </button>
-            <button
-              onClick={() => setDeletingQuadro(q)}
-              className={cn(
-                "absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity",
-                selectedQuadro === q.id ? "text-white/70 hover:text-white" : "text-ink-400 hover:text-rust-600"
-              )}
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        ))}
-        <button
-          onClick={() => setQuadroDialogOpen(true)}
-          className="flex-shrink-0 flex items-center gap-1 rounded-full border border-dashed border-ink-300 px-3 py-1.5 text-xs font-semibold text-ink-400 hover:text-ink-900 hover:border-ink-400"
-        >
-          <Plus className="h-3 w-3" /> Novo quadro
-        </button>
+          <SelectTrigger className="h-9 flex-1 rounded-xl text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="geral">Geral</SelectItem>
+            {quadros.map((q) => (
+              <SelectItem key={q.id} value={q.id}>{q.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button variant="outline" className="h-9 rounded-xl flex-shrink-0" onClick={() => setManageQuadrosOpen(true)}>
+          Gerenciar
+        </Button>
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-6">
@@ -346,20 +329,43 @@ export default function Planner() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={quadroDialogOpen} onOpenChange={setQuadroDialogOpen}>
+      <Dialog open={manageQuadrosOpen} onOpenChange={setManageQuadrosOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Novo quadro</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Gerenciar quadros</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <Input
-              autoFocus
-              value={novoQuadroNome}
-              onChange={(e) => setNovoQuadroNome(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleCreateQuadro(); }}
-              placeholder="Nome do quadro"
-            />
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setQuadroDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleCreateQuadro}>Criar</Button>
+            <div className="flex items-center gap-1.5">
+              <Input
+                autoFocus
+                value={novoQuadroNome}
+                onChange={(e) => setNovoQuadroNome(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleCreateQuadro(); }}
+                placeholder="Nome do novo quadro"
+                className="h-9"
+              />
+              <Button size="icon" className="h-9 w-9 flex-shrink-0" onClick={handleCreateQuadro}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-sm text-ink-500">
+                <span>Geral</span>
+              </div>
+              {quadros.map((q) => (
+                <div key={q.id} className="group flex items-center justify-between rounded-lg px-2.5 py-1.5 text-sm text-ink-900 hover:bg-ink-50">
+                  <span>{q.nome}</span>
+                  <button
+                    onClick={() => setDeletingQuadro(q)}
+                    className="text-ink-400 hover:text-rust-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <Button variant="ghost" onClick={() => setManageQuadrosOpen(false)}>Fechar</Button>
             </div>
           </div>
         </DialogContent>

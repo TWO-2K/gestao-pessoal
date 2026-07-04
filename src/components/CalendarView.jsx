@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -54,7 +54,8 @@ export default function CalendarView({ contas, parcelas }) {
     setCursor(new Date(year, month + delta, 1));
   };
 
-  const totalPagar = selectedEvents.pagar.reduce((s, c) => s + (c.valor || 0), 0);
+  const totalPagar = selectedEvents.pagar.filter((c) => c.status !== "pago").reduce((s, c) => s + (c.valor || 0), 0);
+  const totalPago = selectedEvents.pagar.filter((c) => c.status === "pago").reduce((s, c) => s + (c.valor || 0), 0);
   const totalReceber = selectedEvents.receber.reduce((s, p) => s + (p.valor || 0), 0);
 
   return (
@@ -85,7 +86,8 @@ export default function CalendarView({ contas, parcelas }) {
             const evts = eventsByDay[cell.dateStr];
             const isToday = cell.dateStr === todayStr;
             const isSelected = cell.dateStr === selected;
-            const hasPagar = !!evts?.pagar.length;
+            const pagarPendente = evts?.pagar.some((c) => c.status !== "pago");
+            const pagarPago = evts?.pagar.some((c) => c.status === "pago");
             const hasReceber = !!evts?.receber.length;
             return (
               <button
@@ -97,10 +99,20 @@ export default function CalendarView({ contas, parcelas }) {
                 )}
               >
                 <span className={cn("font-medium", isToday && !isSelected && "text-ink-900")}>{cell.day}</span>
-                {(hasPagar || hasReceber) && (
+                {pagarPago && (
+                  <span
+                    className={cn(
+                      "absolute top-1 right-1 h-3.5 w-3.5 rounded-full flex items-center justify-center",
+                      isSelected ? "bg-forest-300 text-ink-900" : "bg-forest-500 text-white"
+                    )}
+                  >
+                    <Check className="h-2.5 w-2.5" strokeWidth={3} />
+                  </span>
+                )}
+                {(pagarPendente || hasReceber) && (
                   <div className="flex gap-0.5 absolute bottom-1.5">
-                    {hasPagar && <span className={cn("h-1.5 w-1.5 rounded-full", isSelected ? "bg-ink-50" : "bg-ink-700")} />}
-                    {hasReceber && <span className={cn("h-1.5 w-1.5 rounded-full", isSelected ? "bg-forest-300" : "bg-forest-500")} />}
+                    {pagarPendente && <span className={cn("h-1.5 w-1.5 rounded-full", isSelected ? "bg-ink-50" : "bg-ink-700")} />}
+                    {hasReceber && <span className={cn("h-1.5 w-1.5 rounded-full", isSelected ? "bg-gold-300" : "bg-gold-500")} />}
                   </div>
                 )}
               </button>
@@ -108,9 +120,15 @@ export default function CalendarView({ contas, parcelas }) {
           })}
         </div>
 
-        <div className="flex items-center gap-4 mt-4 pt-4 border-t border-ink-100 text-xs text-ink-500">
+        <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-ink-100 text-xs text-ink-500">
           <span className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-ink-700" /> A pagar
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-3.5 w-3.5 rounded-full bg-gold-500 text-white flex items-center justify-center">
+              <Check className="h-2.5 w-2.5" strokeWidth={3} />
+            </span>
+            Pago
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-forest-500" /> A receber
@@ -125,12 +143,18 @@ export default function CalendarView({ contas, parcelas }) {
           {new Date(selected + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })}
         </h3>
 
-        {(totalPagar > 0 || totalReceber > 0) && (
+        {(totalPagar > 0 || totalPago > 0 || totalReceber > 0) && (
           <div className="grid grid-cols-2 gap-2 mb-4">
             {totalPagar > 0 && (
               <div className="rounded-xl bg-ink-100 px-3 py-2">
                 <p className="text-[11px] text-ink-500">A pagar</p>
                 <p className="font-semibold text-ink-900 text-sm tabular-nums">{formatCurrency(totalPagar)}</p>
+              </div>
+            )}
+            {totalPago > 0 && (
+              <div className="rounded-xl bg-ink-50 px-3 py-2">
+                <p className="text-[11px] text-ink-400">Pago</p>
+                <p className="font-semibold text-ink-400 text-sm tabular-nums line-through">{formatCurrency(totalPago)}</p>
               </div>
             )}
             {totalReceber > 0 && (
@@ -146,13 +170,20 @@ export default function CalendarView({ contas, parcelas }) {
           <p className="text-sm text-ink-400">Nenhum vencimento neste dia.</p>
         ) : (
           <div className="space-y-2">
-            {selectedEvents.pagar.map((c) => (
-              <div key={c.id} className="flex items-center gap-2.5 text-sm">
-                <span className="h-2 w-2 rounded-full bg-ink-700 flex-shrink-0" />
-                <span className="flex-1 truncate">{c.descricao}</span>
-                <span className="font-mono font-medium tabular-nums text-ink-600">{formatCurrency(c.valor)}</span>
-              </div>
-            ))}
+            {selectedEvents.pagar.map((c) => {
+              const pago = c.status === "pago";
+              return (
+                <div key={c.id} className="flex items-center gap-2.5 text-sm">
+                  {pago ? (
+                    <Check className="h-3 w-3 text-ink-300 flex-shrink-0" />
+                  ) : (
+                    <span className="h-2 w-2 rounded-full bg-ink-700 flex-shrink-0" />
+                  )}
+                  <span className={cn("flex-1 truncate", pago && "line-through text-ink-400")}>{c.descricao}</span>
+                  <span className={cn("font-mono font-medium tabular-nums", pago ? "text-ink-400" : "text-ink-600")}>{formatCurrency(c.valor)}</span>
+                </div>
+              );
+            })}
             {selectedEvents.receber.map((p) => (
               <div key={p.id} className="flex items-center gap-2.5 text-sm">
                 <span className="h-2 w-2 rounded-full bg-forest-500 flex-shrink-0" />
