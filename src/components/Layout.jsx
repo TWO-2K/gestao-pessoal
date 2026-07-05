@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, Wallet, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare } from "lucide-react";
+import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, Wallet, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare, Eye, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/lib/AuthContext";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
+import { useUsuarios } from "@/hooks/useUsuarios";
+import { useViewAs } from "@/lib/ViewAsContext";
 import { supabase } from "@/lib/supabaseClient";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import IosInstallHint from "@/components/IosInstallHint";
+import AdminUserSwitcher from "@/components/AdminUserSwitcher";
 
 const navSections = [
   {
@@ -37,9 +39,11 @@ const mobileMoreNav = flatNav.slice(4);
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { usuario } = useUsuarioAtual();
+  const { usuarios } = useUsuarios();
+  const { isViewingOther, viewedUserId } = useViewAs();
   const isAdmin = usuario?.role === "admin";
+  const viewedUsuario = usuarios.find((u) => u.id === viewedUserId);
   const sectionsWithAdmin = isAdmin
     ? [...navSections, { section: "Administração", items: [{ to: "/usuarios", label: "Usuários", icon: Users }] }]
     : navSections;
@@ -48,6 +52,16 @@ export default function Layout() {
     : mobileMoreNav;
   const [moreOpen, setMoreOpen] = useState(false);
   const isMoreActive = moreNavItems.some((item) => item.to === location.pathname);
+
+  const [collapsedSections, setCollapsedSections] = useState(() => new Set());
+  const toggleSection = (name) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -68,36 +82,51 @@ export default function Layout() {
             <p className="text-[11px] uppercase tracking-[0.14em] text-ink-50/40 leading-tight">Livro-caixa</p>
           </div>
         </div>
-        <nav className="flex-1 space-y-5">
-          {sectionsWithAdmin.map((sec) => (
-            <div key={sec.section}>
-              <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-50/35">{sec.section}</p>
-              <div className="space-y-1">
-                {sec.items.map((item) => {
-                  const active = location.pathname === item.to;
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                        active ? "bg-ink-50/10 text-gold-400" : "text-ink-50/60 hover:bg-ink-50/5 hover:text-ink-50"
-                      )}
-                    >
-                      <item.icon className="h-[18px] w-[18px]" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
+        <nav className="sidebar-scroll flex-1 min-h-0 overflow-y-auto space-y-3 pr-1 -mr-1">
+          {sectionsWithAdmin.map((sec) => {
+            const hasActive = sec.items.some((item) => item.to === location.pathname);
+            const isCollapsed = collapsedSections.has(sec.section) && !hasActive;
+            return (
+              <div key={sec.section}>
+                <button
+                  onClick={() => toggleSection(sec.section)}
+                  className="w-full flex items-center justify-between px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-50/35 hover:text-ink-50/60 transition-colors"
+                >
+                  {sec.section}
+                  <ChevronDown className={cn("h-3 w-3 transition-transform", isCollapsed && "-rotate-90")} />
+                </button>
+                {!isCollapsed && (
+                  <div className="space-y-1">
+                    {sec.items.map((item) => {
+                      const active = location.pathname === item.to;
+                      return (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                            active ? "bg-ink-50/10 text-gold-400" : "text-ink-50/60 hover:bg-ink-50/5 hover:text-ink-50"
+                          )}
+                        >
+                          <item.icon className="h-[18px] w-[18px]" />
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </nav>
 
-        <div className="border-t border-ink-50/10 pt-4 mt-2">
-          {user?.email && (
-            <p className="px-2 text-[11px] text-ink-50/40 truncate mb-2" title={user.email}>{user.email}</p>
-          )}
+        {isAdmin && (
+          <div className="flex-shrink-0 border-t border-ink-50/10 pt-4 mt-2 mb-2">
+            <AdminUserSwitcher />
+          </div>
+        )}
+
+        <div className="flex-shrink-0 border-t border-ink-50/10 pt-4 mt-2">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-50/60 hover:bg-ink-50/5 hover:text-rust-200 transition-colors"
@@ -105,13 +134,18 @@ export default function Layout() {
             <LogOut className="h-[18px] w-[18px]" />
             Sair
           </button>
-          <p className="px-2 mt-2 text-[11px] text-ink-50/30 font-mono">v1 · contas em dia</p>
         </div>
       </aside>
 
       {/* Main */}
       <main className="md:pl-64 pb-24 md:pb-0">
         <IosInstallHint />
+        {isViewingOther && (
+          <div className="flex items-center gap-2 bg-gold-500/15 border-b border-gold-500/30 px-5 py-2 text-xs font-medium text-gold-700">
+            <Eye className="h-3.5 w-3.5" />
+            Visualizando dados de {viewedUsuario?.nome || viewedUsuario?.email || "outro usuário"} (somente leitura)
+          </div>
+        )}
         <div className="mx-auto max-w-5xl px-5 py-8 md:py-10">
           <Outlet />
         </div>
@@ -171,6 +205,11 @@ export default function Layout() {
               );
             })}
           </div>
+          {isAdmin && (
+            <div className="pb-4">
+              <AdminUserSwitcher variant="light" />
+            </div>
+          )}
           <button
             onClick={() => { setMoreOpen(false); handleLogout(); }}
             className="w-full flex items-center justify-center gap-2 rounded-xl border border-rust-200 px-3 py-3 text-sm font-medium text-rust-600"

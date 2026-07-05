@@ -1,18 +1,20 @@
 import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
+import { useViewAs } from "@/lib/ViewAsContext";
 import { supabase } from "@/lib/supabaseClient";
 
 export function useDividas() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
+  const { viewedUserId } = useViewAs();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["dividas", "parcelas"],
+    queryKey: ["dividas", "parcelas", viewedUserId],
     queryFn: async () => {
       const [dividasRes, parcelasRes] = await Promise.all([
-        supabase.from('dividas_receber').select('*').order('created_at', { ascending: false }),
-        supabase.from('parcelas_divida').select('*').order('data_recebimento', { ascending: false }),
+        supabase.from('dividas_receber').select('*').eq('user_id', viewedUserId).order('created_at', { ascending: false }),
+        supabase.from('parcelas_divida').select('*').eq('user_id', viewedUserId).order('data_recebimento', { ascending: false }),
       ]);
 
       if (dividasRes.error) throw new Error(dividasRes.error.message);
@@ -20,6 +22,7 @@ export function useDividas() {
 
       return { dividas: dividasRes.data, parcelas: parcelasRes.data };
     },
+    enabled: !!viewedUserId,
   });
 
   const { dividas = [], parcelas = [] } = data || {};

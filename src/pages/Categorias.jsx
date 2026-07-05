@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Tag } from "lucide-react";
 import { useCategorias } from "@/hooks/useCategorias";
+import { useViewAs } from "@/lib/ViewAsContext";
 
 export default function Categorias() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const { isViewingOther } = useViewAs();
 
   const {
     categorias,
@@ -29,9 +31,11 @@ export default function Categorias() {
         title="Categorias"
         subtitle="Organize suas contas por tipo"
         action={
-          <Button onClick={() => { setEditing(null); setOpen(true); }}>
-            <Plus className="h-4 w-4 mr-1.5" /> Nova
-          </Button>
+          !isViewingOther && (
+            <Button onClick={() => { setEditing(null); setOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1.5" /> Nova
+            </Button>
+          )
         }
       />
 
@@ -53,14 +57,16 @@ export default function Categorias() {
                   {c.icone && <p className="text-xs text-ink-400">{c.icone}</p>}
                 </div>
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => { setEditing(c); setOpen(true); }} className="p-2 text-ink-400 hover:text-ink-900">
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button onClick={() => deleteCategoria(c.id)} className="p-2 text-ink-400 hover:text-rust-600">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
+              {!isViewingOther && (
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => { setEditing(c); setOpen(true); }} className="p-2 text-ink-400 hover:text-ink-900">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => deleteCategoria(c.id)} className="p-2 text-ink-400 hover:text-rust-600">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
