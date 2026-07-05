@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
+import { useViewAs } from "@/lib/ViewAsContext";
 import { supabase } from "@/lib/supabaseClient";
 
 const addMonths = (dateString, months) => {
@@ -19,14 +20,15 @@ const makeInstallmentGroupId = () => {
 export function useContas() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
+  const { viewedUserId } = useViewAs();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["contas", "categorias"],
+    queryKey: ["contas", "categorias", viewedUserId],
     queryFn: async () => {
       const [contasRes, categoriasRes, contasPagamentoRes] = await Promise.all([
-        supabase.from('contas_pagar').select('*').order('vencimento', { ascending: true }),
-        supabase.from('categorias').select('*'),
-        supabase.from('contas_pagamento').select('*'),
+        supabase.from('contas_pagar').select('*').eq('user_id', viewedUserId).order('vencimento', { ascending: true }),
+        supabase.from('categorias').select('*').eq('user_id', viewedUserId),
+        supabase.from('contas_pagamento').select('*').eq('user_id', viewedUserId),
       ]);
 
       if (contasRes.error) throw new Error(contasRes.error.message);
@@ -35,6 +37,7 @@ export function useContas() {
 
       return { contas: contasRes.data, categorias: categoriasRes.data, contasPagamento: contasPagamentoRes.data };
     },
+    enabled: !!viewedUserId,
   });
 
   const { contas = [], categorias = [], contasPagamento = [] } = data || {};

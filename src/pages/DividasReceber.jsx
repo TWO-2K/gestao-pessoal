@@ -8,6 +8,7 @@ import { Plus, Trash2, Pencil, ArrowDownCircle, ChevronDown, ChevronUp, DollarSi
 import { formatCurrency, formatDate } from "@/lib/format";
 import MonthFilter, { isInMonth } from "@/components/MonthFilter";
 import { useDividas } from "@/hooks/useDividas";
+import { useViewAs } from "@/lib/ViewAsContext";
 
 export default function DividasReceber() {
   const [dividaFormOpen, setDividaFormOpen] = useState(false);
@@ -17,6 +18,7 @@ export default function DividasReceber() {
   const [pagamentoSelecionado, setPagamentoSelecionado] = useState(null);
   const [expanded, setExpanded] = useState(null);
   const [mes, setMes] = useState(null);
+  const { isViewingOther } = useViewAs();
 
   const {
     dividas,
@@ -99,9 +101,11 @@ export default function DividasReceber() {
         title="A Receber"
         subtitle="Valores que outras pessoas te devem"
         action={
-          <Button onClick={openNovaDivida}>
-            <Plus className="h-4 w-4 mr-1.5" /> Nova dívida
-          </Button>
+          !isViewingOther && (
+            <Button onClick={openNovaDivida}>
+              <Plus className="h-4 w-4 mr-1.5" /> Nova dívida
+            </Button>
+          )
         }
       />
 
@@ -152,15 +156,19 @@ export default function DividasReceber() {
                     <button onClick={() => setExpanded(isOpen ? null : d.id)} className="p-2 text-ink-400 hover:text-ink-900">
                       {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </button>
-                    <button onClick={() => openPagamentoForm(d)} className="p-2 text-ink-400 hover:text-forest-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Registrar pagamento">
-                      <DollarSign className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => openEditarDivida(d)} className="p-2 text-ink-400 hover:text-ink-900 opacity-0 group-hover:opacity-100 transition-opacity" title="Editar dívida">
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => deleteDivida(d)} className="p-2 text-ink-400 hover:text-rust-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Excluir dívida">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {!isViewingOther && (
+                      <>
+                        <button onClick={() => openPagamentoForm(d)} className="p-2 text-ink-400 hover:text-forest-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Registrar pagamento">
+                          <DollarSign className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => openEditarDivida(d)} className="p-2 text-ink-400 hover:text-ink-900 opacity-0 group-hover:opacity-100 transition-opacity" title="Editar dívida">
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => deleteDivida(d)} className="p-2 text-ink-400 hover:text-rust-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Excluir dívida">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -175,12 +183,16 @@ export default function DividasReceber() {
                           <div key={p.id} className="flex items-center gap-3 text-sm group/item">
                             <span className="text-ink-400 flex-1">Recebido em {formatDate(p.data_recebimento || p.vencimento)}</span>
                             <span className="font-mono font-medium tabular-nums text-forest-600">{formatCurrency(p.valor)}</span>
-                            <button onClick={() => openEditarPagamento(d, p)} className="p-1 text-ink-400 hover:text-ink-900 opacity-0 group-hover/item:opacity-100 transition-opacity" title="Editar pagamento">
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button onClick={() => deletePagamento(p.id)} className="p-1 text-ink-400 hover:text-rust-600 opacity-0 group-hover/item:opacity-100 transition-opacity" title="Excluir pagamento">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            {!isViewingOther && (
+                              <>
+                                <button onClick={() => openEditarPagamento(d, p)} className="p-1 text-ink-400 hover:text-ink-900 opacity-0 group-hover/item:opacity-100 transition-opacity" title="Editar pagamento">
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button onClick={() => deletePagamento(p.id)} className="p-1 text-ink-400 hover:text-rust-600 opacity-0 group-hover/item:opacity-100 transition-opacity" title="Excluir pagamento">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </>
+                            )}
                           </div>
                         ))}
                       </div>

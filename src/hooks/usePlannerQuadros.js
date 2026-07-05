@@ -1,21 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
+import { useViewAs } from "@/lib/ViewAsContext";
 import { supabase } from "@/lib/supabaseClient";
 
 export function usePlannerQuadros() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
+  const { viewedUserId } = useViewAs();
 
   const { data: quadros = [], isLoading } = useQuery({
-    queryKey: ["planner", "quadros"],
+    queryKey: ["planner", "quadros", viewedUserId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("planner_quadros")
         .select("*")
+        .eq("user_id", viewedUserId)
         .order("created_at", { ascending: true });
       if (error) throw new Error(error.message);
       return data;
     },
+    enabled: !!viewedUserId,
   });
 
   const createMutation = useMutation({
