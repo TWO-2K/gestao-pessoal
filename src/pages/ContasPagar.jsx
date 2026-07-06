@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import MonthFilter, { isInMonth } from "@/components/MonthFilter";
 import { useContas } from "@/hooks/useContas";
 import { useViewAs } from "@/lib/ViewAsContext";
+import PushNotificationToggle from "@/components/PushNotificationToggle";
 
 const DIAS_AVISO_VENCIMENTO = 2;
 
@@ -75,6 +76,12 @@ export default function ContasPagar() {
           )
         }
       />
+
+      {!isViewingOther && (
+        <div className="mb-6">
+          <PushNotificationToggle />
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <div className="flex gap-1 bg-ink-100 p-1 rounded-xl">

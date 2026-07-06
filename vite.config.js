@@ -9,6 +9,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       includeAssets: ['favicon.ico', 'icon-source.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
         name: 'Gestão Financeira',
@@ -25,15 +28,8 @@ export default defineConfig({
           { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
-        // Dados financeiros sempre devem vir da rede — não cachear chamadas ao Supabase.
-        navigateFallbackDenylist: [/^\/rest\//, /^\/auth\//],
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) => url.hostname.endsWith('.supabase.co'),
-            handler: 'NetworkOnly',
-          },
-        ],
+      injectManifest: {
+        injectionPoint: 'self.__WB_MANIFEST',
       },
     }),
   ],
