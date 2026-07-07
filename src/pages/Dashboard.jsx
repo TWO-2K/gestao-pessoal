@@ -16,7 +16,11 @@ export default function Dashboard() {
 
   const isLoading = isLoadingContas || isLoadingDividas || isLoadingGastos;
 
-  const aPagar = contas.filter((c) => c.status === "pendente").reduce((s, c) => s + (c.valor || 0), 0);
+  const now = new Date();
+  const contasPendentesDoMes = contas.filter(
+    (c) => c.status === "pendente" && isInMonth(c.vencimento, now.getMonth(), now.getFullYear())
+  );
+  const aPagar = contasPendentesDoMes.reduce((s, c) => s + (c.valor || 0), 0);
 
   const totalDividas = dividas.reduce((s, d) => s + (d.valor_total || 0), 0);
   const totalRecebido = parcelas.reduce((s, p) => s + (p.valor || 0), 0);
@@ -47,7 +51,6 @@ export default function Dashboard() {
   );
   const proximas = contas.filter((c) => c.status === "pendente" && c.vencimento >= hoje).slice(0, 5);
 
-  const now = new Date();
   const gastosPorCategoria = useMemo(() => {
     const totals = {};
     const add = (categoriaId, valor) => {
@@ -81,7 +84,7 @@ export default function Dashboard() {
             <ArrowUpCircle className="h-3.5 w-3.5" /> Total a pagar
           </div>
           <p className="font-display text-4xl font-medium tracking-tight tabular-nums">{formatCurrency(aPagar)}</p>
-          <p className="text-xs text-ink-50/40 mt-2 font-mono">{contas.filter((c) => c.status === "pendente").length} contas pendentes</p>
+          <p className="text-xs text-ink-50/40 mt-2 font-mono">{contasPendentesDoMes.length} contas pendentes</p>
         </Link>
         <Link to="/receber" className="group relative rounded-2xl bg-forest-600 text-white p-6 overflow-hidden transition-transform hover:-translate-y-0.5">
           <div className="absolute right-0 top-0 bottom-0 w-1 bg-gold-400/70" />
