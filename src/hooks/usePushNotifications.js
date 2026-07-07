@@ -27,11 +27,29 @@ export function usePushNotifications() {
       setIsLoading(false);
       return;
     }
+    if (!user) {
+      setIsSubscribed(false);
+      setIsLoading(false);
+      return;
+    }
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
-    setIsSubscribed(!!subscription);
+    if (!subscription) {
+      setIsSubscribed(false);
+      setIsLoading(false);
+      return;
+    }
+    // A subscription do navegador é por dispositivo, não por conta: só
+    // conta como "ativado" se ESTE usuário tiver uma linha registrada
+    // para esse endpoint (outra conta pode usar o mesmo aparelho).
+    const { data } = await supabase
+      .from("push_subscriptions")
+      .select("id")
+      .match({ endpoint: subscription.endpoint, user_id: user.id })
+      .maybeSingle();
+    setIsSubscribed(!!data);
     setIsLoading(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     refreshSubscriptionState();
@@ -69,7 +87,7 @@ export function usePushNotifications() {
         auth: json.keys.auth,
         user_agent: navigator.userAgent,
       },
-      { onConflict: "endpoint" }
+      { onConflict: "endpoint,user_id" }
     );
     if (error) throw new Error(error.message);
 
@@ -83,11 +101,12 @@ export function usePushNotifications() {
     const subscription = await registration.pushManager.getSubscription();
     if (subscription) {
       const endpoint = subscription.endpoint;
-      await subscription.unsubscribe();
-      await supabase.from("push_subscriptions").delete().match({ endpoint });
+      // Não desinscreve o endpoint no navegador: outra conta pode estar
+      // usando o mesmo dispositivo e continuar recebendo notificações.
+      await supabase.from("push_subscriptions").delete().match({ endpoint, user_id: user?.id });
     }
     setIsSubscribed(false);
-  }, []);
+  }, [user]);
 
   return { permission, isSubscribed, isLoading, subscribe, unsubscribe };
 }
