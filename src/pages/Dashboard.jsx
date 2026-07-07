@@ -26,8 +26,25 @@ export default function Dashboard() {
     return d.valor_total > pago;
   });
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  // toISOString() converte para UTC e pode "adiantar" o dia à noite
+  // (ex: 21h no Brasil já é o dia seguinte em UTC), marcando contas como
+  // vencidas antes da hora. Por isso montamos a data local manualmente.
+  const toLocalISODate = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  const hoje = toLocalISODate(new Date());
+  const emTresDias = new Date();
+  emTresDias.setDate(emTresDias.getDate() + 3);
+  const limiteProximas = toLocalISODate(emTresDias);
+
   const vencidas = contas.filter((c) => c.status === "pendente" && c.vencimento < hoje);
+  const venceEmBreve = contas.filter(
+    (c) => c.status === "pendente" && c.vencimento >= hoje && c.vencimento <= limiteProximas
+  );
   const proximas = contas.filter((c) => c.status === "pendente" && c.vencimento >= hoje).slice(0, 5);
 
   const now = new Date();
@@ -82,6 +99,16 @@ export default function Dashboard() {
           <div>
             <p className="font-medium text-rust-800">{vencidas.length} conta(s) vencida(s)</p>
             <p className="text-sm text-rust-600 font-mono">Total {formatCurrency(vencidas.reduce((s, c) => s + (c.valor || 0), 0))} em atraso.</p>
+          </div>
+        </div>
+      )}
+
+      {venceEmBreve.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 mb-6 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium text-amber-800">{venceEmBreve.length} conta(s) vencendo em breve</p>
+            <p className="text-sm text-amber-700 font-mono">Total {formatCurrency(venceEmBreve.reduce((s, c) => s + (c.valor || 0), 0))} nos próximos 3 dias.</p>
           </div>
         </div>
       )}
