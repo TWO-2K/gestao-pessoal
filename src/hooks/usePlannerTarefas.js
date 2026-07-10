@@ -51,11 +51,11 @@ export function usePlannerTarefas() {
 
   const createOrUpdateMutation = useMutation({
     mutationFn: async (form) => {
-      const user = session?.user;
+      const targetUserId = viewedUserId || session?.user?.id;
       const basePayload = { ...form };
       delete basePayload.id;
 
-      const payload = user ? { ...basePayload, user_id: user.id } : basePayload;
+      const payload = targetUserId ? { ...basePayload, user_id: targetUserId } : basePayload;
       const { error } = form.id
         ? await supabase.from("planner_tarefas").update(payload).match({ id: form.id })
         : await supabase.from("planner_tarefas").insert(payload);
@@ -74,8 +74,8 @@ export function usePlannerTarefas() {
 
   const createManyMutation = useMutation({
     mutationFn: async (rows) => {
-      const user = session?.user;
-      const payload = rows.map((row) => (user ? { ...row, user_id: user.id } : row));
+      const targetUserId = viewedUserId || session?.user?.id;
+      const payload = rows.map((row) => (targetUserId ? { ...row, user_id: targetUserId } : row));
       const { error } = await supabase.from("planner_tarefas").insert(payload);
       if (error) throw new Error(error.message);
     },

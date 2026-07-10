@@ -58,7 +58,7 @@ export function useContas() {
 
   const createOrUpdateMutation = useMutation({
     mutationFn: async (form) => {
-      const user = session?.user;
+      const targetUserId = viewedUserId || session?.user?.id;
       const totalParcelas = form.parcelado ? Math.max(parseInt(form.total_parcelas, 10) || 1, 1) : 1;
       const basePayload = {
         ...form,
@@ -90,11 +90,11 @@ export function useContas() {
             parcelamento_id: parcelamentoId,
             parcela_numero: parcelaNumero,
             total_parcelas: totalParcelas,
-            user_id: user?.id,
+            user_id: targetUserId,
           };
         });
 
-        if (!user) {
+        if (!targetUserId) {
           parcelas.forEach((parcela) => {
             delete parcela.user_id;
           });
@@ -105,7 +105,7 @@ export function useContas() {
         return;
       }
 
-      const payload = user ? { ...basePayload, user_id: user.id } : basePayload;
+      const payload = targetUserId ? { ...basePayload, user_id: targetUserId } : basePayload;
       const { error } = form.id
         ? await supabase.from("contas_pagar").update(payload).match({ id: form.id })
         : await supabase.from("contas_pagar").insert(payload);
@@ -116,7 +116,7 @@ export function useContas() {
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (conta) => {
-      const user = session?.user;
+      const targetUserId = viewedUserId || session?.user?.id;
       const isPaying = conta.status === "pendente";
 
       if (isPaying && conta.recorrente) {
@@ -130,6 +130,7 @@ export function useContas() {
           .match({
             descricao: conta.descricao,
             vencimento: proximoVencimentoStr,
+            user_id: conta.user_id,
           })
           .limit(1);
         if (checkError) throw checkError;
@@ -144,7 +145,7 @@ export function useContas() {
           };
           delete novaContaRecorrente.id;
 
-          const payload = user ? { ...novaContaRecorrente, user_id: user.id } : novaContaRecorrente;
+          const payload = targetUserId ? { ...novaContaRecorrente, user_id: targetUserId } : novaContaRecorrente;
           const { error: createError } = await supabase.from('contas_pagar').insert([payload]);
           if (createError) throw createError;
         }
@@ -164,8 +165,17 @@ export function useContas() {
   const catMap = useMemo(() => Object.fromEntries(categorias.map((c) => [c.id, c])), [categorias]);
   const contaPagamentoMap = useMemo(() => Object.fromEntries(contasPagamento.map((c) => [c.id, c])), [contasPagamento]);
 
+  const contasComProximoGerado = useMemo(() => {
+    const chaves = new Set(contas.map((c) => `${c.descricao}|${c.vencimento}`));
+    return contas.map((conta) => {
+      if (!conta.recorrente || conta.status !== "pago") return conta;
+      const proximoVencimento = addMonths(conta.vencimento, 1);
+      return { ...conta, proximoGerado: chaves.has(`${conta.descricao}|${proximoVencimento}`) };
+    });
+  }, [contas]);
+
   return {
-    contas,
+    contas: contasComProximoGerado,
     categorias,
     contasPagamento,
     isLoading,
