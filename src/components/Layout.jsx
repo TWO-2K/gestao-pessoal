@@ -143,7 +143,7 @@ export default function Layout() {
         {isViewingOther && (
           <div className="flex items-center gap-2 bg-gold-500/15 border-b border-gold-500/30 px-5 py-2 text-xs font-medium text-gold-700">
             <Eye className="h-3.5 w-3.5" />
-            Visualizando dados de {viewedUsuario?.nome || viewedUsuario?.email || "outro usuário"} (somente leitura)
+            Visualizando dados de {viewedUsuario?.nome || viewedUsuario?.email || "outro usuário"}
           </div>
         )}
         <div className="mx-auto max-w-5xl px-5 py-8 md:py-10">

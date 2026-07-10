@@ -8,7 +8,6 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import MonthFilter, { isInMonth } from "@/components/MonthFilter";
 import { useContas } from "@/hooks/useContas";
-import { useViewAs } from "@/lib/ViewAsContext";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
 
 const DIAS_AVISO_VENCIMENTO = 2;
@@ -30,7 +29,6 @@ export default function ContasPagar() {
     const now = new Date();
     return { month: now.getMonth(), year: now.getFullYear() };
   });
-  const { isViewingOther } = useViewAs();
 
   const {
     contas,
@@ -69,19 +67,15 @@ export default function ContasPagar() {
         title="Contas a Pagar"
         subtitle="Tudo que você precisa pagar"
         action={
-          !isViewingOther && (
-            <Button onClick={() => { setEditing(null); setOpen(true); }}>
-              <Plus className="h-4 w-4 mr-1.5" /> Nova conta
-            </Button>
-          )
+          <Button onClick={() => { setEditing(null); setOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1.5" /> Nova conta
+          </Button>
         }
       />
 
-      {!isViewingOther && (
-        <div className="mb-6">
-          <PushNotificationToggle />
-        </div>
-      )}
+      <div className="mb-6">
+        <PushNotificationToggle />
+      </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <div className="flex gap-1 bg-ink-100 p-1 rounded-xl">
@@ -126,12 +120,10 @@ export default function ContasPagar() {
                 )}
               >
                 <button
-                  onClick={() => !isViewingOther && toggleStatusConta(conta)}
-                  disabled={isViewingOther}
+                  onClick={() => toggleStatusConta(conta)}
                   className={cn(
                     "h-9 w-9 flex-shrink-0 rounded-full flex items-center justify-center border-2 transition-colors mt-0.5",
-                    pago ? "bg-forest-500 border-forest-500 text-white" : "border-ink-300 text-transparent hover:border-forest-400",
-                    isViewingOther && "cursor-not-allowed opacity-70"
+                    pago ? "bg-forest-500 border-forest-500 text-white" : "border-ink-300 text-transparent hover:border-forest-400"
                   )}
                 >
                   <Check className="h-4 w-4" />
@@ -178,16 +170,14 @@ export default function ContasPagar() {
                     <p className="mt-1 text-xs text-ink-400 truncate">{conta.observacao}</p>
                   )}
                 </div>
-                {!isViewingOther && (
-                  <div className="flex flex-col gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => { setEditing(conta); setOpen(true); }} className="p-2 text-ink-400 hover:text-ink-900">
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => deleteConta(conta.id)} className="p-2 text-ink-400 hover:text-rust-600">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
+                <div className="flex flex-col gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => { setEditing(conta); setOpen(true); }} className="p-2 text-ink-400 hover:text-ink-900">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => deleteConta(conta.id)} className="p-2 text-ink-400 hover:text-rust-600">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             );
           })}

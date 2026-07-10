@@ -5,12 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, CreditCard } from "lucide-react";
 import { useContasPagamento } from "@/hooks/useContasPagamento";
-import { useViewAs } from "@/lib/ViewAsContext";
 
 export default function ContasPagamento() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const { isViewingOther } = useViewAs();
 
   const {
     contasPagamento,
@@ -31,11 +29,9 @@ export default function ContasPagamento() {
         title="Contas/Cartões"
         subtitle="De onde saiu o dinheiro"
         action={
-          !isViewingOther && (
-            <Button onClick={() => { setEditing(null); setOpen(true); }}>
-              <Plus className="h-4 w-4 mr-1.5" /> Nova
-            </Button>
-          )
+          <Button onClick={() => { setEditing(null); setOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1.5" /> Nova
+          </Button>
         }
       />
 
@@ -57,16 +53,14 @@ export default function ContasPagamento() {
                   {c.icone && <p className="text-xs text-ink-400">{c.icone}</p>}
                 </div>
               </div>
-              {!isViewingOther && (
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => { setEditing(c); setOpen(true); }} className="p-2 text-ink-400 hover:text-ink-900">
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  <button onClick={() => deleteContaPagamento(c.id)} className="p-2 text-ink-400 hover:text-rust-600">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={() => { setEditing(c); setOpen(true); }} className="p-2 text-ink-400 hover:text-ink-900">
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button onClick={() => deleteContaPagamento(c.id)} className="p-2 text-ink-400 hover:text-rust-600">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
