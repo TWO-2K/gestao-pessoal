@@ -48,8 +48,8 @@ export function useDividas() {
 
   const createDividaMutation = useMutation({
     mutationFn: async (form) => {
-      const user = session?.user;
-      const payload = user ? { ...form, user_id: user.id } : form;
+      const targetUserId = viewedUserId || session?.user?.id;
+      const payload = targetUserId ? { ...form, user_id: targetUserId } : form;
       const { error } = await supabase.from("dividas_receber").insert(payload);
       if (error) throw new Error(error.message);
     },
@@ -66,8 +66,8 @@ export function useDividas() {
 
   const createPagamentoMutation = useMutation({
     mutationFn: async (form) => {
-      const user = session?.user;
-      const payload = user ? { ...form, user_id: user.id } : form;
+      const targetUserId = viewedUserId || session?.user?.id;
+      const payload = targetUserId ? { ...form, user_id: targetUserId } : form;
       const { error } = await supabase.from("parcelas_divida").insert(payload);
       if (error) throw new Error(error.message);
     },

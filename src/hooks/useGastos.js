@@ -45,11 +45,11 @@ export function useGastos() {
 
   const createOrUpdateMutation = useMutation({
     mutationFn: async (form) => {
-      const user = session?.user;
+      const targetUserId = viewedUserId || session?.user?.id;
       const basePayload = { ...form };
       delete basePayload.id;
 
-      const payload = user ? { ...basePayload, user_id: user.id } : basePayload;
+      const payload = targetUserId ? { ...basePayload, user_id: targetUserId } : basePayload;
       const { error } = form.id
         ? await supabase.from("gastos").update(payload).match({ id: form.id })
         : await supabase.from("gastos").insert(payload);

@@ -24,8 +24,8 @@ export function usePlannerQuadros() {
 
   const createMutation = useMutation({
     mutationFn: async (nome) => {
-      const user = session?.user;
-      const payload = user ? { nome, user_id: user.id } : { nome };
+      const targetUserId = viewedUserId || session?.user?.id;
+      const payload = targetUserId ? { nome, user_id: targetUserId } : { nome };
       const { data, error } = await supabase.from("planner_quadros").insert(payload).select().single();
       if (error) throw new Error(error.message);
       return data;

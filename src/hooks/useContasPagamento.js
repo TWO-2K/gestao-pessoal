@@ -40,11 +40,11 @@ export function useContasPagamento() {
 
   const createOrUpdateMutation = useMutation({
     mutationFn: async (form) => {
-      const user = session?.user;
+      const targetUserId = viewedUserId || session?.user?.id;
       const contaPagamento = { nome: form.nome, cor: form.cor, icone: form.icone || "Wallet" };
       const { error } = form.id
         ? await supabase.from("contas_pagamento").update(contaPagamento).match({ id: form.id })
-        : await supabase.from("contas_pagamento").insert(user ? { ...contaPagamento, user_id: user.id } : contaPagamento);
+        : await supabase.from("contas_pagamento").insert(targetUserId ? { ...contaPagamento, user_id: targetUserId } : contaPagamento);
       if (error) throw new Error(error.message);
     },
     ...mutationOptions,

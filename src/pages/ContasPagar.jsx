@@ -3,7 +3,7 @@ import PageHeader from "@/components/PageHeader";
 import ContaForm from "@/components/ContaForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, ArrowUpCircle, Check, Repeat, AlertTriangle, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUpCircle, Check, Repeat, AlertTriangle, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import MonthFilter, { isInMonth } from "@/components/MonthFilter";
@@ -133,6 +133,18 @@ export default function ContasPagar() {
                     <div className="flex items-center gap-2 min-w-0">
                       <p className={cn("font-medium truncate", pago && "line-through text-ink-400")}>{conta.descricao}</p>
                       {conta.recorrente && <Repeat className="h-3.5 w-3.5 text-ink-400 flex-shrink-0" />}
+                      {conta.recorrente && pago && (
+                        <span
+                          title={conta.proximoGerado ? "Conta do próximo mês já foi gerada" : "Conta do próximo mês ainda não foi gerada"}
+                          className={cn(
+                            "flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium flex-shrink-0",
+                            conta.proximoGerado ? "bg-forest-100 text-forest-700" : "bg-rust-100 text-rust-700"
+                          )}
+                        >
+                          {conta.proximoGerado ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                          {conta.proximoGerado ? "Próx. mês ok" : "Próx. mês pendente"}
+                        </span>
+                      )}
                       {conta.total_parcelas > 1 && (
                         <span className="flex-shrink-0 rounded bg-ink-100 px-1.5 py-0.5 text-[10px] font-medium text-ink-500">
                           {conta.parcela_numero}/{conta.total_parcelas}

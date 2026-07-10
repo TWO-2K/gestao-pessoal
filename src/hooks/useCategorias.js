@@ -39,11 +39,11 @@ export function useCategorias() {
 
   const createOrUpdateMutation = useMutation({
     mutationFn: async (form) => {
-      const user = session?.user;
+      const targetUserId = viewedUserId || session?.user?.id;
       const categoria = { nome: form.nome, cor: form.cor, icone: form.icone || "Tag" };
       const { error } = form.id
         ? await supabase.from("categorias").update(categoria).match({ id: form.id })
-        : await supabase.from("categorias").insert(user ? { ...categoria, user_id: user.id } : categoria);
+        : await supabase.from("categorias").insert(targetUserId ? { ...categoria, user_id: targetUserId } : categoria);
       if (error) throw new Error(error.message);
     },
     ...mutationOptions,
