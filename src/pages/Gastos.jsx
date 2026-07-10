@@ -7,13 +7,11 @@ import { Plus, Pencil, Trash2, Receipt } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import MonthFilter, { isInMonth } from "@/components/MonthFilter";
 import { useGastos } from "@/hooks/useGastos";
-import { useViewAs } from "@/lib/ViewAsContext";
 
 export default function Gastos() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [mes, setMes] = useState(null);
-  const { isViewingOther } = useViewAs();
 
   const {
     gastos,
@@ -44,11 +42,9 @@ export default function Gastos() {
         title="Gastos"
         subtitle="Suas despesas do dia a dia"
         action={
-          !isViewingOther && (
-            <Button onClick={() => { setEditing(null); setOpen(true); }}>
-              <Plus className="h-4 w-4 mr-1.5" /> Novo gasto
-            </Button>
-          )
+          <Button onClick={() => { setEditing(null); setOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1.5" /> Novo gasto
+          </Button>
         }
       />
 
@@ -94,16 +90,14 @@ export default function Gastos() {
                     <p className="mt-1 text-xs text-ink-400 truncate">{gasto.observacao}</p>
                   )}
                 </div>
-                {!isViewingOther && (
-                  <div className="flex flex-col gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => { setEditing(gasto); setOpen(true); }} className="p-2 text-ink-400 hover:text-ink-900">
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => deleteGasto(gasto.id)} className="p-2 text-ink-400 hover:text-rust-600">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
+                <div className="flex flex-col gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => { setEditing(gasto); setOpen(true); }} className="p-2 text-ink-400 hover:text-ink-900">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => deleteGasto(gasto.id)} className="p-2 text-ink-400 hover:text-rust-600">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             );
           })}

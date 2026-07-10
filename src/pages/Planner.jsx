@@ -11,7 +11,6 @@ import WeekStrip from "@/components/WeekStrip";
 import { usePlannerTarefas } from "@/hooks/usePlannerTarefas";
 import { usePlannerQuadros } from "@/hooks/usePlannerQuadros";
 import { useToast } from "@/components/ui/use-toast";
-import { useViewAs } from "@/lib/ViewAsContext";
 
 const PRIORIDADE_COR = {
   alta: "bg-rust-500",
@@ -43,7 +42,6 @@ export default function Planner() {
   const [novoQuadroNome, setNovoQuadroNome] = useState("");
   const [deletingQuadro, setDeletingQuadro] = useState(null);
   const { toast } = useToast();
-  const { isViewingOther } = useViewAs();
 
   const { tarefas, isLoading, deleteTarefaAsync, deleteFuturas, createOrUpdateTarefa, createManyTarefas, updateStatus } = usePlannerTarefas();
   const { quadros, createQuadro, deleteQuadro } = usePlannerQuadros();
@@ -152,11 +150,9 @@ export default function Planner() {
         title="Planner"
         subtitle="Suas tarefas e compromissos"
         action={
-          !isViewingOther && (
-            <Button onClick={() => { setEditing(null); setOpen(true); }}>
-              <Plus className="h-4 w-4 mr-1.5" /> Nova tarefa
-            </Button>
-          )
+          <Button onClick={() => { setEditing(null); setOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1.5" /> Nova tarefa
+          </Button>
         }
       />
 
@@ -246,40 +242,38 @@ export default function Planner() {
                                 )}
                               </div>
                             </div>
-                            {!isViewingOther && (
-                              <div className="flex items-center justify-between mt-2">
-                                <div className="flex gap-0.5">
-                                  <button
-                                    onClick={() => moveStatus(tarefa, -1)}
-                                    disabled={idx === 0}
-                                    className="p-1 text-ink-300 hover:text-ink-900 disabled:opacity-0 disabled:pointer-events-none"
-                                  >
-                                    <ChevronLeft className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => moveStatus(tarefa, 1)}
-                                    disabled={idx === COLUNAS.length - 1}
-                                    className="p-1 text-ink-300 hover:text-ink-900 disabled:opacity-0 disabled:pointer-events-none"
-                                  >
-                                    <ChevronRight className="h-3.5 w-3.5" />
-                                  </button>
-                                </div>
-                                <div className="flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                  <button onClick={() => { setEditing(tarefa); setOpen(true); }} className="p-1 text-ink-400 hover:text-ink-900">
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button onClick={() => handleDeleteClick(tarefa)} className="p-1 text-ink-400 hover:text-rust-600">
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
-                                </div>
+                            <div className="flex items-center justify-between mt-2">
+                              <div className="flex gap-0.5">
+                                <button
+                                  onClick={() => moveStatus(tarefa, -1)}
+                                  disabled={idx === 0}
+                                  className="p-1 text-ink-300 hover:text-ink-900 disabled:opacity-0 disabled:pointer-events-none"
+                                >
+                                  <ChevronLeft className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => moveStatus(tarefa, 1)}
+                                  disabled={idx === COLUNAS.length - 1}
+                                  className="p-1 text-ink-300 hover:text-ink-900 disabled:opacity-0 disabled:pointer-events-none"
+                                >
+                                  <ChevronRight className="h-3.5 w-3.5" />
+                                </button>
                               </div>
-                            )}
+                              <div className="flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => { setEditing(tarefa); setOpen(true); }} className="p-1 text-ink-400 hover:text-ink-900">
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button onClick={() => handleDeleteClick(tarefa)} className="p-1 text-ink-400 hover:text-rust-600">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         );
                       })}
                     </div>
 
-                    {!isViewingOther && (addingTo === col.status ? (
+                    {addingTo === col.status ? (
                       <div className="flex items-center gap-1">
                         <Input
                           autoFocus
@@ -303,7 +297,7 @@ export default function Planner() {
                       >
                         + Adicionar um cartão
                       </button>
-                    ))}
+                    )}
                   </>
                 )}
               </div>
@@ -339,21 +333,19 @@ export default function Planner() {
         <DialogContent>
           <DialogHeader><DialogTitle>Gerenciar quadros</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            {!isViewingOther && (
-              <div className="flex items-center gap-1.5">
-                <Input
-                  autoFocus
-                  value={novoQuadroNome}
-                  onChange={(e) => setNovoQuadroNome(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleCreateQuadro(); }}
-                  placeholder="Nome do novo quadro"
-                  className="h-9"
-                />
-                <Button size="icon" className="h-9 w-9 flex-shrink-0" onClick={handleCreateQuadro}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
+            <div className="flex items-center gap-1.5">
+              <Input
+                autoFocus
+                value={novoQuadroNome}
+                onChange={(e) => setNovoQuadroNome(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleCreateQuadro(); }}
+                placeholder="Nome do novo quadro"
+                className="h-9"
+              />
+              <Button size="icon" className="h-9 w-9 flex-shrink-0" onClick={handleCreateQuadro}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
 
             <div className="space-y-1">
               <div className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-sm text-ink-500">
@@ -362,14 +354,12 @@ export default function Planner() {
               {quadros.map((q) => (
                 <div key={q.id} className="group flex items-center justify-between rounded-lg px-2.5 py-1.5 text-sm text-ink-900 hover:bg-ink-50">
                   <span>{q.nome}</span>
-                  {!isViewingOther && (
-                    <button
-                      onClick={() => setDeletingQuadro(q)}
-                      className="text-ink-400 hover:text-rust-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setDeletingQuadro(q)}
+                    className="text-ink-400 hover:text-rust-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               ))}
             </div>
