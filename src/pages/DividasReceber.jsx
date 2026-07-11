@@ -4,10 +4,33 @@ import DividaForm from "@/components/DividaForm";
 import PagamentoForm from "./PagamentoForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Plus, Trash2, Pencil, ArrowDownCircle, ChevronDown, ChevronUp, DollarSign } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import MonthFilter, { isInMonth } from "@/components/MonthFilter";
 import { useDividas } from "@/hooks/useDividas";
+
+// Soma `months` meses a uma data YYYY-MM-DD, ajustando o dia para `day`
+// (ou mantendo o dia original) e travando no último dia do mês de destino
+// quando `day` não existir nele (ex.: dia 31 em fevereiro).
+function addMonthsClamped(dateStr, months, day) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const totalMonths = m - 1 + months;
+  const year = y + Math.floor(totalMonths / 12);
+  const month = ((totalMonths % 12) + 12) % 12;
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const dd = Math.min(day || d, lastDay);
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
+}
+
+// Datas previstas de cada parcela de uma dívida, a partir de data_inicio,
+// repetindo mensalmente. Se dia_vencimento estiver definido, usa esse dia
+// fixo em todas as parcelas; senão usa o mesmo dia de data_inicio.
+function datasPrevistas(divida) {
+  if (!divida.data_inicio) return [];
+  const n = divida.num_parcelas || 1;
+  return Array.from({ length: n }, (_, i) => addMonthsClamped(divida.data_inicio, i, divida.dia_vencimento));
+}
 
 export default function DividasReceber() {
   const [dividaFormOpen, setDividaFormOpen] = useState(false);
@@ -17,6 +40,7 @@ export default function DividasReceber() {
   const [pagamentoSelecionado, setPagamentoSelecionado] = useState(null);
   const [expanded, setExpanded] = useState(null);
   const [mes, setMes] = useState(null);
+  const [status, setStatus] = useState("todas");
 
   const {
     dividas,
@@ -36,6 +60,7 @@ export default function DividasReceber() {
       ...formData,
       valor_total: parseFloat(formData.valor_total),
       num_parcelas: parseInt(formData.num_parcelas, 10) || 1,
+      dia_vencimento: formData.dia_vencimento ? parseInt(formData.dia_vencimento, 10) : null,
     };
     if (dividaEditando) {
       await updateDivida(payload);
@@ -88,10 +113,40 @@ export default function DividasReceber() {
     return dividaSelecionada.valor_total - jaRecebido;
   }, [dividaSelecionada, pagamentoSelecionado, parcelasDe]);
 
-  // Only show dívidas that have at least one parcela in the selected month
-  const dividasVisiveis = useMemo(() => (mes
-    ? dividas.filter((d) => parcelas.some((p) => p.divida_id === d.id && isInMonth(p.vencimento, mes.month, mes.year)))
-    : dividas), [dividas, parcelas, mes]);
+  const isQuitada = (d) => {
+    const recebido = parcelasDe(d.id).reduce((s, p) => s + (p.valor || 0), 0);
+    return d.valor_total > 0 && recebido >= d.valor_total;
+  };
+
+  // Data do recebimento mais recente de uma dívida, ou null se nunca recebeu nada.
+  const ultimoRecebimento = (d) => {
+    const ps = parcelasDe(d.id);
+    if (ps.length === 0) return null;
+    return ps.reduce((max, p) => (p.data_recebimento && (!max || p.data_recebimento > max) ? p.data_recebimento : max), null);
+  };
+
+  // Only show dívidas that have alguma parcela (prevista ou já recebida) no mês selecionado
+  const dividasVisiveis = useMemo(() => {
+    let lista = mes
+      ? dividas.filter((d) =>
+          datasPrevistas(d).some((dt) => isInMonth(dt, mes.month, mes.year)) ||
+          parcelas.some((p) => p.divida_id === d.id && isInMonth(p.data_recebimento, mes.month, mes.year))
+        )
+      : dividas;
+    if (status === "pendentes") lista = lista.filter((d) => !isQuitada(d));
+    if (status === "quitadas") lista = lista.filter((d) => isQuitada(d));
+
+    // Dívidas com recebimentos mais recentes aparecem primeiro; sem nenhum
+    // recebimento ficam por último, mantendo a ordem original entre si.
+    return [...lista].sort((a, b) => {
+      const da = ultimoRecebimento(a);
+      const db = ultimoRecebimento(b);
+      if (da && db) return db.localeCompare(da);
+      if (da && !db) return -1;
+      if (!da && db) return 1;
+      return 0;
+    });
+  }, [dividas, parcelas, mes, status, parcelasDe]);
 
   return (
     <div>
@@ -105,8 +160,13 @@ export default function DividasReceber() {
         }
       />
 
-      <div className="mb-6">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         <MonthFilter value={mes} onChange={setMes} />
+        <ToggleGroup type="single" value={status} onValueChange={(v) => v && setStatus(v)} className="justify-start">
+          <ToggleGroupItem value="todas">Todas</ToggleGroupItem>
+          <ToggleGroupItem value="pendentes">Pendentes</ToggleGroupItem>
+          <ToggleGroupItem value="quitadas">Quitadas</ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {isLoading ? (
@@ -114,7 +174,7 @@ export default function DividasReceber() {
       ) : dividasVisiveis.length === 0 ? (
         <div className="text-center py-20 text-ink-400">
           <ArrowDownCircle className="h-10 w-10 mx-auto mb-3 opacity-40" />
-          <p>{mes ? "Nenhuma dívida neste mês." : "Nenhuma dívida registrada."}</p>
+          <p>{mes ? "Nenhuma dívida neste mês." : status === "pendentes" ? "Nenhuma dívida pendente." : status === "quitadas" ? "Nenhuma dívida quitada." : "Nenhuma dívida registrada."}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -133,6 +193,7 @@ export default function DividasReceber() {
                     <div className="flex flex-wrap gap-2 mt-1 text-[11px] text-ink-400">
                       {d.num_parcelas && <span>{d.num_parcelas} parcela{d.num_parcelas > 1 ? "s" : ""}</span>}
                       {d.data_inicio && <span>Início {formatDate(d.data_inicio)}</span>}
+                      {d.dia_vencimento && <span>Vence dia {d.dia_vencimento}</span>}
                     </div>
                     {d.observacao && <p className="text-xs text-ink-400 truncate mt-1">{d.observacao}</p>}
                     {d.valor_total > 0 && (
