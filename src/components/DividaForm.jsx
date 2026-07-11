@@ -11,6 +11,7 @@ const emptyForm = {
   valor_total: "",
   num_parcelas: "1",
   data_inicio: new Date().toISOString().slice(0, 10),
+  dia_vencimento: "",
   observacao: "",
 };
 
@@ -28,6 +29,7 @@ export default function DividaForm({ divida, onSaved, onCancel }) {
         valor_total: String(divida.valor_total ?? ""),
         num_parcelas: String(divida.num_parcelas ?? "1"),
         data_inicio: (divida.data_inicio || new Date().toISOString()).slice(0, 10),
+        dia_vencimento: divida.dia_vencimento ? String(divida.dia_vencimento) : "",
         observacao: divida.observacao || "",
       });
     } else {
@@ -75,6 +77,19 @@ export default function DividaForm({ divida, onSaved, onCancel }) {
           <Label htmlFor="data_inicio">Data inicial</Label>
           <Input id="data_inicio" type="date" value={form.data_inicio} onChange={(e) => set("data_inicio", e.target.value)} />
         </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="dia_vencimento">Dia de vencimento das parcelas (opcional)</Label>
+        <Input
+          id="dia_vencimento"
+          type="number"
+          min="1"
+          max="31"
+          step="1"
+          value={form.dia_vencimento}
+          onChange={(e) => set("dia_vencimento", e.target.value)}
+          placeholder="Ex: 12"
+        />
       </div>
       <div className="space-y-2">
         <Label htmlFor="descricao">Descrição</Label>
