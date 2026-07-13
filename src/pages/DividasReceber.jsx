@@ -115,7 +115,9 @@ export default function DividasReceber() {
 
   const isQuitada = (d) => {
     const recebido = parcelasDe(d.id).reduce((s, p) => s + (p.valor || 0), 0);
-    return d.valor_total > 0 && recebido >= d.valor_total;
+    // Tolerância de 1 centavo para evitar que arredondamentos na divisão de
+    // parcelas ou imprecisão de ponto flutuante impeçam a dívida de ficar quitada.
+    return d.valor_total > 0 && recebido >= d.valor_total - 0.01;
   };
 
   // Data do recebimento mais recente de uma dívida, ou null se nunca recebeu nada.
