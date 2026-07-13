@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, Wallet, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare, Eye, ChevronDown } from "lucide-react";
+import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, Wallet, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare, Eye, ChevronDown, Clapperboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 import { useUsuarios } from "@/hooks/useUsuarios";
@@ -27,6 +27,18 @@ const navSections = [
     section: "Planner",
     items: [
       { to: "/planner", label: "Tarefas", icon: CheckSquare },
+    ],
+  },
+  {
+    section: "Lista",
+    items: [
+      { to: "/midias", label: "Visão geral", icon: Clapperboard },
+      { to: "/midias/animes", label: "Animes", icon: Clapperboard },
+      { to: "/midias/ovas", label: "OVAs", icon: Clapperboard },
+      { to: "/midias/onas", label: "ONAs", icon: Clapperboard },
+      { to: "/midias/filmes", label: "Filmes", icon: Clapperboard },
+      { to: "/midias/especiais", label: "Especiais", icon: Clapperboard },
+      { to: "/midias/series", label: "Séries", icon: Clapperboard },
     ],
   },
 ];

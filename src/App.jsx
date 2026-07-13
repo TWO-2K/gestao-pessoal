@@ -16,6 +16,7 @@ import DividasReceber from '@/pages/DividasReceber';
 import Categorias from '@/pages/Categorias';
 import ContasPagamento from '@/pages/ContasPagamento';
 import Planner from '@/pages/Planner';
+import Midias from '@/pages/Midias';
 import Usuarios from '@/pages/Usuarios';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -41,6 +42,8 @@ function App() {
                 <Route path="/categorias" element={<Categorias />} />
                 <Route path="/contas-pagamento" element={<ContasPagamento />} />
                 <Route path="/planner" element={<Planner />} />
+                <Route path="/midias" element={<Midias />} />
+                <Route path="/midias/:tipoSlug" element={<Midias />} />
                 <Route element={<AdminRoute />}>
                   <Route path="/usuarios" element={<Usuarios />} />
                 </Route>
