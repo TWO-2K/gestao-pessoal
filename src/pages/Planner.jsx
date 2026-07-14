@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Check, CalendarDays, LayoutGrid, GripVertical } from "lucide-react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
 import WeekStrip from "@/components/WeekStrip";
 import { usePlannerTarefas } from "@/hooks/usePlannerTarefas";
@@ -28,10 +29,37 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function TarefaCardBody({ tarefa }) {
+  return (
+    <div className="flex items-start gap-2">
+      <span className={cn("mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0", PRIORIDADE_COR[tarefa.prioridade])} />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-ink-900 truncate">{tarefa.titulo}</p>
+        {tarefa.descricao && (
+          <p className="text-xs text-ink-400 truncate mt-0.5">{tarefa.descricao}</p>
+        )}
+        {(tarefa.tag || tarefa.horario) && (
+          <div className="flex items-center gap-1.5 mt-1.5">
+            {tarefa.horario && (
+              <span className="text-[10px] text-ink-400">{tarefa.horario.slice(0, 5)}</span>
+            )}
+            {tarefa.tag && (
+              <span className="text-[10px] rounded-full bg-ink-100 text-ink-500 px-2 py-0.5 truncate max-w-[8rem]">
+                {tarefa.tag}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Planner() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [selectedDate, setSelectedDate] = useState(todayStr());
+  const [modo, setModo] = useState("dia"); // "dia" | "quadro"
   const [collapsed, setCollapsed] = useState({});
   const [addingTo, setAddingTo] = useState(null);
   const [novoTitulo, setNovoTitulo] = useState("");
@@ -43,7 +71,7 @@ export default function Planner() {
   const [deletingQuadro, setDeletingQuadro] = useState(null);
   const { toast } = useToast();
 
-  const { tarefas, isLoading, deleteTarefaAsync, deleteFuturas, createOrUpdateTarefa, createManyTarefas, updateStatus } = usePlannerTarefas();
+  const { tarefas, isLoading, deleteTarefaAsync, deleteFuturas, createOrUpdateTarefa, createManyTarefas, updateStatus, reorderTarefas } = usePlannerTarefas();
   const { quadros, createQuadro, deleteQuadro } = usePlannerQuadros();
 
   const handleCreateQuadro = async () => {
@@ -112,16 +140,21 @@ export default function Planner() {
     setEditing(null);
   };
 
-  const doDia = useMemo(
-    () => tarefas.filter((t) => t.data === selectedDate && (t.quadro_id || null) === selectedQuadro),
-    [tarefas, selectedDate, selectedQuadro]
-  );
+  const itensAtivos = useMemo(() => {
+    if (modo === "quadro") {
+      return tarefas.filter((t) => !t.data && (t.quadro_id || null) === selectedQuadro);
+    }
+    return tarefas.filter((t) => t.data === selectedDate && (t.quadro_id || null) === selectedQuadro);
+  }, [tarefas, selectedDate, selectedQuadro, modo]);
 
   const porStatus = useMemo(() => {
     const map = { a_fazer: [], em_andamento: [], concluido: [] };
-    doDia.forEach((t) => { (map[t.status] || map.a_fazer).push(t); });
+    itensAtivos.forEach((t) => { (map[t.status] || map.a_fazer).push(t); });
+    if (modo === "quadro") {
+      Object.keys(map).forEach((status) => map[status].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)));
+    }
     return map;
-  }, [doDia]);
+  }, [itensAtivos, modo]);
 
   const moveStatus = (tarefa, delta) => {
     const idx = COLUNAS.findIndex((c) => c.status === tarefa.status);
@@ -135,13 +168,34 @@ export default function Planner() {
     await createOrUpdateTarefa({
       titulo: novoTitulo.trim(),
       descricao: "",
-      data: selectedDate,
+      data: modo === "quadro" ? null : selectedDate,
       prioridade: "media",
       status,
       quadro_id: selectedQuadro,
     });
     setNovoTitulo("");
     setAddingTo(null);
+  };
+
+  const handleDragEnd = (result) => {
+    const { source, destination } = result;
+    if (!destination) return;
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
+
+    const sourceStatus = source.droppableId;
+    const destStatus = destination.droppableId;
+
+    const sourceItems = Array.from(porStatus[sourceStatus]);
+    const [moved] = sourceItems.splice(source.index, 1);
+
+    const destItems = sourceStatus === destStatus ? sourceItems : Array.from(porStatus[destStatus]);
+    destItems.splice(destination.index, 0, { ...moved, status: destStatus });
+
+    const updates = destItems.map((t, idx) => ({ id: t.id, status: destStatus, ordem: idx }));
+    if (sourceStatus !== destStatus) {
+      updates.push(...sourceItems.map((t, idx) => ({ id: t.id, status: sourceStatus, ordem: idx })));
+    }
+    reorderTarefas(updates);
   };
 
   return (
@@ -156,7 +210,28 @@ export default function Planner() {
         }
       />
 
-      <WeekStrip value={selectedDate} onChange={setSelectedDate} />
+      <div className="flex items-center gap-1 mb-3 rounded-xl border border-ink-200 bg-ink-50/50 p-1 w-fit">
+        <button
+          onClick={() => setModo("dia")}
+          className={cn(
+            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+            modo === "dia" ? "bg-white shadow-sm text-ink-900" : "text-ink-400 hover:text-ink-900"
+          )}
+        >
+          <CalendarDays className="h-4 w-4" /> Dia
+        </button>
+        <button
+          onClick={() => setModo("quadro")}
+          className={cn(
+            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+            modo === "quadro" ? "bg-white shadow-sm text-ink-900" : "text-ink-400 hover:text-ink-900"
+          )}
+        >
+          <LayoutGrid className="h-4 w-4" /> Quadro
+        </button>
+      </div>
+
+      {modo === "dia" && <WeekStrip value={selectedDate} onChange={setSelectedDate} />}
 
       <div className="flex items-center gap-2 mb-4">
         <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-400 flex-shrink-0">
@@ -192,6 +267,104 @@ export default function Planner() {
 
       {isLoading ? (
         <div className="text-ink-400 text-sm">Carregando...</div>
+      ) : modo === "quadro" ? (
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {COLUNAS.map((col) => {
+              const isCollapsed = collapsed[col.status];
+              const itens = porStatus[col.status];
+              return (
+                <div key={col.status} className="rounded-2xl border border-ink-200 bg-ink-50/50 p-3">
+                  <button
+                    onClick={() => setCollapsed((c) => ({ ...c, [col.status]: !c[col.status] }))}
+                    className="w-full flex items-center justify-between mb-2 px-1"
+                  >
+                    <span className="flex items-center gap-2 text-sm font-semibold text-ink-900">
+                      <span className={cn("h-2.5 w-2.5 rounded-full", col.dot)} />
+                      {col.label}
+                      <span className="text-ink-400 font-normal">{itens.length}</span>
+                    </span>
+                    {isCollapsed ? <ChevronDown className="h-4 w-4 text-ink-400" /> : <ChevronUp className="h-4 w-4 text-ink-400" />}
+                  </button>
+
+                  {!isCollapsed && (
+                    <>
+                      <Droppable droppableId={col.status}>
+                        {(provided) => (
+                          <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-2 mb-2 min-h-[8px]">
+                            {itens.length === 0 && addingTo !== col.status && (
+                              <p className="text-xs text-ink-400 italic text-center py-4">Nenhuma tarefa aqui</p>
+                            )}
+                            {itens.map((tarefa, index) => (
+                              <Draggable key={tarefa.id} draggableId={tarefa.id} index={index}>
+                                {(dragProvided, snapshot) => (
+                                  <div
+                                    ref={dragProvided.innerRef}
+                                    {...dragProvided.draggableProps}
+                                    className={cn(
+                                      "group rounded-xl border border-ink-200 bg-white px-3 py-2.5",
+                                      snapshot.isDragging && "shadow-lg"
+                                    )}
+                                  >
+                                    <div className="flex items-start gap-1">
+                                      <span {...dragProvided.dragHandleProps} className="mt-1 cursor-grab text-ink-300 hover:text-ink-500 flex-shrink-0">
+                                        <GripVertical className="h-3.5 w-3.5" />
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <TarefaCardBody tarefa={tarefa} />
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center justify-end mt-2">
+                                      <div className="flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => { setEditing(tarefa); setOpen(true); }} className="p-1 text-ink-400 hover:text-ink-900">
+                                          <Pencil className="h-3.5 w-3.5" />
+                                        </button>
+                                        <button onClick={() => handleDeleteClick(tarefa)} className="p-1 text-ink-400 hover:text-rust-600">
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </Draggable>
+                            ))}
+                            {provided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+
+                      {addingTo === col.status ? (
+                        <div className="flex items-center gap-1">
+                          <Input
+                            autoFocus
+                            value={novoTitulo}
+                            onChange={(e) => setNovoTitulo(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") handleQuickAdd(col.status); if (e.key === "Escape") { setAddingTo(null); setNovoTitulo(""); } }}
+                            placeholder="Título da tarefa"
+                            className="h-8 text-sm"
+                          />
+                          <button onClick={() => handleQuickAdd(col.status)} className="p-1.5 text-ink-500 hover:text-ink-900">
+                            <Check className="h-4 w-4" />
+                          </button>
+                          <button onClick={() => { setAddingTo(null); setNovoTitulo(""); }} className="p-1.5 text-ink-400 hover:text-rust-600">
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { setAddingTo(col.status); setNovoTitulo(""); }}
+                          className="w-full text-left text-xs text-ink-400 hover:text-ink-900 px-2 py-1.5"
+                        >
+                          + Adicionar um cartão
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </DragDropContext>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {COLUNAS.map((col) => {
@@ -221,27 +394,7 @@ export default function Planner() {
                         const idx = COLUNAS.findIndex((c) => c.status === tarefa.status);
                         return (
                           <div key={tarefa.id} className="group rounded-xl border border-ink-200 bg-white px-3 py-2.5">
-                            <div className="flex items-start gap-2">
-                              <span className={cn("mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0", PRIORIDADE_COR[tarefa.prioridade])} />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-ink-900 truncate">{tarefa.titulo}</p>
-                                {tarefa.descricao && (
-                                  <p className="text-xs text-ink-400 truncate mt-0.5">{tarefa.descricao}</p>
-                                )}
-                                {(tarefa.tag || tarefa.horario) && (
-                                  <div className="flex items-center gap-1.5 mt-1.5">
-                                    {tarefa.horario && (
-                                      <span className="text-[10px] text-ink-400">{tarefa.horario.slice(0, 5)}</span>
-                                    )}
-                                    {tarefa.tag && (
-                                      <span className="text-[10px] rounded-full bg-ink-100 text-ink-500 px-2 py-0.5 truncate max-w-[8rem]">
-                                        {tarefa.tag}
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                            <TarefaCardBody tarefa={tarefa} />
                             <div className="flex items-center justify-between mt-2">
                               <div className="flex gap-0.5">
                                 <button
@@ -309,7 +462,12 @@ export default function Planner() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar tarefa" : "Nova tarefa"}</DialogTitle></DialogHeader>
-          <PlannerTarefaForm tarefa={editing} onSaved={handleSaved} onCancel={() => setOpen(false)} />
+          <PlannerTarefaForm
+            tarefa={editing}
+            defaultData={modo === "quadro" ? "" : selectedDate}
+            onSaved={handleSaved}
+            onCancel={() => setOpen(false)}
+          />
         </DialogContent>
       </Dialog>
 
