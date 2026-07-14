@@ -15,7 +15,8 @@ export function usePlannerTarefas() {
         .from("planner_tarefas")
         .select("*")
         .eq("user_id", viewedUserId)
-        .order("data", { ascending: true });
+        .order("data", { ascending: true, nullsFirst: false })
+        .order("ordem", { ascending: true });
       if (error) throw new Error(error.message);
       return data;
     },
@@ -82,6 +83,18 @@ export function usePlannerTarefas() {
     ...mutationOptions,
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (updates) => {
+      // updates: [{ id, status, ordem }]
+      await Promise.all(
+        updates.map((u) =>
+          supabase.from("planner_tarefas").update({ status: u.status, ordem: u.ordem }).match({ id: u.id })
+        )
+      );
+    },
+    ...mutationOptions,
+  });
+
   return {
     tarefas,
     isLoading,
@@ -91,5 +104,6 @@ export function usePlannerTarefas() {
     createOrUpdateTarefa: createOrUpdateMutation.mutateAsync,
     createManyTarefas: createManyMutation.mutateAsync,
     updateStatus: updateStatusMutation.mutate,
+    reorderTarefas: reorderMutation.mutateAsync,
   };
 }

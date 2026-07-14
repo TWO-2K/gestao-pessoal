@@ -9,18 +9,20 @@ import { cn } from "@/lib/utils";
 
 const DIAS_ABREV = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 
-const emptyForm = {
-  titulo: "",
-  descricao: "",
-  data: new Date().toISOString().slice(0, 10),
-  prioridade: "media",
-  status: "a_fazer",
-  tag: "",
-  horario: "",
-  repeticao: "nunca",
-  repetirAte: "",
-  diasSemana: [],
-};
+function makeEmptyForm(defaultData) {
+  return {
+    titulo: "",
+    descricao: "",
+    data: defaultData ?? new Date().toISOString().slice(0, 10),
+    prioridade: "media",
+    status: "a_fazer",
+    tag: "",
+    horario: "",
+    repeticao: "nunca",
+    repetirAte: "",
+    diasSemana: [],
+  };
+}
 
 function parseDateLocal(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -35,7 +37,7 @@ function toDateStr(date) {
 }
 
 function getOccurrenceDates(form) {
-  if (form.repeticao === "nunca" || !form.repetirAte) return [form.data];
+  if (!form.data || form.repeticao === "nunca" || !form.repetirAte) return [form.data || null];
 
   const dates = [];
   const start = parseDateLocal(form.data);
@@ -52,27 +54,27 @@ function getOccurrenceDates(form) {
   return dates.length ? dates : [form.data];
 }
 
-export default function PlannerTarefaForm({ tarefa, onSaved, onCancel }) {
-  const [form, setForm] = useState(emptyForm);
+export default function PlannerTarefaForm({ tarefa, defaultData, onSaved, onCancel }) {
+  const [form, setForm] = useState(() => makeEmptyForm(defaultData));
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (tarefa) {
       setForm({
-        ...emptyForm,
+        ...makeEmptyForm(defaultData),
         titulo: tarefa.titulo,
         descricao: tarefa.descricao || "",
-        data: tarefa.data,
+        data: tarefa.data || "",
         prioridade: tarefa.prioridade,
         status: tarefa.status,
         tag: tarefa.tag || "",
         horario: tarefa.horario || "",
       });
     } else {
-      setForm(emptyForm);
+      setForm(makeEmptyForm(defaultData));
     }
-  }, [tarefa]);
+  }, [tarefa, defaultData]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -96,7 +98,7 @@ export default function PlannerTarefaForm({ tarefa, onSaved, onCancel }) {
           id: tarefa.id,
           titulo: form.titulo,
           descricao: form.descricao,
-          data: form.data,
+          data: form.data || null,
           prioridade: form.prioridade,
           status: form.status,
           tag: form.tag || null,
@@ -177,7 +179,8 @@ export default function PlannerTarefaForm({ tarefa, onSaved, onCancel }) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="data">Data</Label>
-          <Input id="data" type="date" value={form.data} onChange={(e) => set("data", e.target.value)} required />
+          <Input id="data" type="date" value={form.data} onChange={(e) => set("data", e.target.value)} />
+          <p className="text-[11px] text-ink-400">Deixe em branco para ficar no Quadro, sem dia fixo.</p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="horario">Horário</Label>
@@ -190,7 +193,7 @@ export default function PlannerTarefaForm({ tarefa, onSaved, onCancel }) {
         <Input id="tag" value={form.tag} onChange={(e) => set("tag", e.target.value)} placeholder="ex: trabalho, pessoal" />
       </div>
 
-      {!tarefa && (
+      {!tarefa && form.data && (
         <div className="space-y-3">
           <div className="space-y-2">
             <Label>Repetição</Label>
