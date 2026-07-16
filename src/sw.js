@@ -16,11 +16,11 @@ self.addEventListener('push', (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: 'Gestão Financeira', body: event.data?.text() };
+    data = { title: 'Órbita', body: event.data?.text() };
   }
 
   event.waitUntil(
-    self.registration.showNotification(data.title ?? 'Gestão Financeira', {
+    self.registration.showNotification(data.title ?? 'Órbita', {
       body: data.body,
       icon: '/pwa-192x192.png',
       badge: '/pwa-64x64.png',

@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import WeekStrip from "@/components/WeekStrip";
 import { usePlannerTarefas } from "@/hooks/usePlannerTarefas";
 import { usePlannerQuadros } from "@/hooks/usePlannerQuadros";
+import { usePlannerSubtarefas } from "@/hooks/usePlannerSubtarefas";
+import { etiquetaCorClasse } from "@/components/PlannerTarefaForm";
 import { useToast } from "@/components/ui/use-toast";
 
 const PRIORIDADE_COR = {
@@ -29,26 +31,49 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function TarefaCardBody({ tarefa }) {
+function TarefaCardBody({ tarefa, modo, checklist }) {
+  const isQuadro = modo === "quadro";
+  const concluidas = checklist?.filter((s) => s.concluida).length ?? 0;
+
   return (
     <div className="flex items-start gap-2">
       <span className={cn("mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0", PRIORIDADE_COR[tarefa.prioridade])} />
       <div className="flex-1 min-w-0">
+        {isQuadro && tarefa.etiquetas?.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-1">
+            {tarefa.etiquetas.map((et) => (
+              <span
+                key={et.id}
+                className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium text-white", etiquetaCorClasse(et.cor))}
+              >
+                {et.texto}
+              </span>
+            ))}
+          </div>
+        )}
         <p className="text-sm font-medium text-ink-900 truncate">{tarefa.titulo}</p>
         {tarefa.descricao && (
           <p className="text-xs text-ink-400 truncate mt-0.5">{tarefa.descricao}</p>
         )}
-        {(tarefa.tag || tarefa.horario) && (
-          <div className="flex items-center gap-1.5 mt-1.5">
-            {tarefa.horario && (
-              <span className="text-[10px] text-ink-400">{tarefa.horario.slice(0, 5)}</span>
-            )}
-            {tarefa.tag && (
-              <span className="text-[10px] rounded-full bg-ink-100 text-ink-500 px-2 py-0.5 truncate max-w-[8rem]">
-                {tarefa.tag}
-              </span>
-            )}
-          </div>
+        {isQuadro ? (
+          checklist?.length > 0 && (
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <span className="text-[10px] text-ink-400">{concluidas}/{checklist.length}</span>
+            </div>
+          )
+        ) : (
+          (tarefa.tag || tarefa.horario) && (
+            <div className="flex items-center gap-1.5 mt-1.5">
+              {tarefa.horario && (
+                <span className="text-[10px] text-ink-400">{tarefa.horario.slice(0, 5)}</span>
+              )}
+              {tarefa.tag && (
+                <span className="text-[10px] rounded-full bg-ink-100 text-ink-500 px-2 py-0.5 truncate max-w-[8rem]">
+                  {tarefa.tag}
+                </span>
+              )}
+            </div>
+          )
         )}
       </div>
     </div>
@@ -73,6 +98,7 @@ export default function Planner() {
 
   const { tarefas, isLoading, deleteTarefaAsync, deleteFuturas, createOrUpdateTarefa, createManyTarefas, updateStatus, reorderTarefas } = usePlannerTarefas();
   const { quadros, createQuadro, deleteQuadro } = usePlannerQuadros();
+  const { subtarefas } = usePlannerSubtarefas();
 
   const handleCreateQuadro = async () => {
     if (!novoQuadroNome.trim()) return;
@@ -311,7 +337,7 @@ export default function Planner() {
                                         <GripVertical className="h-3.5 w-3.5" />
                                       </span>
                                       <div className="flex-1 min-w-0">
-                                        <TarefaCardBody tarefa={tarefa} />
+                                        <TarefaCardBody tarefa={tarefa} modo="quadro" checklist={subtarefas.filter((s) => s.tarefa_id === tarefa.id)} />
                                       </div>
                                     </div>
                                     <div className="flex items-center justify-end mt-2">
@@ -394,7 +420,7 @@ export default function Planner() {
                         const idx = COLUNAS.findIndex((c) => c.status === tarefa.status);
                         return (
                           <div key={tarefa.id} className="group rounded-xl border border-ink-200 bg-white px-3 py-2.5">
-                            <TarefaCardBody tarefa={tarefa} />
+                            <TarefaCardBody tarefa={tarefa} modo="dia" />
                             <div className="flex items-center justify-between mt-2">
                               <div className="flex gap-0.5">
                                 <button
@@ -465,6 +491,7 @@ export default function Planner() {
           <PlannerTarefaForm
             tarefa={editing}
             defaultData={modo === "quadro" ? "" : selectedDate}
+            modo={modo}
             onSaved={handleSaved}
             onCancel={() => setOpen(false)}
           />
