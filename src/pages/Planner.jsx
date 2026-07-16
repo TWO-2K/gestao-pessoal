@@ -41,7 +41,16 @@ function TarefaCardBody({ tarefa, modo, checklist }) {
         {tarefa.etiquetas?.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
             {tarefa.etiquetas.map((et) => (
-              <span key={et.id} title={et.texto} className={cn("h-2 w-9 rounded-full", etiquetaCorClasse(et.cor))} />
+              <span
+                key={et.id}
+                title={et.texto}
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-[10px] font-medium text-white truncate max-w-[10rem]",
+                  etiquetaCorClasse(et.cor)
+                )}
+              >
+                {et.texto}
+              </span>
             ))}
           </div>
         )}
