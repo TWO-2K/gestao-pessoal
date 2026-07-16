@@ -7,8 +7,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
-import { X, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { usePlannerSubtarefas } from "@/hooks/usePlannerSubtarefas";
+import { usePlannerEtiquetas } from "@/hooks/usePlannerEtiquetas";
 
 const DIAS_ABREV = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 
@@ -37,7 +38,7 @@ function makeEmptyForm(defaultData) {
     repeticao: "nunca",
     repetirAte: "",
     diasSemana: [],
-    etiquetas: [],
+    etiquetaIds: [],
   };
 }
 
@@ -71,7 +72,7 @@ function getOccurrenceDates(form) {
   return dates.length ? dates : [form.data];
 }
 
-export default function PlannerTarefaForm({ tarefa, defaultData, modo, onSaved, onCancel }) {
+export default function PlannerTarefaForm({ tarefa, defaultData, modo, quadroId, onSaved, onCancel }) {
   const [form, setForm] = useState(() => makeEmptyForm(defaultData));
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
@@ -79,6 +80,7 @@ export default function PlannerTarefaForm({ tarefa, defaultData, modo, onSaved, 
 
   const [novaEtiquetaTexto, setNovaEtiquetaTexto] = useState("");
   const [novaEtiquetaCor, setNovaEtiquetaCor] = useState(ETIQUETA_CORES[0].nome);
+  const { etiquetas, createEtiqueta, deleteEtiqueta } = usePlannerEtiquetas(quadroId);
 
   const [novoItemChecklist, setNovoItemChecklist] = useState("");
   const { subtarefas, createSubtarefa, toggleConcluida, deleteSubtarefa } = usePlannerSubtarefas();
@@ -95,7 +97,7 @@ export default function PlannerTarefaForm({ tarefa, defaultData, modo, onSaved, 
         status: tarefa.status,
         tag: tarefa.tag || "",
         horario: tarefa.horario || "",
-        etiquetas: tarefa.etiquetas || [],
+        etiquetaIds: (tarefa.etiquetas || []).map((e) => e.id),
       });
     } else {
       setForm(makeEmptyForm(defaultData));
@@ -104,17 +106,31 @@ export default function PlannerTarefaForm({ tarefa, defaultData, modo, onSaved, 
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  const addEtiqueta = () => {
-    if (!novaEtiquetaTexto.trim()) return;
+  const toggleEtiqueta = (id) => {
     setForm((f) => ({
       ...f,
-      etiquetas: [...f.etiquetas, { id: crypto.randomUUID(), texto: novaEtiquetaTexto.trim(), cor: novaEtiquetaCor }],
+      etiquetaIds: f.etiquetaIds.includes(id) ? f.etiquetaIds.filter((x) => x !== id) : [...f.etiquetaIds, id],
     }));
-    setNovaEtiquetaTexto("");
   };
 
-  const removeEtiqueta = (id) => {
-    setForm((f) => ({ ...f, etiquetas: f.etiquetas.filter((e) => e.id !== id) }));
+  const addEtiqueta = async () => {
+    if (!novaEtiquetaTexto.trim()) return;
+    try {
+      const created = await createEtiqueta({ texto: novaEtiquetaTexto.trim(), cor: novaEtiquetaCor });
+      setForm((f) => ({ ...f, etiquetaIds: [...f.etiquetaIds, created.id] }));
+      setNovaEtiquetaTexto("");
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro ao criar etiqueta", description: error.message });
+    }
+  };
+
+  const removeEtiqueta = async (id) => {
+    try {
+      await deleteEtiqueta(id);
+      setForm((f) => ({ ...f, etiquetaIds: f.etiquetaIds.filter((x) => x !== id) }));
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro ao excluir etiqueta", description: error.message });
+    }
   };
 
   const addItemChecklist = async () => {
@@ -148,7 +164,7 @@ export default function PlannerTarefaForm({ tarefa, defaultData, modo, onSaved, 
           status: form.status,
           tag: isQuadro ? null : (form.tag || null),
           horario: isQuadro ? null : (form.horario || null),
-          etiquetas: isQuadro ? form.etiquetas : [],
+          etiquetaIds: isQuadro ? form.etiquetaIds : [],
         });
       } else {
         const datas = isQuadro ? [null] : getOccurrenceDates(form);
@@ -162,7 +178,7 @@ export default function PlannerTarefaForm({ tarefa, defaultData, modo, onSaved, 
           tag: isQuadro ? null : (form.tag || null),
           horario: isQuadro ? null : (form.horario || null),
           serie_id: serieId,
-          etiquetas: isQuadro ? form.etiquetas : [],
+          etiquetaIds: isQuadro ? form.etiquetaIds : [],
         }));
         await onSaved(rows);
       }
@@ -247,18 +263,31 @@ export default function PlannerTarefaForm({ tarefa, defaultData, modo, onSaved, 
       {isQuadro && (
         <div className="space-y-2">
           <Label>Etiquetas</Label>
+          <p className="text-[11px] text-ink-400">Clique para marcar/desmarcar no cartão. As etiquetas são do quadro e podem ser reaproveitadas em outros cartões.</p>
           <div className="flex flex-wrap gap-1.5">
-            {form.etiquetas.map((et) => (
-              <span
-                key={et.id}
-                className={cn("flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-white", etiquetaCorClasse(et.cor))}
-              >
-                {et.texto}
-                <button type="button" onClick={() => removeEtiqueta(et.id)} className="hover:opacity-70">
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            ))}
+            {etiquetas.map((et) => {
+              const selecionada = form.etiquetaIds.includes(et.id);
+              return (
+                <span
+                  key={et.id}
+                  onClick={() => toggleEtiqueta(et.id)}
+                  className={cn(
+                    "group/etq flex items-center gap-1 rounded-full pl-2 pr-1 py-0.5 text-[11px] font-medium text-white cursor-pointer transition-opacity",
+                    etiquetaCorClasse(et.cor),
+                    !selecionada && "opacity-40 hover:opacity-70"
+                  )}
+                >
+                  {et.texto}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); removeEtiqueta(et.id); }}
+                    className="rounded-full p-0.5 opacity-0 group-hover/etq:opacity-100 hover:bg-black/20"
+                  >
+                    <Trash2 className="h-2.5 w-2.5" />
+                  </button>
+                </span>
+              );
+            })}
           </div>
           <div className="flex items-center gap-1.5">
             <div className="flex gap-1">

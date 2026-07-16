@@ -509,6 +509,7 @@ export default function Planner() {
             tarefa={editing}
             defaultData={modo === "quadro" ? "" : selectedDate}
             modo={modo}
+            quadroId={selectedQuadro}
             onSaved={handleSaved}
             onCancel={() => setOpen(false)}
           />
