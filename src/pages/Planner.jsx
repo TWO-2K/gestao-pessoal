@@ -109,7 +109,7 @@ export default function Planner() {
   const [deletingQuadro, setDeletingQuadro] = useState(null);
   const { toast } = useToast();
 
-  const { tarefas, isLoading, deleteTarefaAsync, deleteFuturas, createOrUpdateTarefa, createManyTarefas, updateStatus, reorderTarefas } = usePlannerTarefas();
+  const { tarefas, isLoading, deleteTarefaAsync, deleteFuturas, createOrUpdateTarefa, createManyTarefas, updateStatus } = usePlannerTarefas();
   const { quadros, createQuadro, deleteQuadro } = usePlannerQuadros();
   const { subtarefas } = usePlannerSubtarefas();
 
@@ -190,7 +190,9 @@ export default function Planner() {
     const map = { a_fazer: [], em_andamento: [], concluido: [] };
     itensAtivos.forEach((t) => { (map[t.status] || map.a_fazer).push(t); });
     if (modo === "quadro") {
-      Object.keys(map).forEach((status) => map[status].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)));
+      Object.keys(map).forEach((status) =>
+        map[status].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      );
     }
     return map;
   }, [itensAtivos, modo]);
@@ -219,22 +221,13 @@ export default function Planner() {
   const handleDragEnd = (result) => {
     const { source, destination } = result;
     if (!destination) return;
-    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
     const sourceStatus = source.droppableId;
     const destStatus = destination.droppableId;
+    if (sourceStatus === destStatus) return;
 
-    const sourceItems = Array.from(porStatus[sourceStatus]);
-    const [moved] = sourceItems.splice(source.index, 1);
-
-    const destItems = sourceStatus === destStatus ? sourceItems : Array.from(porStatus[destStatus]);
-    destItems.splice(destination.index, 0, { ...moved, status: destStatus });
-
-    const updates = destItems.map((t, idx) => ({ id: t.id, status: destStatus, ordem: idx }));
-    if (sourceStatus !== destStatus) {
-      updates.push(...sourceItems.map((t, idx) => ({ id: t.id, status: sourceStatus, ordem: idx })));
-    }
-    reorderTarefas(updates);
+    const tarefa = porStatus[sourceStatus][source.index];
+    updateStatus({ id: tarefa.id, status: destStatus });
   };
 
   return (
