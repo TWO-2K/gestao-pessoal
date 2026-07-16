@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, Wallet, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare, Eye, ChevronDown, Clapperboard } from "lucide-react";
+import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare, Eye, ChevronDown, Clapperboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 import { useUsuarios } from "@/hooks/useUsuarios";
@@ -86,12 +86,12 @@ export default function Layout() {
       <aside className="hidden md:flex fixed inset-y-0 left-0 w-64 flex-col bg-ink-900 px-5 py-7">
         <div className="absolute right-0 top-0 bottom-0 w-[3px] bg-gold-500/80" />
         <div className="flex items-center gap-3 px-2 mb-10">
-          <div className="h-10 w-10 rounded-full bg-gold-500 flex items-center justify-center flex-shrink-0">
-            <Wallet className="h-5 w-5 text-ink-900" />
+          <div className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0">
+            <img src="/pwa-192x192.png" alt="Logo" className="h-full w-full object-cover" />
           </div>
           <div>
-            <p className="font-display text-lg leading-tight tracking-tight text-ink-50">Finanças</p>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-ink-50/40 leading-tight">Livro-caixa</p>
+            <p className="font-display text-lg leading-tight tracking-tight text-ink-50">Órbita</p>
+            <p className="text-[11px] uppercase tracking-[0.14em] text-ink-50/40 leading-tight">Painel pessoal</p>
           </div>
         </div>
         <nav className="sidebar-scroll flex-1 min-h-0 overflow-y-auto space-y-3 pr-1 -mr-1">

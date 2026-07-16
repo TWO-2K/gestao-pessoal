@@ -14,9 +14,9 @@ export default defineConfig({
       filename: 'sw.js',
       includeAssets: ['favicon.ico', 'icon-source.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'Gestão Financeira',
-        short_name: 'Finanças',
-        description: 'Seu sistema de gestão financeira pessoal.',
+        name: 'Órbita',
+        short_name: 'Órbita',
+        description: 'Seu painel pessoal de finanças, tarefas e mídias.',
         start_url: '/',
         display: 'standalone',
         background_color: '#F8F5EC',

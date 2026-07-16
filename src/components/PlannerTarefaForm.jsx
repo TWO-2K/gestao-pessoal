@@ -3,11 +3,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import { X, Plus, Trash2 } from "lucide-react";
+import { usePlannerSubtarefas } from "@/hooks/usePlannerSubtarefas";
 
 const DIAS_ABREV = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+
+const ETIQUETA_CORES = [
+  { nome: "rust", classe: "bg-rust-500" },
+  { nome: "gold", classe: "bg-gold-500" },
+  { nome: "forest", classe: "bg-forest-500" },
+  { nome: "sky", classe: "bg-sky-400" },
+  { nome: "emerald", classe: "bg-emerald-500" },
+  { nome: "violet", classe: "bg-violet-500" },
+];
+
+export function etiquetaCorClasse(cor) {
+  return ETIQUETA_CORES.find((c) => c.nome === cor)?.classe || "bg-ink-300";
+}
 
 function makeEmptyForm(defaultData) {
   return {
@@ -21,6 +37,7 @@ function makeEmptyForm(defaultData) {
     repeticao: "nunca",
     repetirAte: "",
     diasSemana: [],
+    etiquetas: [],
   };
 }
 
@@ -54,10 +71,18 @@ function getOccurrenceDates(form) {
   return dates.length ? dates : [form.data];
 }
 
-export default function PlannerTarefaForm({ tarefa, defaultData, onSaved, onCancel }) {
+export default function PlannerTarefaForm({ tarefa, defaultData, modo, onSaved, onCancel }) {
   const [form, setForm] = useState(() => makeEmptyForm(defaultData));
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const isQuadro = modo === "quadro";
+
+  const [novaEtiquetaTexto, setNovaEtiquetaTexto] = useState("");
+  const [novaEtiquetaCor, setNovaEtiquetaCor] = useState(ETIQUETA_CORES[0].nome);
+
+  const [novoItemChecklist, setNovoItemChecklist] = useState("");
+  const { subtarefas, createSubtarefa, toggleConcluida, deleteSubtarefa } = usePlannerSubtarefas();
+  const itensChecklist = tarefa ? subtarefas.filter((s) => s.tarefa_id === tarefa.id) : [];
 
   useEffect(() => {
     if (tarefa) {
@@ -70,6 +95,7 @@ export default function PlannerTarefaForm({ tarefa, defaultData, onSaved, onCanc
         status: tarefa.status,
         tag: tarefa.tag || "",
         horario: tarefa.horario || "",
+        etiquetas: tarefa.etiquetas || [],
       });
     } else {
       setForm(makeEmptyForm(defaultData));
@@ -77,6 +103,25 @@ export default function PlannerTarefaForm({ tarefa, defaultData, onSaved, onCanc
   }, [tarefa, defaultData]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const addEtiqueta = () => {
+    if (!novaEtiquetaTexto.trim()) return;
+    setForm((f) => ({
+      ...f,
+      etiquetas: [...f.etiquetas, { id: crypto.randomUUID(), texto: novaEtiquetaTexto.trim(), cor: novaEtiquetaCor }],
+    }));
+    setNovaEtiquetaTexto("");
+  };
+
+  const removeEtiqueta = (id) => {
+    setForm((f) => ({ ...f, etiquetas: f.etiquetas.filter((e) => e.id !== id) }));
+  };
+
+  const addItemChecklist = async () => {
+    if (!novoItemChecklist.trim() || !tarefa) return;
+    await createSubtarefa({ tarefa_id: tarefa.id, titulo: novoItemChecklist.trim() });
+    setNovoItemChecklist("");
+  };
 
   const toggleDiaSemana = (dow) => {
     setForm((f) => ({
@@ -98,14 +143,15 @@ export default function PlannerTarefaForm({ tarefa, defaultData, onSaved, onCanc
           id: tarefa.id,
           titulo: form.titulo,
           descricao: form.descricao,
-          data: form.data || null,
+          data: isQuadro ? null : (form.data || null),
           prioridade: form.prioridade,
           status: form.status,
-          tag: form.tag || null,
-          horario: form.horario || null,
+          tag: isQuadro ? null : (form.tag || null),
+          horario: isQuadro ? null : (form.horario || null),
+          etiquetas: isQuadro ? form.etiquetas : [],
         });
       } else {
-        const datas = getOccurrenceDates(form);
+        const datas = isQuadro ? [null] : getOccurrenceDates(form);
         const serieId = datas.length > 1 ? crypto.randomUUID() : null;
         const rows = datas.map((data) => ({
           titulo: form.titulo,
@@ -113,9 +159,10 @@ export default function PlannerTarefaForm({ tarefa, defaultData, onSaved, onCanc
           data,
           prioridade: form.prioridade,
           status: form.status,
-          tag: form.tag || null,
-          horario: form.horario || null,
+          tag: isQuadro ? null : (form.tag || null),
+          horario: isQuadro ? null : (form.horario || null),
           serie_id: serieId,
+          etiquetas: isQuadro ? form.etiquetas : [],
         }));
         await onSaved(rows);
       }
@@ -176,24 +223,113 @@ export default function PlannerTarefaForm({ tarefa, defaultData, onSaved, onCanc
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="data">Data</Label>
-          <Input id="data" type="date" value={form.data} onChange={(e) => set("data", e.target.value)} />
-          <p className="text-[11px] text-ink-400">Deixe em branco para ficar no Quadro, sem dia fixo.</p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="horario">Horário</Label>
-          <Input id="horario" type="time" value={form.horario} onChange={(e) => set("horario", e.target.value)} />
-        </div>
-      </div>
+      {!isQuadro && (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="data">Data</Label>
+              <Input id="data" type="date" value={form.data} onChange={(e) => set("data", e.target.value)} />
+              <p className="text-[11px] text-ink-400">Deixe em branco para ficar no Quadro, sem dia fixo.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="horario">Horário</Label>
+              <Input id="horario" type="time" value={form.horario} onChange={(e) => set("horario", e.target.value)} />
+            </div>
+          </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="tag">Tag / Projeto</Label>
-        <Input id="tag" value={form.tag} onChange={(e) => set("tag", e.target.value)} placeholder="ex: trabalho, pessoal" />
-      </div>
+          <div className="space-y-2">
+            <Label htmlFor="tag">Tag / Projeto</Label>
+            <Input id="tag" value={form.tag} onChange={(e) => set("tag", e.target.value)} placeholder="ex: trabalho, pessoal" />
+          </div>
+        </>
+      )}
 
-      {!tarefa && form.data && (
+      {isQuadro && (
+        <div className="space-y-2">
+          <Label>Etiquetas</Label>
+          <div className="flex flex-wrap gap-1.5">
+            {form.etiquetas.map((et) => (
+              <span
+                key={et.id}
+                className={cn("flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-white", etiquetaCorClasse(et.cor))}
+              >
+                {et.texto}
+                <button type="button" onClick={() => removeEtiqueta(et.id)} className="hover:opacity-70">
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="flex gap-1">
+              {ETIQUETA_CORES.map((c) => (
+                <button
+                  key={c.nome}
+                  type="button"
+                  onClick={() => setNovaEtiquetaCor(c.nome)}
+                  className={cn(
+                    "h-6 w-6 rounded-full flex-shrink-0",
+                    c.classe,
+                    novaEtiquetaCor === c.nome && "ring-2 ring-offset-1 ring-ink-500"
+                  )}
+                />
+              ))}
+            </div>
+            <Input
+              value={novaEtiquetaTexto}
+              onChange={(e) => setNovaEtiquetaTexto(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEtiqueta(); } }}
+              placeholder="Nome da etiqueta"
+              className="h-8 text-sm"
+            />
+            <Button type="button" size="icon" variant="outline" className="h-8 w-8 flex-shrink-0" onClick={addEtiqueta}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {isQuadro && (
+        <div className="space-y-2">
+          <Label>Checklist</Label>
+          {!tarefa ? (
+            <p className="text-[11px] text-ink-400">Salve o cartão para adicionar itens de checklist.</p>
+          ) : (
+            <>
+              <div className="space-y-1.5">
+                {itensChecklist.map((item) => (
+                  <div key={item.id} className="flex items-center gap-2">
+                    <Checkbox
+                      checked={item.concluida}
+                      onCheckedChange={(checked) => toggleConcluida({ id: item.id, concluida: !!checked })}
+                    />
+                    <span className={cn("flex-1 text-sm", item.concluida && "line-through text-ink-400")}>
+                      {item.titulo}
+                    </span>
+                    <button type="button" onClick={() => deleteSubtarefa(item.id)} className="p-1 text-ink-400 hover:text-rust-600">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Input
+                  value={novoItemChecklist}
+                  onChange={(e) => setNovoItemChecklist(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addItemChecklist(); } }}
+                  placeholder="Adicionar item"
+                  className="h-8 text-sm"
+                />
+                <Button type="button" size="icon" variant="outline" className="h-8 w-8 flex-shrink-0" onClick={addItemChecklist}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {!isQuadro && !tarefa && form.data && (
         <div className="space-y-3">
           <div className="space-y-2">
             <Label>Repetição</Label>
