@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Check, CalendarDays, LayoutGrid, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Check, CalendarDays, LayoutGrid, ListChecks } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
 import WeekStrip from "@/components/WeekStrip";
@@ -33,47 +33,51 @@ function todayStr() {
 
 function TarefaCardBody({ tarefa, modo, checklist }) {
   const isQuadro = modo === "quadro";
-  const concluidas = checklist?.filter((s) => s.concluida).length ?? 0;
+
+  if (isQuadro) {
+    const concluidas = checklist?.filter((s) => s.concluida).length ?? 0;
+    return (
+      <div>
+        {tarefa.etiquetas?.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {tarefa.etiquetas.map((et) => (
+              <span key={et.id} title={et.texto} className={cn("h-2 w-9 rounded-full", etiquetaCorClasse(et.cor))} />
+            ))}
+          </div>
+        )}
+        <p className="text-sm text-ink-900 leading-snug">{tarefa.titulo}</p>
+        {tarefa.descricao && (
+          <p className="text-xs text-ink-400 truncate mt-1">{tarefa.descricao}</p>
+        )}
+        {checklist?.length > 0 && (
+          <div className="flex items-center gap-1 mt-2 text-[11px] text-ink-400">
+            <ListChecks className="h-3.5 w-3.5" />
+            <span>{concluidas}/{checklist.length}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-start gap-2">
       <span className={cn("mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0", PRIORIDADE_COR[tarefa.prioridade])} />
       <div className="flex-1 min-w-0">
-        {isQuadro && tarefa.etiquetas?.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-1">
-            {tarefa.etiquetas.map((et) => (
-              <span
-                key={et.id}
-                className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium text-white", etiquetaCorClasse(et.cor))}
-              >
-                {et.texto}
-              </span>
-            ))}
-          </div>
-        )}
         <p className="text-sm font-medium text-ink-900 truncate">{tarefa.titulo}</p>
         {tarefa.descricao && (
           <p className="text-xs text-ink-400 truncate mt-0.5">{tarefa.descricao}</p>
         )}
-        {isQuadro ? (
-          checklist?.length > 0 && (
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <span className="text-[10px] text-ink-400">{concluidas}/{checklist.length}</span>
-            </div>
-          )
-        ) : (
-          (tarefa.tag || tarefa.horario) && (
-            <div className="flex items-center gap-1.5 mt-1.5">
-              {tarefa.horario && (
-                <span className="text-[10px] text-ink-400">{tarefa.horario.slice(0, 5)}</span>
-              )}
-              {tarefa.tag && (
-                <span className="text-[10px] rounded-full bg-ink-100 text-ink-500 px-2 py-0.5 truncate max-w-[8rem]">
-                  {tarefa.tag}
-                </span>
-              )}
-            </div>
-          )
+        {(tarefa.tag || tarefa.horario) && (
+          <div className="flex items-center gap-1.5 mt-1.5">
+            {tarefa.horario && (
+              <span className="text-[10px] text-ink-400">{tarefa.horario.slice(0, 5)}</span>
+            )}
+            {tarefa.tag && (
+              <span className="text-[10px] rounded-full bg-ink-100 text-ink-500 px-2 py-0.5 truncate max-w-[8rem]">
+                {tarefa.tag}
+              </span>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -317,7 +321,11 @@ export default function Planner() {
                     <>
                       <Droppable droppableId={col.status}>
                         {(provided) => (
-                          <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-2 mb-2 min-h-[8px]">
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.droppableProps}
+                            className="space-y-2 mb-2 min-h-[8px] max-h-[28rem] overflow-y-auto pr-1"
+                          >
                             {itens.length === 0 && addingTo !== col.status && (
                               <p className="text-xs text-ink-400 italic text-center py-4">Nenhuma tarefa aqui</p>
                             )}
@@ -327,28 +335,28 @@ export default function Planner() {
                                   <div
                                     ref={dragProvided.innerRef}
                                     {...dragProvided.draggableProps}
+                                    {...dragProvided.dragHandleProps}
                                     className={cn(
-                                      "group rounded-xl border border-ink-200 bg-white px-3 py-2.5",
+                                      "group relative rounded-xl border border-ink-200 bg-white p-3 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing",
                                       snapshot.isDragging && "shadow-lg"
                                     )}
                                   >
-                                    <div className="flex items-start gap-1">
-                                      <span {...dragProvided.dragHandleProps} className="mt-1 cursor-grab text-ink-300 hover:text-ink-500 flex-shrink-0">
-                                        <GripVertical className="h-3.5 w-3.5" />
-                                      </span>
-                                      <div className="flex-1 min-w-0">
-                                        <TarefaCardBody tarefa={tarefa} modo="quadro" checklist={subtarefas.filter((s) => s.tarefa_id === tarefa.id)} />
-                                      </div>
+                                    <div className="pr-11">
+                                      <TarefaCardBody tarefa={tarefa} modo="quadro" checklist={subtarefas.filter((s) => s.tarefa_id === tarefa.id)} />
                                     </div>
-                                    <div className="flex items-center justify-end mt-2">
-                                      <div className="flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => { setEditing(tarefa); setOpen(true); }} className="p-1 text-ink-400 hover:text-ink-900">
-                                          <Pencil className="h-3.5 w-3.5" />
-                                        </button>
-                                        <button onClick={() => handleDeleteClick(tarefa)} className="p-1 text-ink-400 hover:text-rust-600">
-                                          <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
-                                      </div>
+                                    <div className="absolute top-2 right-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setEditing(tarefa); setOpen(true); }}
+                                        className="flex h-6 w-6 items-center justify-center rounded-full border border-ink-200 bg-white text-ink-400 shadow-sm hover:text-ink-900"
+                                      >
+                                        <Pencil className="h-3 w-3" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleDeleteClick(tarefa); }}
+                                        className="flex h-6 w-6 items-center justify-center rounded-full border border-ink-200 bg-white text-ink-400 shadow-sm hover:text-rust-600"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </button>
                                     </div>
                                   </div>
                                 )}
