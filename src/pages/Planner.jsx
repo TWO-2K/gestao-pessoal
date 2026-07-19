@@ -147,6 +147,12 @@ export default function Planner() {
     }
   };
 
+  const handleDeleteFromForm = async (tarefa) => {
+    setOpen(false);
+    setEditing(null);
+    await handleDeleteClick(tarefa);
+  };
+
   const handleDeleteOnly = async () => {
     try {
       await deleteTarefaAsync(deleting.id);
@@ -353,12 +359,6 @@ export default function Planner() {
                                       >
                                         <Pencil className="h-3 w-3" />
                                       </button>
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); handleDeleteClick(tarefa); }}
-                                        className="flex h-6 w-6 items-center justify-center rounded-full border border-ink-200 bg-white text-ink-400 shadow-sm hover:text-rust-600"
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </button>
                                     </div>
                                   </div>
                                 )}
@@ -452,9 +452,6 @@ export default function Planner() {
                                 <button onClick={() => { setEditing(tarefa); setOpen(true); }} className="p-1 text-ink-400 hover:text-ink-900">
                                   <Pencil className="h-3.5 w-3.5" />
                                 </button>
-                                <button onClick={() => handleDeleteClick(tarefa)} className="p-1 text-ink-400 hover:text-rust-600">
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
                               </div>
                             </div>
                           </div>
@@ -505,6 +502,7 @@ export default function Planner() {
             quadroId={selectedQuadro}
             onSaved={handleSaved}
             onCancel={() => setOpen(false)}
+            onDelete={handleDeleteFromForm}
           />
         </DialogContent>
       </Dialog>
