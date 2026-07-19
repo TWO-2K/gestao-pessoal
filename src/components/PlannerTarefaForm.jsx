@@ -72,7 +72,7 @@ function getOccurrenceDates(form) {
   return dates.length ? dates : [form.data];
 }
 
-export default function PlannerTarefaForm({ tarefa, defaultData, modo, quadroId, onSaved, onCancel }) {
+export default function PlannerTarefaForm({ tarefa, defaultData, modo, quadroId, onSaved, onCancel, onDelete }) {
   const [form, setForm] = useState(() => makeEmptyForm(defaultData));
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
@@ -413,9 +413,22 @@ export default function PlannerTarefaForm({ tarefa, defaultData, modo, quadroId,
         </div>
       )}
 
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="ghost" onClick={onCancel}>Cancelar</Button>
-        <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+      <div className="flex items-center justify-between gap-2 pt-2">
+        {tarefa && onDelete && (
+          <Button
+            type="button"
+            variant="ghost"
+            className="text-rust-600 hover:text-rust-700 hover:bg-rust-50"
+            onClick={() => onDelete(tarefa)}
+          >
+            <Trash2 className="h-4 w-4 mr-1.5" />
+            Excluir
+          </Button>
+        )}
+        <div className="flex justify-end gap-2 ml-auto">
+          <Button type="button" variant="ghost" onClick={onCancel}>Cancelar</Button>
+          <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+        </div>
       </div>
     </form>
   );
