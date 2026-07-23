@@ -38,3 +38,5 @@ supabase/.temp
 
 # Database dumps (contain sensitive data)
 dump_backup/
+.vercel
+.env*
