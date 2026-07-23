@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
       .eq("user_id", conta.user_id);
 
     if (subsError || !subscriptions?.length) {
+      await admin.from("notificacoes_enviadas").update({ status: "sem_subscription" }).eq("id", inserted.id);
       detalhes.push({ contaId: conta.id, tipo, status: "sem_subscription" });
       continue;
     }
@@ -114,6 +115,8 @@ Deno.serve(async (req) => {
     );
 
     const sucesso = resultados.some((r) => r.status === "fulfilled");
+    const statusFinal = sucesso ? "enviado" : "falha_envio";
+    await admin.from("notificacoes_enviadas").update({ status: statusFinal }).eq("id", inserted.id);
     if (sucesso) {
       enviados++;
       detalhes.push({ contaId: conta.id, tipo, status: "enviado" });

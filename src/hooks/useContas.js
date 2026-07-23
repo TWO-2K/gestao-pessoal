@@ -26,7 +26,7 @@ export function useContas() {
     queryKey: ["contas", "categorias", viewedUserId],
     queryFn: async () => {
       const [contasRes, categoriasRes, contasPagamentoRes] = await Promise.all([
-        supabase.from('contas_pagar').select('*').eq('user_id', viewedUserId).order('vencimento', { ascending: true }),
+        supabase.from('contas_pagar').select('*, notificacoes_enviadas(tipo, status, enviado_em)').eq('user_id', viewedUserId).order('vencimento', { ascending: true }),
         supabase.from('categorias').select('*').eq('user_id', viewedUserId),
         supabase.from('contas_pagamento').select('*').eq('user_id', viewedUserId),
       ]);
