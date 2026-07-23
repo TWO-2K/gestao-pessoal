@@ -3,7 +3,7 @@ import PageHeader from "@/components/PageHeader";
 import ContaForm from "@/components/ContaForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, ArrowUpCircle, Check, Repeat, AlertTriangle, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUpCircle, Check, Repeat, AlertTriangle, Clock, CheckCircle2, XCircle, Bell, BellOff } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import MonthFilter, { isInMonth } from "@/components/MonthFilter";
@@ -19,6 +19,14 @@ const diasAteVencimento = (vencimento) => {
   const [y, m, d] = vencimento.split("-").map(Number);
   const dataVencimento = new Date(y, m - 1, d);
   return Math.round((dataVencimento - hoje) / (1000 * 60 * 60 * 24));
+};
+
+// Notificação mais recente registrada para a conta (a Edge Function grava
+// uma linha por tipo 'd1'/'d0'; mostramos sempre a mais recente na tag).
+const ultimaNotificacao = (conta) => {
+  const lista = conta.notificacoes_enviadas || [];
+  if (!lista.length) return null;
+  return [...lista].sort((a, b) => new Date(b.enviado_em) - new Date(a.enviado_em))[0];
 };
 
 export default function ContasPagar() {
@@ -111,6 +119,7 @@ export default function ContasPagar() {
             const dias = !pago ? diasAteVencimento(conta.vencimento) : null;
             const vencida = dias !== null && dias < 0;
             const prestesAVencer = dias !== null && dias >= 0 && dias <= DIAS_AVISO_VENCIMENTO;
+            const notificacao = ultimaNotificacao(conta);
             return (
               <div
                 key={conta.id}
@@ -175,6 +184,19 @@ export default function ContasPagar() {
                     {prestesAVencer && (
                       <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-700">
                         <Clock className="h-3 w-3" /> {dias === 0 ? "Vence hoje" : dias === 1 ? "Vence amanhã" : `Vence em ${dias} dias`}
+                      </span>
+                    )}
+                    {notificacao?.status === "enviado" && (
+                      <span title={`Notificação enviada em ${new Date(notificacao.enviado_em).toLocaleString("pt-BR")}`} className="flex items-center gap-1 rounded-full bg-forest-100 px-2 py-0.5 font-medium text-forest-700">
+                        <Bell className="h-3 w-3" /> Notificado
+                      </span>
+                    )}
+                    {(notificacao?.status === "falha_envio" || notificacao?.status === "sem_subscription") && (
+                      <span
+                        title={notificacao.status === "sem_subscription" ? "Nenhum dispositivo inscrito para push" : "Falha ao enviar o push"}
+                        className="flex items-center gap-1 rounded-full bg-rust-100 px-2 py-0.5 font-medium text-rust-700"
+                      >
+                        <BellOff className="h-3 w-3" /> Notificação falhou
                       </span>
                     )}
                   </div>

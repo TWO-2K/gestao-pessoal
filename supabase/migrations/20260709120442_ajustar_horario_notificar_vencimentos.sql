@@ -7,7 +7,7 @@ select cron.schedule(
   '0 9 * * *', -- 09:00 UTC = 06:00 America/Sao_Paulo
   $$
   select net.http_post(
-    url := 'https://ifhnejeolhqekfqchige.supabase.co/functions/v1/notificar-vencimentos',
+    url := 'https://lxhwfsgbgnzumxonmqcd.supabase.co/functions/v1/notificar-vencimentos',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'x-cron-secret', (
