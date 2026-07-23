@@ -35,3 +35,6 @@ dev-dist
 .cli-home
 supabase/.temp
 .playwright-mcp
+
+# Database dumps (contain sensitive data)
+dump_backup/
