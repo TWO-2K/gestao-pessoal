@@ -136,14 +136,19 @@ export function useContas() {
         if (checkError) throw checkError;
 
         if (!existentes || existentes.length === 0) {
+          const {
+            id: _id,
+            notificacoes_enviadas: _notificacoesEnviadas,
+            proximoGerado: _proximoGerado,
+            ...contaBase
+          } = conta;
           const novaContaRecorrente = {
-            ...conta,
+            ...contaBase,
             valor: 0,
             vencimento: proximoVencimentoStr,
             status: "pendente",
             recorrente: true,
           };
-          delete novaContaRecorrente.id;
 
           const payload = targetUserId ? { ...novaContaRecorrente, user_id: targetUserId } : novaContaRecorrente;
           const { error: createError } = await supabase.from('contas_pagar').insert([payload]);
