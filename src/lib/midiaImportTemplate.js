@@ -13,7 +13,7 @@ export const COLUNAS_IMPORT = [
 ];
 
 export const TIPOS_VALIDOS = ["anime", "ova", "ona", "filme", "especial", "serie"];
-export const STATUS_VALIDOS = ["planejado", "assistindo", "concluido", "pausado", "abandonado"];
+export const STATUS_VALIDOS = ["pendente", "planejado", "assistindo", "concluido", "pausado"];
 
 const LINHAS_EXEMPLO = [
   { titulo: "One Piece", tipo: "anime", status: "assistindo", episodio_atual: "1085", ano: "1999", genero: "Ação; Aventura; Comédia", observacoes: "", midia_pai: "" },

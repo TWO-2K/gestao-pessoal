@@ -18,11 +18,11 @@ const TIPOS = [
 ];
 
 const STATUS = [
+  { value: "pendente", label: "Pendente" },
   { value: "planejado", label: "Planejado" },
   { value: "assistindo", label: "Assistindo" },
   { value: "concluido", label: "Concluído" },
   { value: "pausado", label: "Pausado" },
-  { value: "abandonado", label: "Abandonado" },
 ];
 
 const EMPTY = {

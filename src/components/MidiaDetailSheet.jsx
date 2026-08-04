@@ -22,19 +22,19 @@ const TIPO_BADGE = {
 };
 
 const STATUS_STYLE = {
+  pendente: "bg-rust-100 text-rust-700",
   planejado: "bg-ink-100 text-ink-500",
   assistindo: "bg-sky-100 text-sky-700",
   concluido: "bg-emerald-100 text-emerald-700",
   pausado: "bg-gold-100 text-gold-700",
-  abandonado: "bg-rust-100 text-rust-700",
 };
 
 const STATUS_LABEL = {
+  pendente: "Pendente",
   planejado: "Planejado",
   assistindo: "Assistindo",
   concluido: "Concluído",
   pausado: "Pausado",
-  abandonado: "Abandonado",
 };
 
 export default function MidiaDetailSheet({
