@@ -41,8 +41,6 @@ export function useMidias() {
         titulo: form.titulo,
         tipo: form.tipo,
         status: form.status,
-        nota: form.nota === "" || form.nota === null || form.nota === undefined ? null : Number(form.nota),
-        temporada_atual: form.temporada_atual === "" || form.temporada_atual === null ? null : Number(form.temporada_atual),
         episodio_atual: form.episodio_atual === "" || form.episodio_atual === null ? null : Number(form.episodio_atual),
         ano: form.ano === "" || form.ano === null ? null : Number(form.ano),
         genero: form.genero || null,

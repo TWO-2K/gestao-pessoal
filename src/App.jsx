@@ -44,6 +44,7 @@ function App() {
                 <Route path="/planner" element={<Planner />} />
                 <Route path="/midias" element={<Midias />} />
                 <Route path="/midias/:tipoSlug" element={<Midias />} />
+                <Route path="/midias/:tipoSlug/:id" element={<Midias />} />
                 <Route element={<AdminRoute />}>
                   <Route path="/usuarios" element={<Usuarios />} />
                 </Route>
