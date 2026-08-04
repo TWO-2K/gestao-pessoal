@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageHeader from "@/components/PageHeader";
 import MidiaForm from "@/components/MidiaForm";
@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, Clapperboard, Upload, Search, Sparkles } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Clapperboard, Upload, Search, Sparkles, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMidias } from "@/hooks/useMidias";
 import { useFranquias } from "@/hooks/useFranquias";
 
@@ -21,19 +22,19 @@ const SLUG_POR_TIPO = Object.fromEntries(Object.entries(TIPO_SLUGS).map(([slug, 
 const TIPO_PLURAL = { anime: "Animes", ova: "OVAs", ona: "ONAs", filme: "Filmes", especial: "Especiais", serie: "Séries" };
 
 const STATUS_STYLE = {
+  pendente: "bg-rust-100 text-rust-700",
   planejado: "bg-ink-100 text-ink-500",
   assistindo: "bg-sky-100 text-sky-700",
   concluido: "bg-emerald-100 text-emerald-700",
   pausado: "bg-gold-100 text-gold-700",
-  abandonado: "bg-rust-100 text-rust-700",
 };
 
 const STATUS_LABEL = {
+  pendente: "Pendente",
   planejado: "Planejado",
   assistindo: "Assistindo",
   concluido: "Concluído",
   pausado: "Pausado",
-  abandonado: "Abandonado",
 };
 
 export default function Midias() {
@@ -49,6 +50,11 @@ export default function Midias() {
   const [busca, setBusca] = useState("");
   const [tipoFiltroLocal, setTipoFiltroLocal] = useState("todos");
   const tipoEfetivo = tipoFiltro === "todos" ? tipoFiltroLocal : tipoFiltro;
+  const [selecionados, setSelecionados] = useState(new Set());
+  const [statusEmMassa, setStatusEmMassa] = useState("");
+  const [aplicandoEmMassa, setAplicandoEmMassa] = useState(false);
+  const [pagina, setPagina] = useState(1);
+  const ITENS_POR_PAGINA = 20;
 
   const { midias, isLoading, deleteMidia, createOrUpdateMidia } = useMidias();
   const { franquias, createFranquia } = useFranquias();
@@ -86,6 +92,15 @@ export default function Midias() {
     }
     return set;
   }, [midias, filhosPorPaiId]);
+
+  useEffect(() => {
+    setSelecionados(new Set());
+    setPagina(1);
+  }, [tipoEfetivo, statusFiltro, busca, tipoFiltro]);
+
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / ITENS_POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const paginadas = filtradas.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA);
 
   const titulo = tipoFiltro === "todos" ? "Minha Lista" : TIPO_PLURAL[tipoFiltro];
 
@@ -135,6 +150,49 @@ export default function Midias() {
     deleteMidia(deleting.id);
     if (selecionada?.id === deleting.id) fecharPainel();
     setDeleting(null);
+  };
+
+  const toggleSelecionado = (idItem, e) => {
+    e.stopPropagation();
+    setSelecionados((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(idItem)) novo.delete(idItem);
+      else novo.add(idItem);
+      return novo;
+    });
+  };
+
+  const todosSelecionados = filtradas.length > 0 && filtradas.every((m) => selecionados.has(m.id));
+
+  const toggleTodos = () => {
+    setSelecionados(todosSelecionados ? new Set() : new Set(filtradas.map((m) => m.id)));
+  };
+
+  const handleAplicarStatusEmMassa = async () => {
+    if (!statusEmMassa || selecionados.size === 0) return;
+    setAplicandoEmMassa(true);
+    try {
+      for (const idItem of selecionados) {
+        const item = midiaPorId[idItem];
+        if (!item) continue;
+        await createOrUpdateMidia({
+          id: item.id,
+          titulo: item.titulo,
+          tipo: item.tipo,
+          status: statusEmMassa,
+          episodio_atual: item.episodio_atual ?? "",
+          ano: item.ano ?? "",
+          genero: item.genero || "",
+          observacoes: item.observacoes || "",
+          franquia_id: item.franquia_id || "",
+          midia_pai_id: item.midia_pai_id || "",
+        });
+      }
+    } finally {
+      setAplicandoEmMassa(false);
+      setSelecionados(new Set());
+      setStatusEmMassa("");
+    }
   };
 
   return (
@@ -187,6 +245,39 @@ export default function Midias() {
         </Button>
       </div>
 
+      {selecionados.size > 0 && (
+        <div className="flex items-center gap-2 mb-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2">
+          <span className="text-sm text-sky-800 font-medium">
+            {selecionados.size} {selecionados.size === 1 ? "selecionado" : "selecionados"}
+          </span>
+          <div className="flex-1" />
+          <Select value={statusEmMassa} onValueChange={setStatusEmMassa}>
+            <SelectTrigger className="w-[180px] bg-white">
+              <SelectValue placeholder="Mudar status para..." />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(STATUS_LABEL).map(([value, label]) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            onClick={handleAplicarStatusEmMassa}
+            disabled={!statusEmMassa || aplicandoEmMassa}
+          >
+            {aplicandoEmMassa ? "Aplicando..." : "Aplicar"}
+          </Button>
+          <button
+            onClick={() => setSelecionados(new Set())}
+            className="p-1.5 text-sky-700 hover:text-sky-900"
+            title="Limpar seleção"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="text-ink-400 text-sm">Carregando...</div>
       ) : filtradas.length === 0 ? (
@@ -196,10 +287,13 @@ export default function Midias() {
         </div>
       ) : (
         <div className="rounded-2xl border border-ink-200 bg-white overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scroll-fino">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-ink-100 text-[11px] font-semibold uppercase tracking-wide text-ink-400">
+                  <th className="w-10 px-4 py-2.5">
+                    <Checkbox checked={todosSelecionados} onCheckedChange={toggleTodos} />
+                  </th>
                   <th className="text-left px-4 py-2.5">Nome</th>
                   <th className="text-left px-4 py-2.5">Tipo</th>
                   <th className="text-left px-4 py-2.5">Episódio</th>
@@ -207,12 +301,15 @@ export default function Midias() {
                 </tr>
               </thead>
               <tbody>
-                {filtradas.map((m) => (
+                {paginadas.map((m) => (
                   <tr
                     key={m.id}
                     onClick={() => irPara(m)}
-                    className="border-b border-ink-50 last:border-b-0 hover:bg-ink-50 cursor-pointer transition-colors"
+                    className={`border-b border-ink-50 last:border-b-0 hover:bg-ink-50 cursor-pointer transition-colors ${selecionados.has(m.id) ? "bg-sky-50" : ""}`}
                   >
+                    <td className="px-4 py-2.5" onClick={(e) => toggleSelecionado(m.id, e)}>
+                      <Checkbox checked={selecionados.has(m.id)} onCheckedChange={() => {}} />
+                    </td>
                     <td className="px-4 py-2.5 text-ink-900 max-w-[280px]">
                       <div className="flex items-center gap-1.5">
                         <span className="truncate">{m.titulo}</span>
@@ -239,6 +336,30 @@ export default function Midias() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {!isLoading && filtradas.length > 0 && totalPaginas > 1 && (
+        <div className="flex items-center justify-between mt-3 text-sm text-ink-500">
+          <span>
+            Página {paginaAtual} de {totalPaginas} · {filtradas.length} itens
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPagina((p) => Math.max(1, p - 1))}
+              disabled={paginaAtual === 1}
+              className="p-1.5 rounded-lg border border-ink-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-ink-50"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+              disabled={paginaAtual === totalPaginas}
+              className="p-1.5 rounded-lg border border-ink-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-ink-50"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
       )}
