@@ -9,11 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Clapperboard, Upload, Search, Sparkles, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Clapperboard, Upload, Search, Sparkles, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMidias } from "@/hooks/useMidias";
 import { useFranquias } from "@/hooks/useFranquias";
 import { useUsuarios } from "@/hooks/useUsuarios";
-import { useAuth } from "@/lib/AuthContext";
+import { useViewAs } from "@/lib/ViewAsContext";
 
 const TIPO_LABEL = { anime: "Anime", ova: "OVA", ona: "ONA", filme: "Filme", especial: "Especial", serie: "Série" };
 
@@ -61,11 +61,11 @@ export default function Midias() {
   const { midias, isLoading, deleteMidia, createOrUpdateMidia } = useMidias();
   const { franquias, createFranquia } = useFranquias();
   const { usuarios } = useUsuarios();
-  const { user } = useAuth();
+  const { viewedUserId } = useViewAs();
 
   const outrosUsuarios = useMemo(
-    () => usuarios.filter((u) => u.ativo && u.id !== user?.id),
-    [usuarios, user?.id]
+    () => usuarios.filter((u) => u.ativo && u.id !== viewedUserId),
+    [usuarios, viewedUserId]
   );
 
   const franquiaPorId = useMemo(() => Object.fromEntries(franquias.map((f) => [f.id, f.nome])), [franquias]);
@@ -249,6 +249,13 @@ export default function Midias() {
             ))}
           </SelectContent>
         </Select>
+        <Button
+          variant={statusFiltro === "concluido" ? "default" : "outline"}
+          onClick={() => setStatusFiltro((s) => (s === "concluido" ? "todos" : "concluido"))}
+          className={statusFiltro === "concluido" ? "" : "text-emerald-700 border-emerald-200"}
+        >
+          <Check className="h-4 w-4 mr-1.5" /> Assistidos
+        </Button>
         {temNovidade.size > 0 && (
           <Button
             variant={somenteNovidades ? "default" : "outline"}
@@ -363,9 +370,9 @@ export default function Midias() {
                               <span
                                 key={u.id}
                                 title={`${u.nome}: ${STATUS_LABEL[st]}`}
-                                className={`text-[10px] font-medium rounded-full px-1.5 py-0.5 ${STATUS_STYLE[st]}`}
+                                className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold uppercase ${STATUS_STYLE[st]}`}
                               >
-                                {u.nome.split(" ")[0]}
+                                {u.nome.trim().charAt(0)}
                               </span>
                             );
                           })}
