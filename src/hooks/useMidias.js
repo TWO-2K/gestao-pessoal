@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/lib/AuthContext";
+import { useViewAs } from "@/lib/ViewAsContext";
 import { supabase } from "@/lib/supabaseClient";
 import { semAcento } from "@/lib/text";
 
@@ -7,8 +7,8 @@ const normalizarTitulo = (titulo) => semAcento(String(titulo || "").trim().toLow
 
 export function useMidias() {
   const queryClient = useQueryClient();
-  const { session } = useAuth();
-  const userId = session?.user?.id;
+  const { viewedUserId } = useViewAs();
+  const userId = viewedUserId;
 
   const { data: midias = [], isLoading } = useQuery({
     queryKey: ["midias-catalogo", userId],

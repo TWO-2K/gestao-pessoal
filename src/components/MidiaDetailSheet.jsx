@@ -9,7 +9,7 @@ import MidiaForm from "@/components/MidiaForm";
 import GeneroSelect from "@/components/GeneroSelect";
 import { listaParaGenero } from "@/lib/generos";
 import { useUsuarios } from "@/hooks/useUsuarios";
-import { useAuth } from "@/lib/AuthContext";
+import { useViewAs } from "@/lib/ViewAsContext";
 import { Pencil, Trash2, Plus, Library, Clapperboard, PlayCircle, ChevronDown, Sparkles, Users } from "lucide-react";
 
 const TIPO_LABEL = { anime: "Anime", ova: "OVA", ona: "ONA", filme: "Filme", especial: "Especial", serie: "Série" };
@@ -54,10 +54,10 @@ export default function MidiaDetailSheet({
   onAddRelatedBatch,
 }) {
   const { usuarios } = useUsuarios();
-  const { user } = useAuth();
+  const { viewedUserId } = useViewAs();
   const outrosUsuarios = useMemo(
-    () => usuarios.filter((u) => u.ativo && u.id !== user?.id),
-    [usuarios, user?.id]
+    () => usuarios.filter((u) => u.ativo && u.id !== viewedUserId),
+    [usuarios, viewedUserId]
   );
 
   const [mode, setMode] = useState("view");
