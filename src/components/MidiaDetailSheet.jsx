@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import MidiaForm from "@/components/MidiaForm";
 import GeneroSelect from "@/components/GeneroSelect";
 import { listaParaGenero } from "@/lib/generos";
-import { Pencil, Trash2, Plus, Library, Clapperboard, PlayCircle, ChevronDown, Sparkles } from "lucide-react";
+import { useUsuarios } from "@/hooks/useUsuarios";
+import { useAuth } from "@/lib/AuthContext";
+import { Pencil, Trash2, Plus, Library, Clapperboard, PlayCircle, ChevronDown, Sparkles, Users } from "lucide-react";
 
 const TIPO_LABEL = { anime: "Anime", ova: "OVA", ona: "ONA", filme: "Filme", especial: "Especial", serie: "Série" };
 
@@ -51,6 +53,13 @@ export default function MidiaDetailSheet({
   onSelectMidia,
   onAddRelatedBatch,
 }) {
+  const { usuarios } = useUsuarios();
+  const { user } = useAuth();
+  const outrosUsuarios = useMemo(
+    () => usuarios.filter((u) => u.ativo && u.id !== user?.id),
+    [usuarios, user?.id]
+  );
+
   const [mode, setMode] = useState("view");
   const [addingRelated, setAddingRelated] = useState(false);
   const [novoTipo, setNovoTipo] = useState("ova");
@@ -211,6 +220,27 @@ export default function MidiaDetailSheet({
                 )}
               </div>
             </div>
+
+            {outrosUsuarios.length > 0 && (
+              <div className="rounded-xl border border-ink-200 bg-white shadow-sm px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-400 mb-2 flex items-center gap-1.5">
+                  <Users className="h-3 w-3" /> Status de outras pessoas
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {outrosUsuarios.map((u) => {
+                    const st = midia.statusPorUsuario?.[u.id]?.status || "pendente";
+                    return (
+                      <span
+                        key={u.id}
+                        className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[st]}`}
+                      >
+                        {u.nome}: {STATUS_LABEL[st]}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {midia.observacoes && (
               <div className="rounded-xl border border-ink-200 bg-white shadow-sm px-4 py-3">

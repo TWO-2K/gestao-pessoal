@@ -1,31 +1,28 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
-import { useViewAs } from "@/lib/ViewAsContext";
 import { supabase } from "@/lib/supabaseClient";
 
 export function useFranquias() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
-  const { viewedUserId } = useViewAs();
 
   const { data: franquias = [], isLoading } = useQuery({
-    queryKey: ["franquias", viewedUserId],
+    queryKey: ["franquias"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lista_franquias")
         .select("*")
-        .eq("user_id", viewedUserId)
         .order("nome", { ascending: true });
       if (error) throw new Error(error.message);
       return data;
     },
-    enabled: !!viewedUserId,
+    enabled: !!session?.user?.id,
   });
 
   const createMutation = useMutation({
     mutationFn: async (nome) => {
-      const targetUserId = viewedUserId || session?.user?.id;
-      const payload = targetUserId ? { nome, user_id: targetUserId } : { nome };
+      const userId = session?.user?.id;
+      const payload = userId ? { nome, user_id: userId } : { nome };
       const { data, error } = await supabase.from("lista_franquias").insert(payload).select().single();
       if (error) throw new Error(error.message);
       return data;
@@ -41,7 +38,7 @@ export function useFranquias() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["franquias"] });
-      queryClient.invalidateQueries({ queryKey: ["midias"] });
+      queryClient.invalidateQueries({ queryKey: ["midias-catalogo"] });
     },
   });
 

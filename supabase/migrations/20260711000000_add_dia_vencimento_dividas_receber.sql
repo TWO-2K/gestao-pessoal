@@ -4,6 +4,13 @@
 alter table public.dividas_receber
   add column if not exists dia_vencimento smallint;
 
-alter table public.dividas_receber
-  add constraint dividas_receber_dia_vencimento_check
-  check (dia_vencimento is null or (dia_vencimento between 1 and 31));
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'dividas_receber_dia_vencimento_check'
+  ) then
+    alter table public.dividas_receber
+      add constraint dividas_receber_dia_vencimento_check
+      check (dia_vencimento is null or (dia_vencimento between 1 and 31));
+  end if;
+end $$;

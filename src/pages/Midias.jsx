@@ -12,6 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Clapperboard, Upload, Search, Sparkles, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMidias } from "@/hooks/useMidias";
 import { useFranquias } from "@/hooks/useFranquias";
+import { useUsuarios } from "@/hooks/useUsuarios";
+import { useAuth } from "@/lib/AuthContext";
 
 const TIPO_LABEL = { anime: "Anime", ova: "OVA", ona: "ONA", filme: "Filme", especial: "Especial", serie: "Série" };
 
@@ -58,6 +60,13 @@ export default function Midias() {
 
   const { midias, isLoading, deleteMidia, createOrUpdateMidia } = useMidias();
   const { franquias, createFranquia } = useFranquias();
+  const { usuarios } = useUsuarios();
+  const { user } = useAuth();
+
+  const outrosUsuarios = useMemo(
+    () => usuarios.filter((u) => u.ativo && u.id !== user?.id),
+    [usuarios, user?.id]
+  );
 
   const franquiaPorId = useMemo(() => Object.fromEntries(franquias.map((f) => [f.id, f.nome])), [franquias]);
   const midiaPorId = useMemo(() => Object.fromEntries(midias.map((m) => [m.id, m])), [midias]);
@@ -71,16 +80,6 @@ export default function Midias() {
     return map;
   }, [midias]);
 
-  const filtradas = useMemo(
-    () =>
-      midias
-        .filter((m) => tipoEfetivo === "todos" || m.tipo === tipoEfetivo)
-        .filter((m) => statusFiltro === "todos" || m.status === statusFiltro)
-        .filter((m) => m.titulo.toLowerCase().includes(busca.trim().toLowerCase()))
-        .sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR")),
-    [midias, tipoEfetivo, statusFiltro, busca]
-  );
-
   const temNovidade = useMemo(() => {
     const set = new Set();
     for (const m of midias) {
@@ -92,6 +91,19 @@ export default function Midias() {
     }
     return set;
   }, [midias, filhosPorPaiId]);
+
+  const [somenteNovidades, setSomenteNovidades] = useState(false);
+
+  const filtradas = useMemo(
+    () =>
+      midias
+        .filter((m) => tipoEfetivo === "todos" || m.tipo === tipoEfetivo)
+        .filter((m) => statusFiltro === "todos" || m.status === statusFiltro)
+        .filter((m) => !somenteNovidades || temNovidade.has(m.id))
+        .filter((m) => m.titulo.toLowerCase().includes(busca.trim().toLowerCase()))
+        .sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR")),
+    [midias, tipoEfetivo, statusFiltro, busca, somenteNovidades, temNovidade]
+  );
 
   useEffect(() => {
     setSelecionados(new Set());
@@ -237,6 +249,15 @@ export default function Midias() {
             ))}
           </SelectContent>
         </Select>
+        {temNovidade.size > 0 && (
+          <Button
+            variant={somenteNovidades ? "default" : "outline"}
+            onClick={() => setSomenteNovidades((v) => !v)}
+            className={somenteNovidades ? "" : "text-sky-700 border-sky-200"}
+          >
+            <Sparkles className="h-4 w-4 mr-1.5" /> Novidades ({temNovidade.size})
+          </Button>
+        )}
         <Button variant="outline" onClick={() => setImportOpen(true)}>
           <Upload className="h-4 w-4 mr-1.5" /> Importar
         </Button>
@@ -298,6 +319,7 @@ export default function Midias() {
                   <th className="text-left px-4 py-2.5">Tipo</th>
                   <th className="text-left px-4 py-2.5">Episódio</th>
                   <th className="text-left px-4 py-2.5">Status</th>
+                  {outrosUsuarios.length > 0 && <th className="text-left px-4 py-2.5">Outros</th>}
                 </tr>
               </thead>
               <tbody>
@@ -332,6 +354,24 @@ export default function Midias() {
                         {STATUS_LABEL[m.status]}
                       </span>
                     </td>
+                    {outrosUsuarios.length > 0 && (
+                      <td className="px-4 py-2.5">
+                        <div className="flex flex-wrap items-center gap-1">
+                          {outrosUsuarios.map((u) => {
+                            const st = m.statusPorUsuario?.[u.id]?.status || "pendente";
+                            return (
+                              <span
+                                key={u.id}
+                                title={`${u.nome}: ${STATUS_LABEL[st]}`}
+                                className={`text-[10px] font-medium rounded-full px-1.5 py-0.5 ${STATUS_STYLE[st]}`}
+                              >
+                                {u.nome.split(" ")[0]}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

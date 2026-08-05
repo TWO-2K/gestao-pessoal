@@ -8,5 +8,12 @@
 alter table public.push_subscriptions
   drop constraint if exists push_subscriptions_endpoint_key;
 
-alter table public.push_subscriptions
-  add constraint push_subscriptions_endpoint_user_id_key unique (endpoint, user_id);
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'push_subscriptions_endpoint_user_id_key'
+  ) then
+    alter table public.push_subscriptions
+      add constraint push_subscriptions_endpoint_user_id_key unique (endpoint, user_id);
+  end if;
+end $$;
