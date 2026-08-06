@@ -1,11 +1,33 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { parseCSV, baixarCSV } from "@/lib/csv";
 import { gerarTemplateCSV, baixarTemplateXLSX, TIPOS_VALIDOS, STATUS_VALIDOS } from "@/lib/midiaImportTemplate";
 import { semAcento, normalizarCabecalho } from "@/lib/text";
-import { Upload, Download, CheckCircle2, AlertTriangle } from "lucide-react";
+import { useViewAs } from "@/lib/ViewAsContext";
+import { Upload, Download, CheckCircle2, AlertTriangle, History, X } from "lucide-react";
+
+const LOG_KEY_PREFIX = "midia_import_log_";
+
+function lerUltimoLog(userId) {
+  if (!userId) return null;
+  try {
+    const bruto = localStorage.getItem(LOG_KEY_PREFIX + userId);
+    return bruto ? JSON.parse(bruto) : null;
+  } catch {
+    return null;
+  }
+}
+
+function salvarLog(userId, log) {
+  if (!userId) return;
+  try {
+    localStorage.setItem(LOG_KEY_PREFIX + userId, JSON.stringify(log));
+  } catch {
+    // localStorage indisponível, ignora
+  }
+}
 
 function normalizarChave(titulo) {
   return semAcento(titulo.trim().toLowerCase());
@@ -35,12 +57,23 @@ async function lerArquivo(file) {
 }
 
 export default function MidiaImportDialog({ open, onOpenChange, midias, createOrUpdateMidia }) {
+  const { viewedUserId } = useViewAs();
   const [linhas, setLinhas] = useState([]);
   const [erros, setErros] = useState([]);
   const [nomeArquivo, setNomeArquivo] = useState("");
   const [status, setStatus] = useState("idle"); // idle | pronto | importando | concluido
   const [resultado, setResultado] = useState(null);
   const [progresso, setProgresso] = useState({ feito: 0, total: 0 });
+  const [ultimoLog, setUltimoLog] = useState(null);
+
+  useEffect(() => {
+    if (open) setUltimoLog(lerUltimoLog(viewedUserId));
+  }, [open, viewedUserId]);
+
+  const limparLog = () => {
+    if (viewedUserId) localStorage.removeItem(LOG_KEY_PREFIX + viewedUserId);
+    setUltimoLog(null);
+  };
 
   const reset = () => {
     setLinhas([]);
@@ -179,12 +212,18 @@ export default function MidiaImportDialog({ open, onOpenChange, midias, createOr
       setProgresso({ feito, total: totalEtapas });
     }
 
-    setResultado({
+    const resultadoFinal = {
       total: linhas.length,
       criados: idsCriados.length,
       falhas: [...falhas, ...semPaiEncontrado],
-    });
+    };
+    setResultado(resultadoFinal);
     setStatus("concluido");
+    salvarLog(viewedUserId, {
+      ...resultadoFinal,
+      nomeArquivo,
+      data: new Date().toISOString(),
+    });
   };
 
   return (
@@ -193,6 +232,34 @@ export default function MidiaImportDialog({ open, onOpenChange, midias, createOr
         <DialogHeader><DialogTitle>Importar em massa</DialogTitle></DialogHeader>
 
         <div className="space-y-4">
+          {status === "idle" && ultimoLog && (
+            <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800 space-y-1">
+              <div className="flex items-start justify-between gap-2">
+                <p className="flex items-center gap-1.5 font-medium">
+                  <History className="h-3.5 w-3.5" /> Última importação
+                </p>
+                <button
+                  type="button"
+                  onClick={limparLog}
+                  className="text-sky-500 hover:text-sky-700"
+                  title="Limpar registro"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <p>
+                {new Date(ultimoLog.data).toLocaleString("pt-BR")}
+                {ultimoLog.nomeArquivo ? ` · ${ultimoLog.nomeArquivo}` : ""}
+              </p>
+              <p>{ultimoLog.criados} de {ultimoLog.total} itens importados com sucesso.</p>
+              {ultimoLog.falhas?.length > 0 && (
+                <div className="text-xs text-rust-700 bg-rust-50 border border-rust-200 rounded-lg p-2 space-y-0.5 max-h-24 overflow-y-auto mt-1">
+                  {ultimoLog.falhas.map((f, i) => <p key={i}>{f}</p>)}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="rounded-xl border border-ink-200 bg-ink-50 p-3 text-sm text-ink-500 space-y-2">
             <p>Envie um arquivo Excel (.xlsx) ou CSV com as colunas: <code className="text-xs">titulo, tipo, status, episodio_atual, ano, genero, observacoes, midia_pai</code>.</p>
             <p>Use <code className="text-xs">midia_pai</code> com o título exato de outro item da planilha (ou já existente) para vincular OVAs/filmes/temporadas a um anime — deixe em branco quando não houver vínculo. Vários gêneros: separe por <code className="text-xs">;</code>.</p>
