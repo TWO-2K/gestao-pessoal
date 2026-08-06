@@ -5,6 +5,21 @@ import { semAcento } from "@/lib/text";
 
 const normalizarTitulo = (titulo) => semAcento(String(titulo || "").trim().toLowerCase());
 
+const PAGE_SIZE = 1000;
+
+async function buscarTodasLinhas(query) {
+  let linhas = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await query.range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+    linhas = linhas.concat(data);
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return linhas;
+}
+
 export function useMidias() {
   const queryClient = useQueryClient();
   const { viewedUserId } = useViewAs();
@@ -13,12 +28,10 @@ export function useMidias() {
   const { data: midias = [], isLoading } = useQuery({
     queryKey: ["midias-catalogo", userId],
     queryFn: async () => {
-      const [{ data: catalogo, error: catalogoError }, { data: statusRows, error: statusError }] = await Promise.all([
-        supabase.from("lista_midias_catalogo").select("*").order("created_at", { ascending: false }),
-        supabase.from("lista_midia_status").select("*"),
+      const [catalogo, statusRows] = await Promise.all([
+        buscarTodasLinhas(supabase.from("lista_midias_catalogo").select("*").order("created_at", { ascending: false }).order("id", { ascending: false })),
+        buscarTodasLinhas(supabase.from("lista_midia_status").select("*")),
       ]);
-      if (catalogoError) throw new Error(catalogoError.message);
-      if (statusError) throw new Error(statusError.message);
 
       const statusPorMidia = {};
       for (const s of statusRows) {
