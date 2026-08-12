@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Check } from "lucide-react";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, dataLocalHoje } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -14,7 +14,7 @@ export default function CalendarView({ contas, parcelas }) {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
-  const [selected, setSelected] = useState(() => new Date().toISOString().slice(0, 10));
+  const [selected, setSelected] = useState(dataLocalHoje);
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
@@ -47,7 +47,7 @@ export default function CalendarView({ contas, parcelas }) {
     return cells;
   }, [year, month]);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = dataLocalHoje();
   const selectedEvents = eventsByDay[selected] || { pagar: [], receber: [] };
 
   const move = (delta) => {

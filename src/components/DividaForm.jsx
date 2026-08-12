@@ -4,13 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
+import { dataLocalHoje } from "@/lib/format";
 
 const emptyForm = {
   devedor: "",
   descricao: "",
   valor_total: "",
   num_parcelas: "1",
-  data_inicio: new Date().toISOString().slice(0, 10),
+  data_inicio: dataLocalHoje(),
   dia_vencimento: "",
   observacao: "",
 };

@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare, Eye, ChevronDown, Clapperboard } from "lucide-react";
+import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare, Eye, ChevronDown, Clapperboard, Dumbbell, Scale, Target, ClipboardList, TrendingUp, Ruler, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 import { useUsuarios } from "@/hooks/useUsuarios";
@@ -41,6 +41,18 @@ const navSections = [
       { to: "/midias/series", label: "Séries", icon: Clapperboard },
     ],
   },
+  {
+    section: "Academia",
+    items: [
+      { to: "/academia/hoje", label: "Treino do dia", icon: ListChecks },
+      { to: "/academia", label: "Histórico", icon: Dumbbell },
+      { to: "/academia/planos", label: "Planos", icon: ClipboardList },
+      { to: "/academia/evolucao", label: "Evolução", icon: TrendingUp },
+      { to: "/academia/peso", label: "Peso Corporal", icon: Scale },
+      { to: "/academia/medidas", label: "Medidas", icon: Ruler },
+      { to: "/academia/metas", label: "Metas", icon: Target },
+    ],
+  },
 ];
 
 // No mobile só os itens de uso mais frequente cabem na barra; o resto vai no menu "Mais".
@@ -56,23 +68,32 @@ export default function Layout() {
   const { isViewingOther, viewedUserId } = useViewAs();
   const isAdmin = usuario?.role === "admin";
   const viewedUsuario = usuarios.find((u) => u.id === viewedUserId);
-  const sectionsWithAdmin = isAdmin
-    ? [...navSections, { section: "Administração", items: [{ to: "/usuarios", label: "Usuários", icon: Users }] }]
-    : navSections;
+  const sectionsWithAdmin = useMemo(
+    () =>
+      isAdmin
+        ? [...navSections, { section: "Administração", items: [{ to: "/usuarios", label: "Usuários", icon: Users }] }]
+        : navSections,
+    [isAdmin]
+  );
   const moreNavItems = isAdmin
     ? [...mobileMoreNav, { to: "/usuarios", label: "Usuários", icon: Users }]
     : mobileMoreNav;
   const [moreOpen, setMoreOpen] = useState(false);
   const isMoreActive = moreNavItems.some((item) => item.to === location.pathname);
 
-  const [collapsedSections, setCollapsedSections] = useState(() => new Set());
+  // Só uma seção fica aberta por vez; entrar em uma página de outro módulo troca qual está aberta.
+  const [openSection, setOpenSection] = useState(() => {
+    const ativa = sectionsWithAdmin.find((sec) => sec.items.some((item) => item.to === location.pathname));
+    return ativa?.section ?? sectionsWithAdmin[0]?.section;
+  });
+
+  useEffect(() => {
+    const ativa = sectionsWithAdmin.find((sec) => sec.items.some((item) => item.to === location.pathname));
+    if (ativa) setOpenSection(ativa.section);
+  }, [location.pathname, sectionsWithAdmin]);
+
   const toggleSection = (name) => {
-    setCollapsedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
+    setOpenSection((prev) => (prev === name ? null : name));
   };
 
   const handleLogout = async () => {
@@ -96,8 +117,7 @@ export default function Layout() {
         </div>
         <nav className="sidebar-scroll flex-1 min-h-0 overflow-y-auto space-y-3 pr-1 -mr-1">
           {sectionsWithAdmin.map((sec) => {
-            const hasActive = sec.items.some((item) => item.to === location.pathname);
-            const isCollapsed = collapsedSections.has(sec.section) && !hasActive;
+            const isCollapsed = openSection !== sec.section;
             return (
               <div key={sec.section}>
                 <button

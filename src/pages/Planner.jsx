@@ -14,6 +14,7 @@ import { usePlannerQuadros } from "@/hooks/usePlannerQuadros";
 import { usePlannerSubtarefas } from "@/hooks/usePlannerSubtarefas";
 import { etiquetaCorClasse } from "@/components/PlannerTarefaForm";
 import { useToast } from "@/components/ui/use-toast";
+import { dataLocalHoje } from "@/lib/format";
 
 const PRIORIDADE_COR = {
   alta: "bg-rust-500",
@@ -28,7 +29,7 @@ const COLUNAS = [
 ];
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return dataLocalHoje();
 }
 
 function TarefaCardBody({ tarefa, modo, checklist }) {
