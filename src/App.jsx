@@ -17,6 +17,13 @@ import Categorias from '@/pages/Categorias';
 import ContasPagamento from '@/pages/ContasPagamento';
 import Planner from '@/pages/Planner';
 import Midias from '@/pages/Midias';
+import Treinos from '@/pages/Treinos';
+import TreinoHoje from '@/pages/TreinoHoje';
+import PesoCorporal from '@/pages/PesoCorporal';
+import MetasAcademia from '@/pages/MetasAcademia';
+import PlanosAcademia from '@/pages/PlanosAcademia';
+import EvolucaoAcademia from '@/pages/EvolucaoAcademia';
+import MedidasCorporais from '@/pages/MedidasCorporais';
 import Usuarios from '@/pages/Usuarios';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -45,6 +52,13 @@ function App() {
                 <Route path="/midias" element={<Midias />} />
                 <Route path="/midias/:tipoSlug" element={<Midias />} />
                 <Route path="/midias/:tipoSlug/:id" element={<Midias />} />
+                <Route path="/academia" element={<Treinos />} />
+                <Route path="/academia/hoje" element={<TreinoHoje />} />
+                <Route path="/academia/planos" element={<PlanosAcademia />} />
+                <Route path="/academia/evolucao" element={<EvolucaoAcademia />} />
+                <Route path="/academia/peso" element={<PesoCorporal />} />
+                <Route path="/academia/medidas" element={<MedidasCorporais />} />
+                <Route path="/academia/metas" element={<MetasAcademia />} />
                 <Route element={<AdminRoute />}>
                   <Route path="/usuarios" element={<Usuarios />} />
                 </Route>

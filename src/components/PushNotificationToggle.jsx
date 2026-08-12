@@ -10,7 +10,10 @@ const isIosOutsideStandalone = () => {
   return isIos && !isStandalone;
 };
 
-export default function PushNotificationToggle() {
+export default function PushNotificationToggle({
+  title = "Avisar antes do vencimento",
+  description = "Notificação no celular 1 dia antes e no dia do vencimento.",
+}) {
   const { toast } = useToast();
   const { isSubscribed, isLoading, subscribe, unsubscribe } = usePushNotifications();
 
@@ -20,7 +23,7 @@ export default function PushNotificationToggle() {
     try {
       if (checked) {
         await subscribe();
-        toast({ title: "Notificações ativadas", description: "Você será avisado quando uma conta estiver perto de vencer." });
+        toast({ title: "Notificações ativadas", description: "Você será avisado no celular." });
       } else {
         await unsubscribe();
         toast({ title: "Notificações desativadas" });
@@ -34,9 +37,9 @@ export default function PushNotificationToggle() {
     <div className="flex items-center gap-3 rounded-xl border border-ink-100 bg-white px-4 py-3">
       <Bell className="h-4 w-4 text-ink-500 shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-ink-900">Avisar antes do vencimento</p>
+        <p className="text-sm font-medium text-ink-900">{title}</p>
         <p className="text-xs text-ink-400">
-          Notificação no celular 1 dia antes e no dia do vencimento.
+          {description}
           {isIosOutsideStandalone() && " No iPhone, adicione o app à Tela de Início para receber notificações."}
         </p>
       </div>

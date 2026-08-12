@@ -5,12 +5,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
+import { dataLocalHoje } from "@/lib/format";
 
 export default function GastoForm({ gasto, categorias, contasPagamento, onSaved, onCancel }) {
   const [form, setForm] = useState({
     descricao: "",
     valor: "",
-    data: new Date().toISOString().slice(0, 10),
+    data: dataLocalHoje(),
     categoria_id: null,
     conta_pagamento_id: null,
     observacao: "",
@@ -32,7 +33,7 @@ export default function GastoForm({ gasto, categorias, contasPagamento, onSaved,
       setForm({
         descricao: "",
         valor: "",
-        data: new Date().toISOString().slice(0, 10),
+        data: dataLocalHoje(),
         categoria_id: null,
         conta_pagamento_id: null,
         observacao: "",

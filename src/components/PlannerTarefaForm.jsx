@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import { dataLocalHoje } from "@/lib/format";
 import { Plus, Trash2 } from "lucide-react";
 import { usePlannerSubtarefas } from "@/hooks/usePlannerSubtarefas";
 import { usePlannerEtiquetas } from "@/hooks/usePlannerEtiquetas";
@@ -30,7 +31,7 @@ function makeEmptyForm(defaultData) {
   return {
     titulo: "",
     descricao: "",
-    data: defaultData ?? new Date().toISOString().slice(0, 10),
+    data: defaultData ?? dataLocalHoje(),
     prioridade: "media",
     status: "a_fazer",
     tag: "",
