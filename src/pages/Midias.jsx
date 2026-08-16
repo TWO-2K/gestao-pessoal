@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Clapperboard, Upload, Search, Sparkles, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Clapperboard, Upload, Search, Sparkles, Check, X, ChevronLeft, ChevronRight, Clock, ListTodo, PlayCircle, CheckCircle2, PauseCircle } from "lucide-react";
 import { useMidias } from "@/hooks/useMidias";
 import { useFranquias } from "@/hooks/useFranquias";
 import { useUsuarios } from "@/hooks/useUsuarios";
@@ -37,6 +37,22 @@ const STATUS_LABEL = {
   assistindo: "Assistindo",
   concluido: "Concluído",
   pausado: "Pausado",
+};
+
+const STATUS_ICON = {
+  pendente: Clock,
+  planejado: ListTodo,
+  assistindo: PlayCircle,
+  concluido: CheckCircle2,
+  pausado: PauseCircle,
+};
+
+const STATUS_CARD_STYLE = {
+  pendente: { icon: "text-rust-500", ring: "hover:border-rust-200" },
+  planejado: { icon: "text-ink-400", ring: "hover:border-ink-300" },
+  assistindo: { icon: "text-sky-500", ring: "hover:border-sky-200" },
+  concluido: { icon: "text-emerald-500", ring: "hover:border-emerald-200" },
+  pausado: { icon: "text-gold-500", ring: "hover:border-gold-200" },
 };
 
 export default function Midias() {
@@ -115,6 +131,19 @@ export default function Midias() {
   const paginadas = filtradas.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA);
 
   const titulo = tipoFiltro === "todos" ? "Minha Lista" : TIPO_PLURAL[tipoFiltro];
+
+  const escopoMetricas = useMemo(
+    () => midias.filter((m) => tipoEfetivo === "todos" || m.tipo === tipoEfetivo),
+    [midias, tipoEfetivo]
+  );
+
+  const contagemPorStatus = useMemo(() => {
+    const map = Object.fromEntries(Object.keys(STATUS_LABEL).map((s) => [s, 0]));
+    for (const m of escopoMetricas) {
+      if (map[m.status] !== undefined) map[m.status] += 1;
+    }
+    return map;
+  }, [escopoMetricas]);
 
   const selecionada = id ? midiaPorId[id] || null : null;
   const relacionados = selecionada ? filhosPorPaiId[selecionada.id] || [] : [];
@@ -213,6 +242,29 @@ export default function Midias() {
         title={titulo}
         subtitle="Animes, séries e filmes que você está acompanhando"
       />
+
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
+        {Object.entries(STATUS_LABEL).map(([status, label]) => {
+          const Icone = STATUS_ICON[status];
+          const ativo = statusFiltro === status;
+          const estilo = STATUS_CARD_STYLE[status];
+          return (
+            <button
+              key={status}
+              onClick={() => setStatusFiltro((s) => (s === status ? "todos" : status))}
+              className={`text-left rounded-2xl border bg-white px-4 py-3 transition-colors ${estilo.ring} ${ativo ? "border-ink-900 ring-1 ring-ink-900" : "border-ink-200"}`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">{label}</span>
+                <Icone className={`h-4 w-4 ${estilo.icon}`} />
+              </div>
+              <p className="font-display text-2xl font-medium tracking-tight text-ink-900 mt-1.5 tabular-nums">
+                {contagemPorStatus[status]}
+              </p>
+            </button>
+          );
+        })}
+      </div>
 
       <div className="flex items-center gap-2 mb-3">
         <div className="relative flex-1 max-w-xs">
