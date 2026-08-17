@@ -32,6 +32,7 @@ export default function TreinoHoje() {
   const [treinoId, setTreinoId] = useState(null);
   const [planoId, setPlanoId] = useState(null);
   const [nome, setNome] = useState("");
+  const [finalizado, setFinalizado] = useState(false);
   const [linhas, setLinhas] = useState(null); // null = ainda não carregado pra essa data
   const [restSignals, setRestSignals] = useState({});
   const [escolhendoPlano, setEscolhendoPlano] = useState(false);
@@ -73,12 +74,14 @@ export default function TreinoHoje() {
       setTreinoId(treinoExistente.id);
       setPlanoId(treinoExistente.plano_id ?? null);
       setNome(treinoExistente.nome || "");
+      setFinalizado(!!treinoExistente.finalizado);
       setLinhas(agruparSeriesPorExercicio(treinoExistente.series || []));
       setEscolhendoPlano(false);
     } else {
       treinoIdRef.current = null;
       setTreinoId(null);
       setPlanoId(null);
+      setFinalizado(false);
       if (planosDoDia.length === 1) {
         iniciarComPlano(planosDoDia[0]);
       } else if (planosDoDia.length > 1) {
@@ -107,14 +110,25 @@ export default function TreinoHoje() {
     carregarEstado(null);
   };
 
+  const handleFinalizarTreino = () => {
+    setFinalizado(true);
+    persistir(linhas, true);
+  };
+
+  const handleReabrirTreino = () => {
+    setFinalizado(false);
+    persistir(linhas, false);
+  };
+
   const exercicioMap = Object.fromEntries(exercicios.map((e) => [e.id, e]));
 
-  const persistir = (linhasAtuais) => {
+  const persistir = (linhasAtuais, finalizadoOverride) => {
     filaSalvamentoRef.current = filaSalvamentoRef.current
       .then(async () => {
         const idAntes = treinoIdRef.current;
         const recordesAntes = recordesPorExercicio(treinos.filter((t) => t.id !== idAntes));
-        const id = await saveTreino({ id: idAntes, data, nome: nome || "Treino", plano_id: planoId, observacao: "", exercicios: linhasAtuais });
+        const finalizadoAtual = finalizadoOverride !== undefined ? finalizadoOverride : finalizado;
+        const id = await saveTreino({ id: idAntes, data, nome: nome || "Treino", plano_id: planoId, finalizado: finalizadoAtual, observacao: "", exercicios: linhasAtuais });
         if (!idAntes) {
           treinoIdRef.current = id;
           setTreinoId(id);
@@ -229,7 +243,8 @@ export default function TreinoHoje() {
 
   const totalSeries = linhas.reduce((n, ex) => n + ex.series.length, 0);
   const totalConcluidas = linhas.reduce((n, ex) => n + ex.series.filter((s) => s.concluida).length, 0);
-  const treinoConcluido = totalSeries > 0 && totalConcluidas === totalSeries;
+  const todasSeriesFeitas = totalSeries > 0 && totalConcluidas === totalSeries;
+  const treinoConcluido = todasSeriesFeitas || finalizado;
 
   return (
     <div>
@@ -296,10 +311,26 @@ export default function TreinoHoje() {
         </div>
       )}
 
-      {treinoConcluido && (
-        <div className="mb-5 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          <PartyPopper className="h-4 w-4" /> Treino concluído!
+      {treinoConcluido ? (
+        <div className="mb-5 flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <span className="flex items-center gap-2">
+            <PartyPopper className="h-4 w-4" />
+            {todasSeriesFeitas ? "Treino concluído!" : "Treino finalizado (nem tudo foi feito, e tudo bem)."}
+          </span>
+          {!todasSeriesFeitas && (
+            <Button type="button" variant="ghost" size="sm" className="h-auto py-1 text-emerald-700 hover:text-emerald-900" onClick={handleReabrirTreino}>
+              Reabrir
+            </Button>
+          )}
         </div>
+      ) : (
+        totalSeries > 0 && (
+          <div className="mb-5">
+            <Button type="button" variant="outline" size="sm" onClick={handleFinalizarTreino}>
+              Finalizar treino por hoje
+            </Button>
+          </div>
+        )
       )}
 
       <input ref={fotoExercicioInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoExercicioSelecionada} />

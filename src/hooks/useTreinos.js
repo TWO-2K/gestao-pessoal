@@ -52,6 +52,7 @@ export function useTreinos() {
         nome: form.nome || null,
         observacao: form.observacao || null,
         plano_id: form.plano_id ?? null,
+        finalizado: !!form.finalizado,
         user_id: targetUserId,
       };
 
