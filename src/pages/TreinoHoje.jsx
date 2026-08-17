@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
-import { Check, Trash2, Plus, PartyPopper, ClipboardList, Camera } from "lucide-react";
+import { Check, Trash2, Plus, PartyPopper, ClipboardList, Camera, X } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -24,7 +24,7 @@ import { dataLocalHoje as dataDeHoje } from "@/lib/format";
 export default function TreinoHoje() {
   const { toast } = useToast();
   const { treinos, isLoading, saveTreino, deleteTreino } = useTreinos();
-  const { exercicios, isLoading: isLoadingExercicios, uploadFotoExercicio } = useExerciciosAcademia();
+  const { exercicios, isLoading: isLoadingExercicios, uploadFotoExercicio, removeFotoExercicio } = useExerciciosAcademia();
   const { planos, isLoading: isLoadingPlanos } = usePlanosAcademia();
 
   const [searchParams] = useSearchParams();
@@ -48,7 +48,8 @@ export default function TreinoHoje() {
   const prsAvisadosRef = useRef(new Set());
   const [exercicioFotoAlvo, setExercicioFotoAlvo] = useState(null);
   const fotoExercicioInputRef = useRef(null);
-  const [fotoEmDestaque, setFotoEmDestaque] = useState(null); // { url, exercicioId }
+  const [galeriaExercicioId, setGaleriaExercicioId] = useState(null);
+  const [fotoAmpliada, setFotoAmpliada] = useState(null); // url
 
   const treinoDoDia = treinos.find((t) => t.data === data) || null;
   const diaSemana = diaSemanaDeData(data);
@@ -175,33 +176,44 @@ export default function TreinoHoje() {
   };
 
   const handleClickFotoExercicio = (exercicioId) => {
-    const fotoUrl = exercicioMap[exercicioId]?.foto_url;
-    if (fotoUrl) {
-      setFotoEmDestaque({ url: fotoUrl, exercicioId });
-    } else {
-      setExercicioFotoAlvo(exercicioId);
-      fotoExercicioInputRef.current?.click();
-    }
+    setGaleriaExercicioId(exercicioId);
   };
 
-  const handleTrocarFotoExercicio = (exercicioId) => {
-    setFotoEmDestaque(null);
+  const handleAdicionarFotoExercicio = (exercicioId) => {
     setExercicioFotoAlvo(exercicioId);
     fotoExercicioInputRef.current?.click();
+  };
+
+  const enviarFotoExercicio = async (exercicioId, file) => {
+    try {
+      await uploadFotoExercicio({ exercicioId, file });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro ao enviar foto do exercício", description: error.message });
+    }
   };
 
   const handleFotoExercicioSelecionada = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !exercicioFotoAlvo) return;
+    await enviarFotoExercicio(exercicioFotoAlvo, file);
+  };
+
+  const handleColarFotoExercicio = async (e) => {
+    if (!galeriaExercicioId) return;
+    const item = Array.from(e.clipboardData?.items || []).find((i) => i.type.startsWith("image/"));
+    if (!item) return;
+    e.preventDefault();
+    const file = item.getAsFile();
+    if (!file) return;
+    await enviarFotoExercicio(galeriaExercicioId, file);
+  };
+
+  const handleRemoverFotoExercicio = async (foto) => {
     try {
-      await uploadFotoExercicio({
-        exercicioId: exercicioFotoAlvo,
-        file,
-        fotoPathAnterior: exercicioMap[exercicioFotoAlvo]?.foto_path,
-      });
+      await removeFotoExercicio({ fotoId: foto.id, fotoPath: foto.foto_path });
     } catch (error) {
-      toast({ variant: "destructive", title: "Erro ao enviar foto do exercício", description: error.message });
+      toast({ variant: "destructive", title: "Erro ao remover foto", description: error.message });
     }
   };
 
@@ -295,20 +307,26 @@ export default function TreinoHoje() {
       <div className="space-y-3">
         {linhas.map((ex, idx) => {
           const totalConcluidasEx = ex.series.filter((s) => s.concluida).length;
-          const fotoExercicio = exercicioMap[ex.exercicio_id]?.foto_url;
+          const fotosExercicio = exercicioMap[ex.exercicio_id]?.fotos || [];
+          const fotoExercicio = fotosExercicio[0]?.url;
           return (
             <div key={idx} className="rounded-xl border border-ink-200 bg-white p-3 space-y-2.5">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => handleClickFotoExercicio(ex.exercicio_id)}
-                  title="Foto de exemplo do exercício"
-                  className="h-10 w-10 flex-shrink-0 rounded-lg border border-ink-200 bg-ink-50 overflow-hidden flex items-center justify-center"
+                  title="Fotos de exemplo do exercício"
+                  className="relative h-10 w-10 flex-shrink-0 rounded-lg border border-ink-200 bg-ink-50 overflow-hidden flex items-center justify-center"
                 >
                   {fotoExercicio ? (
                     <img src={fotoExercicio} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <Camera className="h-4 w-4 text-ink-300" />
+                  )}
+                  {fotosExercicio.length > 1 && (
+                    <span className="absolute bottom-0 right-0 bg-ink-900 text-white text-[9px] leading-none px-1 py-0.5 rounded-tl-md">
+                      {fotosExercicio.length}
+                    </span>
                   )}
                 </button>
                 <div className="flex-1 min-w-0">
@@ -381,18 +399,45 @@ export default function TreinoHoje() {
         )}
       </div>
 
-      <Dialog open={!!fotoEmDestaque} onOpenChange={(open) => !open && setFotoEmDestaque(null)}>
-        <DialogContent className="max-w-lg">
-          {fotoEmDestaque && (
+      <Dialog open={!!galeriaExercicioId} onOpenChange={(open) => !open && setGaleriaExercicioId(null)}>
+        <DialogContent className="max-w-lg" onPaste={handleColarFotoExercicio}>
+          {galeriaExercicioId && (
             <div className="space-y-3">
-              <img src={fotoEmDestaque.url} alt="" className="w-full rounded-lg object-contain max-h-[70vh]" />
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => handleTrocarFotoExercicio(fotoEmDestaque.exercicioId)}>
-                  Trocar foto
-                </Button>
+              <p className="font-medium text-ink-900 pr-6">{exercicioMap[galeriaExercicioId]?.nome || "Exercício"}</p>
+              <p className="text-xs text-ink-400">Dica: copie uma imagem e cole aqui com Ctrl+V.</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(exercicioMap[galeriaExercicioId]?.fotos || []).map((foto) => (
+                  <div key={foto.id} className="relative group aspect-square rounded-lg overflow-hidden border border-ink-200">
+                    <button type="button" onClick={() => setFotoAmpliada(foto.url)} className="h-full w-full">
+                      <img src={foto.url} alt="" className="h-full w-full object-cover" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoverFotoExercicio(foto)}
+                      title="Remover foto"
+                      className="absolute top-1 right-1 h-5 w-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => handleAdicionarFotoExercicio(galeriaExercicioId)}
+                  className="aspect-square rounded-lg border border-dashed border-ink-300 text-ink-400 hover:border-ink-400 hover:text-ink-600 flex flex-col items-center justify-center gap-1"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="text-[11px]">Adicionar</span>
+                </button>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!fotoAmpliada} onOpenChange={(open) => !open && setFotoAmpliada(null)}>
+        <DialogContent className="max-w-lg">
+          {fotoAmpliada && <img src={fotoAmpliada} alt="" className="w-full rounded-lg object-contain max-h-[70vh]" />}
         </DialogContent>
       </Dialog>
     </div>

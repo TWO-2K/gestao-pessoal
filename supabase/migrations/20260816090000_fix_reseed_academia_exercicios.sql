@@ -1,6 +1,7 @@
--- supabase/migrations/20260811080000_reseed_academia_exercicios.sql
--- Recria o catálogo padrão de exercícios (apagado sem querer). Compara por
--- nome em vez de "tabela vazia" pra não duplicar exercícios que já existam.
+-- supabase/migrations/20260816090000_fix_reseed_academia_exercicios.sql
+-- A migration 20260811080000 tinha um erro de sintaxe (faltavam vírgulas),
+-- o que quebrava o VALUES inteiro e impedia a inserção de todo o catálogo
+-- padrão a partir de 'Crossover'. Reaplica o reseed, comparando por nome.
 
 insert into public.academia_exercicios (nome, grupo_muscular)
 select nome, grupo_muscular

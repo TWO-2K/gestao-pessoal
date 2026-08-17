@@ -15,7 +15,7 @@ export default function PlanosAcademia() {
   const [editing, setEditing] = useState(null);
 
   const { planos, isLoading, deletePlano, savePlano } = usePlanosAcademia();
-  const { exercicios } = useExerciciosAcademia();
+  const { exercicios, createExercicio } = useExerciciosAcademia();
 
   const exercicioMap = useMemo(() => Object.fromEntries(exercicios.map((e) => [e.id, e])), [exercicios]);
 
@@ -94,11 +94,16 @@ export default function PlanosAcademia() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent
+          className="max-h-[90vh] overflow-y-auto sm:max-w-lg"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader><DialogTitle>{editing ? "Editar plano" : "Novo plano"}</DialogTitle></DialogHeader>
           <PlanoForm
             plano={editing}
             exerciciosCatalogo={exercicios}
+            onCreateExercicio={createExercicio}
             onSaved={handleSaved}
             onCancel={() => setOpen(false)}
           />
