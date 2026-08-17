@@ -8,6 +8,8 @@ from (values
   ('Supino reto', 'peito'),
   ('Supino inclinado', 'peito'),
   ('Crucifixo', 'peito'),
+  ('Crossover', 'peito')
+  ('Desenvolvimento de ombro', 'peito')
   ('Flexão de braço', 'peito'),
   ('Puxada frontal', 'costas'),
   ('Remada curvada', 'costas'),
@@ -29,6 +31,7 @@ from (values
   ('Rosca martelo', 'biceps'),
   ('Tríceps corda', 'triceps'),
   ('Tríceps testa', 'triceps'),
+  ('Tríceps francês', 'triceps'),
   ('Mergulho no banco', 'triceps'),
   ('Abdominal supra', 'abdomen'),
   ('Prancha', 'abdomen'),
