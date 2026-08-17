@@ -5,13 +5,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { DIAS_SEMANA } from "@/lib/diasSemana";
+import { GRUPOS_MUSCULARES } from "@/lib/gruposMusculares";
 import { Plus, Trash2 } from "lucide-react";
 
 const novoExercicioPlano = (exercicio_id) => ({ exercicio_id, series_alvo: 3, reps_alvo: 12 });
 
-export default function PlanoForm({ plano, exerciciosCatalogo = [], onSaved, onCancel }) {
+export default function PlanoForm({ plano, exerciciosCatalogo = [], onCreateExercicio, onSaved, onCancel }) {
   const [form, setForm] = useState({ nome: "", dias_semana: [], exercicios: [] });
   const [saving, setSaving] = useState(false);
+  const [addingExercicio, setAddingExercicio] = useState(false);
+  const [novoNome, setNovoNome] = useState("");
+  const [novoGrupo, setNovoGrupo] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -57,6 +61,19 @@ export default function PlanoForm({ plano, exerciciosCatalogo = [], onSaved, onC
   };
 
   const nomeExercicio = (id) => exerciciosCatalogo.find((ex) => ex.id === id)?.nome || "";
+
+  const handleCriarExercicio = async () => {
+    if (!novoNome.trim()) return;
+    try {
+      const criado = await onCreateExercicio({ nome: novoNome, grupo_muscular: novoGrupo });
+      addExercicio(criado.id);
+      setAddingExercicio(false);
+      setNovoNome("");
+      setNovoGrupo("");
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro ao criar exercício", description: error.message });
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -139,18 +156,45 @@ export default function PlanoForm({ plano, exerciciosCatalogo = [], onSaved, onC
             </div>
           ))}
         </div>
-        <Select value="" onValueChange={(v) => addExercicio(v)}>
-          <SelectTrigger className="w-auto min-w-[200px]">
-            <SelectValue placeholder="+ Adicionar exercício" />
-          </SelectTrigger>
-          <SelectContent>
-            {exerciciosOrdenados
-              .filter((e) => !idsAdicionados.includes(e.id))
-              .map((e) => (
-                <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
-              ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap gap-2">
+          <Select value="" onValueChange={(v) => addExercicio(v)}>
+            <SelectTrigger className="w-auto min-w-[200px]">
+              <SelectValue placeholder="+ Adicionar exercício" />
+            </SelectTrigger>
+            <SelectContent>
+              {exerciciosOrdenados
+                .filter((e) => !idsAdicionados.includes(e.id))
+                .map((e) => (
+                  <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          {onCreateExercicio && (
+            <Button type="button" variant="outline" size="sm" onClick={() => setAddingExercicio((v) => !v)}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Novo exercício
+            </Button>
+          )}
+        </div>
+
+        {addingExercicio && (
+          <div className="rounded-xl border border-ink-200 bg-ink-50 p-3 space-y-2.5 mt-2">
+            <div className="grid grid-cols-2 gap-2.5">
+              <Input placeholder="Nome do exercício" value={novoNome} onChange={(e) => setNovoNome(e.target.value)} autoFocus />
+              <Select value={novoGrupo} onValueChange={setNovoGrupo}>
+                <SelectTrigger><SelectValue placeholder="Grupo muscular" /></SelectTrigger>
+                <SelectContent>
+                  {GRUPOS_MUSCULARES.map((g) => (
+                    <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setAddingExercicio(false)}>Cancelar</Button>
+              <Button type="button" size="sm" onClick={handleCriarExercicio} disabled={!novoNome.trim()}>Adicionar</Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end gap-2 pt-2">
