@@ -8,7 +8,7 @@ import { useContas } from "@/hooks/useContas";
 import { useGastos } from "@/hooks/useGastos";
 import { useDividas } from "@/hooks/useDividas";
 import { useCategorias } from "@/hooks/useCategorias";
-import { TrendingUp, PieChart as PieChartIcon, Trophy } from "lucide-react";
+import { TrendingUp, PieChart as PieChartIcon, Trophy, Receipt } from "lucide-react";
 
 const MESES_ABREV = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -124,6 +124,36 @@ export default function Relatorios() {
     return itens.sort((a, b) => (b.valor || 0) - (a.valor || 0)).slice(0, 10);
   }, [contasDoMes, gastosDoMes, catMap]);
 
+  const todosGastosDoMes = useMemo(() => {
+    const itens = gastosDoMes.map((g) => ({
+      id: `gasto-${g.id}`,
+      descricao: g.descricao,
+      valor: g.valor,
+      data: g.data,
+      categoria: catMap[g.categoria_id],
+    }));
+    return itens.sort((a, b) => new Date(b.data) - new Date(a.data));
+  }, [gastosDoMes, catMap]);
+
+  const totalGastosDoMes = useMemo(
+    () => todosGastosDoMes.reduce((s, i) => s + (i.valor || 0), 0),
+    [todosGastosDoMes]
+  );
+
+  const gastosPorDia = useMemo(() => {
+    const totals = {};
+    todosGastosDoMes.forEach((item) => {
+      if (!item.data) return;
+      const dia = parseInt(item.data.split("-")[2], 10);
+      totals[dia] = (totals[dia] || 0) + (item.valor || 0);
+    });
+    const diasNoMes = new Date(mes.year, mes.month + 1, 0).getDate();
+    return Array.from({ length: diasNoMes }, (_, i) => {
+      const dia = i + 1;
+      return { label: String(dia), total: totals[dia] || 0 };
+    });
+  }, [todosGastosDoMes, mes]);
+
   if (isLoading) return <div className="text-ink-400 text-sm">Carregando...</div>;
 
   return (
@@ -134,7 +164,7 @@ export default function Relatorios() {
         <MonthFilter value={mes} onChange={setMes} />
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid sm:grid-cols-4 gap-4 mb-8">
         <div className="rounded-2xl bg-ink-900 text-white p-5">
           <p className="text-ink-50/50 text-xs uppercase tracking-[0.12em] mb-3">Total pago</p>
           <p className="font-display text-2xl font-medium tabular-nums">{formatCurrency(totalPago)}</p>
@@ -146,6 +176,11 @@ export default function Relatorios() {
         <div className="rounded-2xl bg-forest-600 text-white p-5">
           <p className="text-forest-100/70 text-xs uppercase tracking-[0.12em] mb-3">Total recebido</p>
           <p className="font-display text-2xl font-medium tabular-nums">{formatCurrency(totalRecebido)}</p>
+        </div>
+        <div className="rounded-2xl bg-ink-700 text-white p-5">
+          <p className="text-ink-50/50 text-xs uppercase tracking-[0.12em] mb-3">Total de gastos do mês</p>
+          <p className="font-display text-2xl font-medium tabular-nums">{formatCurrency(totalGastosDoMes)}</p>
+          <p className="text-ink-50/50 text-xs mt-1">{todosGastosDoMes.length} lançamento{todosGastosDoMes.length === 1 ? "" : "s"}</p>
         </div>
       </div>
 
@@ -223,6 +258,65 @@ export default function Relatorios() {
             <RechartsPrimitive.Bar dataKey="total" fill="#3f7a4f" radius={4} />
           </RechartsPrimitive.BarChart>
         </ChartContainer>
+      </div>
+
+      <div className="mb-8">
+        <h2 className="font-display text-lg text-ink-900 mb-3 flex items-center gap-2">
+          <Receipt className="h-4 w-4 text-ink-400" /> Relatório de gastos (por dia)
+        </h2>
+        {todosGastosDoMes.length === 0 ? (
+          <div className="rounded-xl border border-ink-200 bg-white px-5 py-8 text-center text-ink-400">
+            <p className="text-sm">Nenhum gasto registrado neste mês.</p>
+          </div>
+        ) : (
+          <ChartContainer config={{}} className="max-h-[260px] w-full">
+            <RechartsPrimitive.BarChart data={gastosPorDia}>
+              <RechartsPrimitive.CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <RechartsPrimitive.XAxis dataKey="label" tickLine={false} axisLine={false} interval={2} />
+              <RechartsPrimitive.YAxis tickLine={false} axisLine={false} width={40} />
+              <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+              <RechartsPrimitive.Bar dataKey="total" fill="#7a3f5c" radius={4} />
+            </RechartsPrimitive.BarChart>
+          </ChartContainer>
+        )}
+      </div>
+
+      <div className="mb-8">
+        <h2 className="font-display text-lg text-ink-900 mb-3 flex items-center gap-2">
+          <Receipt className="h-4 w-4 text-ink-400" /> Todos os gastos do mês
+        </h2>
+        {todosGastosDoMes.length === 0 ? (
+          <div className="rounded-xl border border-ink-200 bg-white px-5 py-8 text-center text-ink-400">
+            <p className="text-sm">Nenhum gasto registrado neste mês.</p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-ink-200 bg-white overflow-hidden">
+            <div className="divide-y divide-ink-100">
+              {todosGastosDoMes.map((item) => (
+                <div key={item.id} className="flex items-center justify-between px-4 py-3.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: item.categoria?.cor || "#a3a3a3" }}
+                    />
+                    <div className="min-w-0">
+                      <p className="font-medium text-ink-900 truncate">{item.descricao}</p>
+                      <p className="text-xs text-ink-400 font-mono">
+                        {formatDate(item.data)}
+                        {item.categoria?.nome ? ` · ${item.categoria.nome}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="flex-shrink-0 font-mono font-semibold tabular-nums text-ink-800">{formatCurrency(item.valor)}</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between px-4 py-3.5 bg-ink-50 border-t border-ink-200">
+              <p className="text-sm font-medium text-ink-500">Total do mês</p>
+              <p className="font-mono font-semibold tabular-nums text-ink-900">{formatCurrency(totalGastosDoMes)}</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div>
