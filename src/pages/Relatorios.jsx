@@ -148,10 +148,19 @@ export default function Relatorios() {
       totals[dia] = (totals[dia] || 0) + (item.valor || 0);
     });
     const diasNoMes = new Date(mes.year, mes.month + 1, 0).getDate();
-    return Array.from({ length: diasNoMes }, (_, i) => {
+    const dias = Array.from({ length: diasNoMes }, (_, i) => {
       const dia = i + 1;
       return { label: String(dia), total: totals[dia] || 0 };
     });
+
+    const janela = 7;
+    dias.forEach((d, i) => {
+      const inicio = Math.max(0, i - janela + 1);
+      const fatia = dias.slice(inicio, i + 1);
+      d.media = fatia.reduce((s, x) => s + x.total, 0) / fatia.length;
+    });
+
+    return dias;
   }, [todosGastosDoMes, mes]);
 
   if (isLoading) return <div className="text-ink-400 text-sm">Carregando...</div>;
@@ -270,13 +279,21 @@ export default function Relatorios() {
           </div>
         ) : (
           <ChartContainer config={{}} className="max-h-[260px] w-full">
-            <RechartsPrimitive.BarChart data={gastosPorDia}>
+            <RechartsPrimitive.ComposedChart data={gastosPorDia}>
               <RechartsPrimitive.CartesianGrid vertical={false} strokeDasharray="3 3" />
               <RechartsPrimitive.XAxis dataKey="label" tickLine={false} axisLine={false} interval={2} />
               <RechartsPrimitive.YAxis tickLine={false} axisLine={false} width={40} />
               <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-              <RechartsPrimitive.Bar dataKey="total" fill="#7a3f5c" radius={4} />
-            </RechartsPrimitive.BarChart>
+              <RechartsPrimitive.Bar dataKey="total" name="Gasto no dia" fill="#7a3f5c" radius={4} />
+              <RechartsPrimitive.Line
+                type="monotone"
+                dataKey="media"
+                name="Média móvel (7d)"
+                stroke="#c25b3f"
+                strokeWidth={2}
+                dot={false}
+              />
+            </RechartsPrimitive.ComposedChart>
           </ChartContainer>
         )}
       </div>
