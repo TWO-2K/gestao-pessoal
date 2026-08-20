@@ -17,6 +17,8 @@ const makeInstallmentGroupId = () => {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
+const stripParcelaSuffix = (descricao) => descricao.replace(/\s*\(\d+\/\d+\)\s*$/, "");
+
 export function useContas() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
@@ -114,6 +116,91 @@ export function useContas() {
     ...mutationOptions,
   });
 
+  const reparcelarMutation = useMutation({
+    mutationFn: async ({ parcelamentoId, novoValorTotal, novoTotalParcelas }) => {
+      const { data: grupo, error: fetchError } = await supabase
+        .from('contas_pagar')
+        .select('*')
+        .eq('parcelamento_id', parcelamentoId)
+        .order('parcela_numero', { ascending: true });
+      if (fetchError) throw new Error(fetchError.message);
+      if (!grupo || grupo.length === 0) throw new Error("Grupo de parcelas não encontrado.");
+
+      const pagas = grupo.filter((p) => p.status === 'pago');
+      const pendentes = grupo.filter((p) => p.status !== 'pago');
+      const qtdPagas = pagas.length;
+
+      const totalParcelas = Math.max(parseInt(novoTotalParcelas, 10) || 1, qtdPagas || 1);
+      if (totalParcelas < qtdPagas) {
+        throw new Error(`Não é possível ter menos parcelas do que as ${qtdPagas} já pagas.`);
+      }
+
+      const valorPago = pagas.reduce((acc, p) => acc + Number(p.valor), 0);
+      const valorTotal = Number(novoValorTotal);
+      const valorRestante = Number((valorTotal - valorPago).toFixed(2));
+      const qtdNovasPendentes = totalParcelas - qtdPagas;
+
+      if (qtdNovasPendentes === 0 && Math.abs(valorRestante) > 0.01) {
+        throw new Error("O valor total não bate com o que já foi pago. Ajuste o número de parcelas.");
+      }
+      if (qtdNovasPendentes > 0 && valorRestante < 0) {
+        throw new Error("O novo valor total é menor do que o valor já pago.");
+      }
+
+      const descricaoBase = stripParcelaSuffix(grupo[0].descricao);
+      const base = pendentes[0] || grupo[grupo.length - 1];
+      const anchor = pendentes[0]?.vencimento || addMonths(grupo[grupo.length - 1].vencimento, 1);
+
+      const valorBase = qtdNovasPendentes > 0 ? Math.floor((valorRestante / qtdNovasPendentes) * 100) / 100 : 0;
+      let acumulado = 0;
+      const novasPendentes = Array.from({ length: qtdNovasPendentes }, (_, index) => {
+        const parcelaNumero = qtdPagas + index + 1;
+        const isLast = index === qtdNovasPendentes - 1;
+        const valor = isLast ? Number((valorRestante - acumulado).toFixed(2)) : valorBase;
+        acumulado = Number((acumulado + valor).toFixed(2));
+
+        return {
+          descricao: `${descricaoBase} (${parcelaNumero}/${totalParcelas})`,
+          valor,
+          vencimento: addMonths(anchor, index),
+          categoria_id: base.categoria_id,
+          conta_pagamento_id: base.conta_pagamento_id,
+          observacao: base.observacao,
+          recorrente: false,
+          parcelado: totalParcelas > 1,
+          parcelamento_id: parcelamentoId,
+          parcela_numero: parcelaNumero,
+          total_parcelas: totalParcelas,
+          status: "pendente",
+          user_id: base.user_id,
+        };
+      });
+
+      if (novasPendentes.length > 0) {
+        const { error: insertError } = await supabase.from('contas_pagar').insert(novasPendentes);
+        if (insertError) throw new Error(insertError.message);
+      }
+
+      const idsPendentesAntigas = pendentes.map((p) => p.id);
+      if (idsPendentesAntigas.length > 0) {
+        const { error: deleteError } = await supabase.from('contas_pagar').delete().in('id', idsPendentesAntigas);
+        if (deleteError) throw new Error(deleteError.message);
+      }
+
+      for (const p of pagas) {
+        const { error: updateError } = await supabase
+          .from('contas_pagar')
+          .update({
+            descricao: `${descricaoBase} (${p.parcela_numero}/${totalParcelas})`,
+            total_parcelas: totalParcelas,
+          })
+          .match({ id: p.id });
+        if (updateError) throw new Error(updateError.message);
+      }
+    },
+    ...mutationOptions,
+  });
+
   const toggleStatusMutation = useMutation({
     mutationFn: async (conta) => {
       const targetUserId = viewedUserId || session?.user?.id;
@@ -187,6 +274,7 @@ export function useContas() {
     deleteConta: deleteMutation.mutate,
     toggleStatusConta: toggleStatusMutation.mutate,
     createOrUpdateConta: createOrUpdateMutation.mutateAsync,
+    reparcelarConta: reparcelarMutation.mutateAsync,
     catMap,
     contaPagamentoMap,
   };

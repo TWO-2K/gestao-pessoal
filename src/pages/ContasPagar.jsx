@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from "react";
 import PageHeader from "@/components/PageHeader";
 import ContaForm from "@/components/ContaForm";
+import ReparcelarForm from "@/components/ReparcelarForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, ArrowUpCircle, Check, Repeat, AlertTriangle, Clock, CheckCircle2, XCircle, Bell, BellOff } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUpCircle, Check, Repeat, AlertTriangle, Clock, CheckCircle2, XCircle, Bell, BellOff, Layers } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import MonthFilter, { isInMonth } from "@/components/MonthFilter";
@@ -32,6 +33,7 @@ const ultimaNotificacao = (conta) => {
 export default function ContasPagar() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [reparcelando, setReparcelando] = useState(null);
   const [filtro, setFiltro] = useState("pendente");
   const [mes, setMes] = useState(() => {
     const now = new Date();
@@ -46,6 +48,7 @@ export default function ContasPagar() {
     deleteConta,
     toggleStatusConta,
     createOrUpdateConta,
+    reparcelarConta,
     catMap,
     contaPagamentoMap,
   } = useContas();
@@ -56,6 +59,16 @@ export default function ContasPagar() {
     setOpen(false);
     setEditing(null);
   };
+
+  const handleReparcelado = async (payload) => {
+    await reparcelarConta(payload);
+    setReparcelando(null);
+  };
+
+  const grupoReparcelando = useMemo(() => {
+    if (!reparcelando) return [];
+    return contas.filter((c) => c.parcelamento_id === reparcelando.parcelamento_id);
+  }, [contas, reparcelando]);
 
   const filtradas = useMemo(() => contas.filter((c) => {
     if ((filtro !== "todas" && c.status !== filtro) ||
@@ -208,6 +221,11 @@ export default function ContasPagar() {
                   <button onClick={() => { setEditing(conta); setOpen(true); }} className="p-2 text-ink-400 hover:text-ink-900">
                     <Pencil className="h-4 w-4" />
                   </button>
+                  {conta.total_parcelas > 1 && (
+                    <button onClick={() => setReparcelando(conta)} title="Reparcelar" className="p-2 text-ink-400 hover:text-ink-900">
+                      <Layers className="h-4 w-4" />
+                    </button>
+                  )}
                   <button onClick={() => deleteConta(conta.id)} className="p-2 text-ink-400 hover:text-rust-600">
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -222,6 +240,15 @@ export default function ContasPagar() {
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar conta" : "Nova conta"}</DialogTitle></DialogHeader>
           <ContaForm conta={editing} categorias={categorias} contasPagamento={contasPagamento} onSaved={handleSaved} onCancel={() => setOpen(false)} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(reparcelando)} onOpenChange={(v) => !v && setReparcelando(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Reparcelar conta</DialogTitle></DialogHeader>
+          {grupoReparcelando.length > 0 && (
+            <ReparcelarForm grupo={grupoReparcelando} onSaved={handleReparcelado} onCancel={() => setReparcelando(null)} />
+          )}
         </DialogContent>
       </Dialog>
     </div>

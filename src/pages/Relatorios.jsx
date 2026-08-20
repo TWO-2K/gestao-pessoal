@@ -12,12 +12,28 @@ import { TrendingUp, PieChart as PieChartIcon, Trophy, Receipt } from "lucide-re
 
 const MESES_ABREV = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
+const PALETA_FALLBACK = ["#3f7a4f", "#c25b3f", "#7a3f5c", "#3f5c7a", "#a3872f", "#5c3f7a", "#2f8a8a", "#8a4f2f"];
+
+/** Preenche `fill` ausente com cores da paleta, evitando repetir cor já usada no mesmo conjunto. */
+function comCoresUnicas(items) {
+  const usadas = new Set(items.map((it) => it.fill).filter(Boolean));
+  let i = 0;
+  return items.map((it) => {
+    if (it.fill) return it;
+    while (usadas.has(PALETA_FALLBACK[i % PALETA_FALLBACK.length]) && i < PALETA_FALLBACK.length * 2) i++;
+    const cor = PALETA_FALLBACK[i % PALETA_FALLBACK.length];
+    usadas.add(cor);
+    i++;
+    return { ...it, fill: cor };
+  });
+}
+
 export default function Relatorios() {
   const now = new Date();
   const [mes, setMes] = useState({ month: now.getMonth(), year: now.getFullYear() });
 
   const { contas, isLoading: isLoadingContas } = useContas();
-  const { gastos, isLoading: isLoadingGastos } = useGastos();
+  const { gastos, contaPagamentoMap, isLoading: isLoadingGastos } = useGastos();
   const { dividas, parcelas, isLoading: isLoadingDividas } = useDividas();
   const { categorias, isLoading: isLoadingCategorias } = useCategorias();
 
@@ -66,15 +82,32 @@ export default function Relatorios() {
     contasDoMes.filter((c) => c.status === "pago").forEach((c) => add(c.categoria_id, c.valor));
     gastosDoMes.forEach((g) => add(g.categoria_id, g.valor));
 
-    return Object.entries(totals)
+    const itens = Object.entries(totals)
       .map(([categoriaId, total]) => ({
         categoriaId,
         name: catMap[categoriaId]?.nome || "Sem categoria",
         value: total,
-        fill: catMap[categoriaId]?.cor || "#a3a3a3",
+        fill: catMap[categoriaId]?.cor || null,
       }))
       .sort((a, b) => b.value - a.value);
+    return comCoresUnicas(itens);
   }, [contasDoMes, gastosDoMes, catMap]);
+
+  const gastosDoMesPorConta = useMemo(() => {
+    const grupos = {};
+    gastosDoMes.forEach((g) => {
+      const contaPagamento = contaPagamentoMap[g.conta_pagamento_id];
+      const key = contaPagamento ? `conta-${contaPagamento.id}` : "sem-conta";
+      const name = contaPagamento ? contaPagamento.nome : "Sem conta/cartão";
+      const fill = contaPagamento ? (contaPagamento.cor || null) : "#a3a3a3";
+
+      if (!grupos[key]) grupos[key] = { categoriaId: key, name, fill, value: 0 };
+      grupos[key].value += Number(g.valor) || 0;
+    });
+
+    const itens = Object.values(grupos).sort((a, b) => b.value - a.value);
+    return comCoresUnicas(itens);
+  }, [gastosDoMes, contaPagamentoMap]);
 
   const recebimentosPorMes = useMemo(() => {
     const meses = [];
@@ -193,7 +226,7 @@ export default function Relatorios() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8 mb-8">
+      <div className="grid md:grid-cols-3 gap-4 mb-8">
         <div>
           <h2 className="font-display text-lg text-ink-900 mb-3 flex items-center gap-2">
             <PieChartIcon className="h-4 w-4 text-ink-400" /> Contas pagas x pendentes
@@ -203,12 +236,12 @@ export default function Relatorios() {
               <p className="text-sm">Nenhuma conta neste mês.</p>
             </div>
           ) : (
-            <ChartContainer config={{}} className="mx-auto max-h-[260px]">
+            <ChartContainer config={{}} className="mx-auto h-[220px] w-full">
               <RechartsPrimitive.PieChart>
                 <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                <RechartsPrimitive.Pie data={pagoPendenteData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90}>
+                <RechartsPrimitive.Pie data={pagoPendenteData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={95}>
                   {pagoPendenteData.map((entry) => (
-                    <RechartsPrimitive.Cell key={entry.name} fill={entry.fill} />
+                    <RechartsPrimitive.Cell key={entry.name} fill={entry.fill} stroke="#ffffff" strokeWidth={2} />
                   ))}
                 </RechartsPrimitive.Pie>
               </RechartsPrimitive.PieChart>
@@ -225,12 +258,34 @@ export default function Relatorios() {
               <p className="text-sm">Nenhum gasto ou conta paga neste mês.</p>
             </div>
           ) : (
-            <ChartContainer config={{}} className="mx-auto max-h-[260px]">
+            <ChartContainer config={{}} className="mx-auto h-[220px] w-full">
               <RechartsPrimitive.PieChart>
                 <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                <RechartsPrimitive.Pie data={gastosPorCategoria} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90}>
+                <RechartsPrimitive.Pie data={gastosPorCategoria} dataKey="value" nameKey="name" innerRadius={55} outerRadius={95}>
                   {gastosPorCategoria.map((entry) => (
-                    <RechartsPrimitive.Cell key={entry.categoriaId} fill={entry.fill} />
+                    <RechartsPrimitive.Cell key={entry.categoriaId} fill={entry.fill} stroke="#ffffff" strokeWidth={2} />
+                  ))}
+                </RechartsPrimitive.Pie>
+              </RechartsPrimitive.PieChart>
+            </ChartContainer>
+          )}
+        </div>
+
+        <div>
+          <h2 className="font-display text-lg text-ink-900 mb-3 flex items-center gap-2">
+            <PieChartIcon className="h-4 w-4 text-ink-400" /> Gastos por conta/cartão
+          </h2>
+          {gastosDoMesPorConta.length === 0 ? (
+            <div className="rounded-xl border border-ink-200 bg-white px-5 py-8 text-center text-ink-400">
+              <p className="text-sm">Nenhum gasto registrado neste mês.</p>
+            </div>
+          ) : (
+            <ChartContainer config={{}} className="mx-auto h-[220px] w-full">
+              <RechartsPrimitive.PieChart>
+                <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                <RechartsPrimitive.Pie data={gastosDoMesPorConta} dataKey="value" nameKey="name" innerRadius={55} outerRadius={95}>
+                  {gastosDoMesPorConta.map((entry) => (
+                    <RechartsPrimitive.Cell key={entry.categoriaId} fill={entry.fill} stroke="#ffffff" strokeWidth={2} />
                   ))}
                 </RechartsPrimitive.Pie>
               </RechartsPrimitive.PieChart>
@@ -295,44 +350,6 @@ export default function Relatorios() {
               />
             </RechartsPrimitive.ComposedChart>
           </ChartContainer>
-        )}
-      </div>
-
-      <div className="mb-8">
-        <h2 className="font-display text-lg text-ink-900 mb-3 flex items-center gap-2">
-          <Receipt className="h-4 w-4 text-ink-400" /> Todos os gastos do mês
-        </h2>
-        {todosGastosDoMes.length === 0 ? (
-          <div className="rounded-xl border border-ink-200 bg-white px-5 py-8 text-center text-ink-400">
-            <p className="text-sm">Nenhum gasto registrado neste mês.</p>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-ink-200 bg-white overflow-hidden">
-            <div className="divide-y divide-ink-100">
-              {todosGastosDoMes.map((item) => (
-                <div key={item.id} className="flex items-center justify-between px-4 py-3.5">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className="h-2.5 w-2.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: item.categoria?.cor || "#a3a3a3" }}
-                    />
-                    <div className="min-w-0">
-                      <p className="font-medium text-ink-900 truncate">{item.descricao}</p>
-                      <p className="text-xs text-ink-400 font-mono">
-                        {formatDate(item.data)}
-                        {item.categoria?.nome ? ` · ${item.categoria.nome}` : ""}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="flex-shrink-0 font-mono font-semibold tabular-nums text-ink-800">{formatCurrency(item.valor)}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center justify-between px-4 py-3.5 bg-ink-50 border-t border-ink-200">
-              <p className="text-sm font-medium text-ink-500">Total do mês</p>
-              <p className="font-mono font-semibold tabular-nums text-ink-900">{formatCurrency(totalGastosDoMes)}</p>
-            </div>
-          </div>
         )}
       </div>
 

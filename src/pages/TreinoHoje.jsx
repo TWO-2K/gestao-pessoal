@@ -54,7 +54,7 @@ export default function TreinoHoje() {
 
   const treinoDoDia = treinos.find((t) => t.data === data) || null;
   const diaSemana = diaSemanaDeData(data);
-  const planosDoDia = planos.filter((p) => (p.dias_semana || []).includes(diaSemana));
+  const planosDoDia = planos.filter((p) => p.ativo !== false && (p.dias_semana || []).includes(diaSemana));
 
   const iniciarComPlano = (plano) => {
     setPlanoId(plano.id);
