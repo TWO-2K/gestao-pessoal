@@ -16,6 +16,7 @@ import DividasReceber from '@/pages/DividasReceber';
 import Categorias from '@/pages/Categorias';
 import ContasPagamento from '@/pages/ContasPagamento';
 import Planner from '@/pages/Planner';
+import Tarefas from '@/pages/Tarefas';
 import Midias from '@/pages/Midias';
 import Treinos from '@/pages/Treinos';
 import TreinoHoje from '@/pages/TreinoHoje';
@@ -49,6 +50,7 @@ function App() {
                 <Route path="/categorias" element={<Categorias />} />
                 <Route path="/contas-pagamento" element={<ContasPagamento />} />
                 <Route path="/planner" element={<Planner />} />
+                <Route path="/tarefas" element={<Tarefas />} />
                 <Route path="/midias" element={<Midias />} />
                 <Route path="/midias/:tipoSlug" element={<Midias />} />
                 <Route path="/midias/:tipoSlug/:id" element={<Midias />} />

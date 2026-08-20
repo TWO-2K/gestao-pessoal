@@ -5,22 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Check, CalendarDays, LayoutGrid, ListChecks } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronUp, ChevronDown, X, Check, ListChecks } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
-import WeekStrip from "@/components/WeekStrip";
 import { usePlannerTarefas } from "@/hooks/usePlannerTarefas";
 import { usePlannerQuadros } from "@/hooks/usePlannerQuadros";
 import { usePlannerSubtarefas } from "@/hooks/usePlannerSubtarefas";
 import { etiquetaCorClasse } from "@/components/PlannerTarefaForm";
 import { useToast } from "@/components/ui/use-toast";
-import { dataLocalHoje } from "@/lib/format";
-
-const PRIORIDADE_COR = {
-  alta: "bg-rust-500",
-  media: "bg-gold-500",
-  baixa: "bg-ink-300",
-};
 
 const COLUNAS = [
   { status: "a_fazer", label: "A fazer", dot: "bg-gold-400" },
@@ -28,68 +20,36 @@ const COLUNAS = [
   { status: "concluido", label: "Concluído", dot: "bg-emerald-500" },
 ];
 
-function todayStr() {
-  return dataLocalHoje();
-}
-
-function TarefaCardBody({ tarefa, modo, checklist }) {
-  const isQuadro = modo === "quadro";
-
-  if (isQuadro) {
-    const concluidas = checklist?.filter((s) => s.concluida).length ?? 0;
-    return (
-      <div>
-        {tarefa.etiquetas?.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {tarefa.etiquetas.map((et) => (
-              <span
-                key={et.id}
-                title={et.texto}
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-[10px] font-medium text-white truncate max-w-[10rem]",
-                  etiquetaCorClasse(et.cor)
-                )}
-              >
-                {et.texto}
-              </span>
-            ))}
-          </div>
-        )}
-        <p className="text-sm text-ink-900 leading-snug">{tarefa.titulo}</p>
-        {tarefa.descricao && (
-          <p className="text-xs text-ink-400 truncate mt-1">{tarefa.descricao}</p>
-        )}
-        {checklist?.length > 0 && (
-          <div className="flex items-center gap-1 mt-2 text-[11px] text-ink-400">
-            <ListChecks className="h-3.5 w-3.5" />
-            <span>{concluidas}/{checklist.length}</span>
-          </div>
-        )}
-      </div>
-    );
-  }
-
+function TarefaCardBody({ tarefa, checklist }) {
+  const concluidas = checklist?.filter((s) => s.concluida).length ?? 0;
   return (
-    <div className="flex items-start gap-2">
-      <span className={cn("mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0", PRIORIDADE_COR[tarefa.prioridade])} />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-ink-900 truncate">{tarefa.titulo}</p>
-        {tarefa.descricao && (
-          <p className="text-xs text-ink-400 truncate mt-0.5">{tarefa.descricao}</p>
-        )}
-        {(tarefa.tag || tarefa.horario) && (
-          <div className="flex items-center gap-1.5 mt-1.5">
-            {tarefa.horario && (
-              <span className="text-[10px] text-ink-400">{tarefa.horario.slice(0, 5)}</span>
-            )}
-            {tarefa.tag && (
-              <span className="text-[10px] rounded-full bg-ink-100 text-ink-500 px-2 py-0.5 truncate max-w-[8rem]">
-                {tarefa.tag}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
+    <div>
+      {tarefa.etiquetas?.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-2">
+          {tarefa.etiquetas.map((et) => (
+            <span
+              key={et.id}
+              title={et.texto}
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[10px] font-medium text-white truncate max-w-[10rem]",
+                etiquetaCorClasse(et.cor)
+              )}
+            >
+              {et.texto}
+            </span>
+          ))}
+        </div>
+      )}
+      <p className="text-sm text-ink-900 leading-snug">{tarefa.titulo}</p>
+      {tarefa.descricao && (
+        <p className="text-xs text-ink-400 truncate mt-1">{tarefa.descricao}</p>
+      )}
+      {checklist?.length > 0 && (
+        <div className="flex items-center gap-1 mt-2 text-[11px] text-ink-400">
+          <ListChecks className="h-3.5 w-3.5" />
+          <span>{concluidas}/{checklist.length}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -97,8 +57,6 @@ function TarefaCardBody({ tarefa, modo, checklist }) {
 export default function Planner() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(todayStr());
-  const [modo, setModo] = useState("dia"); // "dia" | "quadro"
   const [collapsed, setCollapsed] = useState({});
   const [addingTo, setAddingTo] = useState(null);
   const [novoTitulo, setNovoTitulo] = useState("");
@@ -187,36 +145,24 @@ export default function Planner() {
   };
 
   const itensAtivos = useMemo(() => {
-    if (modo === "quadro") {
-      return tarefas.filter((t) => !t.data && (t.quadro_id || null) === selectedQuadro);
-    }
-    return tarefas.filter((t) => t.data === selectedDate && (t.quadro_id || null) === selectedQuadro);
-  }, [tarefas, selectedDate, selectedQuadro, modo]);
+    return tarefas.filter((t) => !t.data && (t.quadro_id || null) === selectedQuadro);
+  }, [tarefas, selectedQuadro]);
 
   const porStatus = useMemo(() => {
     const map = { a_fazer: [], em_andamento: [], concluido: [] };
     itensAtivos.forEach((t) => { (map[t.status] || map.a_fazer).push(t); });
-    if (modo === "quadro") {
-      Object.keys(map).forEach((status) =>
-        map[status].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-      );
-    }
+    Object.keys(map).forEach((status) =>
+      map[status].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    );
     return map;
-  }, [itensAtivos, modo]);
-
-  const moveStatus = (tarefa, delta) => {
-    const idx = COLUNAS.findIndex((c) => c.status === tarefa.status);
-    const next = COLUNAS[idx + delta];
-    if (!next) return;
-    updateStatus({ id: tarefa.id, status: next.status });
-  };
+  }, [itensAtivos]);
 
   const handleQuickAdd = async (status) => {
     if (!novoTitulo.trim()) { setAddingTo(null); return; }
     await createOrUpdateTarefa({
       titulo: novoTitulo.trim(),
       descricao: "",
-      data: modo === "quadro" ? null : selectedDate,
+      data: null,
       prioridade: "media",
       status,
       quadro_id: selectedQuadro,
@@ -248,29 +194,6 @@ export default function Planner() {
           </Button>
         }
       />
-
-      <div className="flex items-center gap-1 mb-3 rounded-xl border border-ink-200 bg-ink-50/50 p-1 w-fit">
-        <button
-          onClick={() => setModo("dia")}
-          className={cn(
-            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-            modo === "dia" ? "bg-white shadow-sm text-ink-900" : "text-ink-400 hover:text-ink-900"
-          )}
-        >
-          <CalendarDays className="h-4 w-4" /> Dia
-        </button>
-        <button
-          onClick={() => setModo("quadro")}
-          className={cn(
-            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-            modo === "quadro" ? "bg-white shadow-sm text-ink-900" : "text-ink-400 hover:text-ink-900"
-          )}
-        >
-          <LayoutGrid className="h-4 w-4" /> Quadro
-        </button>
-      </div>
-
-      {modo === "dia" && <WeekStrip value={selectedDate} onChange={setSelectedDate} />}
 
       <div className="flex items-center gap-2 mb-4">
         <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-400 flex-shrink-0">
@@ -306,7 +229,7 @@ export default function Planner() {
 
       {isLoading ? (
         <div className="text-ink-400 text-sm">Carregando...</div>
-      ) : modo === "quadro" ? (
+      ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {COLUNAS.map((col) => {
@@ -351,7 +274,7 @@ export default function Planner() {
                                     )}
                                   >
                                     <div className="pr-11">
-                                      <TarefaCardBody tarefa={tarefa} modo="quadro" checklist={subtarefas.filter((s) => s.tarefa_id === tarefa.id)} />
+                                      <TarefaCardBody tarefa={tarefa} checklist={subtarefas.filter((s) => s.tarefa_id === tarefa.id)} />
                                     </div>
                                     <div className="absolute top-2 right-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                       <button
@@ -402,95 +325,6 @@ export default function Planner() {
             })}
           </div>
         </DragDropContext>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {COLUNAS.map((col) => {
-            const isCollapsed = collapsed[col.status];
-            const itens = porStatus[col.status];
-            return (
-              <div key={col.status} className="rounded-2xl border border-ink-200 bg-ink-50/50 p-3">
-                <button
-                  onClick={() => setCollapsed((c) => ({ ...c, [col.status]: !c[col.status] }))}
-                  className="w-full flex items-center justify-between mb-2 px-1"
-                >
-                  <span className="flex items-center gap-2 text-sm font-semibold text-ink-900">
-                    <span className={cn("h-2.5 w-2.5 rounded-full", col.dot)} />
-                    {col.label}
-                    <span className="text-ink-400 font-normal">{itens.length}</span>
-                  </span>
-                  {isCollapsed ? <ChevronDown className="h-4 w-4 text-ink-400" /> : <ChevronUp className="h-4 w-4 text-ink-400" />}
-                </button>
-
-                {!isCollapsed && (
-                  <>
-                    <div className="space-y-2 mb-2">
-                      {itens.length === 0 && addingTo !== col.status && (
-                        <p className="text-xs text-ink-400 italic text-center py-4">Nenhuma tarefa aqui</p>
-                      )}
-                      {itens.map((tarefa) => {
-                        const idx = COLUNAS.findIndex((c) => c.status === tarefa.status);
-                        return (
-                          <div key={tarefa.id} className="group rounded-xl border border-ink-200 bg-white px-3 py-2.5">
-                            <TarefaCardBody tarefa={tarefa} modo="dia" />
-                            <div className="flex items-center justify-between mt-2">
-                              <div className="flex gap-0.5">
-                                <button
-                                  onClick={() => moveStatus(tarefa, -1)}
-                                  disabled={idx === 0}
-                                  className="p-1 text-ink-300 hover:text-ink-900 disabled:opacity-0 disabled:pointer-events-none"
-                                >
-                                  <ChevronLeft className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => moveStatus(tarefa, 1)}
-                                  disabled={idx === COLUNAS.length - 1}
-                                  className="p-1 text-ink-300 hover:text-ink-900 disabled:opacity-0 disabled:pointer-events-none"
-                                >
-                                  <ChevronRight className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                              <div className="flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => { setEditing(tarefa); setOpen(true); }} className="p-1 text-ink-400 hover:text-ink-900">
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {addingTo === col.status ? (
-                      <div className="flex items-center gap-1">
-                        <Input
-                          autoFocus
-                          value={novoTitulo}
-                          onChange={(e) => setNovoTitulo(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === "Enter") handleQuickAdd(col.status); if (e.key === "Escape") { setAddingTo(null); setNovoTitulo(""); } }}
-                          placeholder="Título da tarefa"
-                          className="h-8 text-sm"
-                        />
-                        <button onClick={() => handleQuickAdd(col.status)} className="p-1.5 text-ink-500 hover:text-ink-900">
-                          <Check className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => { setAddingTo(null); setNovoTitulo(""); }} className="p-1.5 text-ink-400 hover:text-rust-600">
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => { setAddingTo(col.status); setNovoTitulo(""); }}
-                        className="w-full text-left text-xs text-ink-400 hover:text-ink-900 px-2 py-1.5"
-                      >
-                        + Adicionar um cartão
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -498,8 +332,8 @@ export default function Planner() {
           <DialogHeader><DialogTitle>{editing ? "Editar tarefa" : "Nova tarefa"}</DialogTitle></DialogHeader>
           <PlannerTarefaForm
             tarefa={editing}
-            defaultData={modo === "quadro" ? "" : selectedDate}
-            modo={modo}
+            defaultData=""
+            modo="quadro"
             quadroId={selectedQuadro}
             onSaved={handleSaved}
             onCancel={() => setOpen(false)}
