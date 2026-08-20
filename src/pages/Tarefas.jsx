@@ -4,7 +4,7 @@ import PlannerTarefaForm from "@/components/PlannerTarefaForm";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Pencil, ChevronLeft, ChevronRight, Calendar, CalendarDays, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { dataLocalHoje } from "@/lib/format";
 import { usePlannerTarefas } from "@/hooks/usePlannerTarefas";
@@ -22,12 +22,85 @@ const PRIORIDADE_COR = {
   baixa: "bg-ink-300",
 };
 
+const VISOES = [
+  { value: "mes", label: "Mensal", icon: Calendar },
+  { value: "semana", label: "Semanal", icon: CalendarDays },
+  { value: "dia", label: "Diário", icon: Clock },
+];
+
+function parseDateLocal(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function toDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function addDays(dateStr, delta) {
+  const d = parseDateLocal(dateStr);
+  d.setDate(d.getDate() + delta);
+  return toDateStr(d);
+}
+
+function formatDiaCompleto(dateStr) {
+  return parseDateLocal(dateStr).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
+}
+
+function formatDiaCurto(dateStr) {
+  return parseDateLocal(dateStr).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+}
+
+function TarefaItem({ tarefa, onToggle, onEdit }) {
+  const concluida = tarefa.status === "concluido";
+  return (
+    <div className="group flex items-start gap-2.5 rounded-xl border border-ink-200 px-3 py-2.5 hover:bg-ink-50">
+      <Checkbox
+        checked={concluida}
+        onCheckedChange={() => onToggle(tarefa)}
+        onClick={(e) => e.stopPropagation()}
+        className="mt-0.5 flex-shrink-0"
+      />
+      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onEdit(tarefa)}>
+        <p className={cn("text-sm font-medium text-ink-900 truncate", concluida && "line-through text-ink-400")}>
+          {tarefa.titulo}
+        </p>
+        {tarefa.descricao && (
+          <p className="text-xs text-ink-400 truncate mt-0.5">{tarefa.descricao}</p>
+        )}
+        {(tarefa.tag || tarefa.horario) && (
+          <div className="flex items-center gap-1.5 mt-1.5">
+            {tarefa.horario && (
+              <span className="text-[10px] text-ink-400">{tarefa.horario.slice(0, 5)}</span>
+            )}
+            {tarefa.tag && (
+              <span className="text-[10px] rounded-full bg-ink-100 text-ink-500 px-2 py-0.5 truncate max-w-[8rem]">
+                {tarefa.tag}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+      <button
+        onClick={() => onEdit(tarefa)}
+        className="p-0.5 text-ink-300 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5 hover:text-ink-900"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
 export default function Tarefas() {
+  const [visao, setVisao] = useState("mes");
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
-  const [selected, setSelected] = useState(dataLocalHoje());
+  const [selected, setSelectedRaw] = useState(dataLocalHoje());
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -37,6 +110,12 @@ export default function Tarefas() {
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
+
+  const setSelected = (dateStr) => {
+    setSelectedRaw(dateStr);
+    const d = parseDateLocal(dateStr);
+    setCursor(new Date(d.getFullYear(), d.getMonth(), 1));
+  };
 
   const tarefasPorDia = useMemo(() => {
     const map = {};
@@ -61,10 +140,24 @@ export default function Tarefas() {
     return cells;
   }, [year, month]);
 
-  const todayStr = dataLocalHoje();
-  const tarefasDoDia = (tarefasPorDia[selected] || []).slice().sort((a, b) => (a.horario || "").localeCompare(b.horario || ""));
+  const semanaDias = useMemo(() => {
+    const d = parseDateLocal(selected);
+    const dow = d.getDay();
+    const start = new Date(d);
+    start.setDate(d.getDate() - dow);
+    return Array.from({ length: 7 }, (_, i) => {
+      const dt = new Date(start);
+      dt.setDate(start.getDate() + i);
+      return toDateStr(dt);
+    });
+  }, [selected]);
 
-  const move = (delta) => setCursor(new Date(year, month + delta, 1));
+  const todayStr = dataLocalHoje();
+  const tarefasDoDiaSel = (tarefasPorDia[selected] || []).slice().sort((a, b) => (a.horario || "").localeCompare(b.horario || ""));
+
+  const moveMes = (delta) => setCursor(new Date(year, month + delta, 1));
+  const moveSemana = (delta) => setSelected(addDays(selected, delta * 7));
+  const moveDia = (delta) => setSelected(addDays(selected, delta));
 
   const toggleConcluida = (tarefa) => {
     updateStatus({ id: tarefa.id, status: tarefa.status === "concluido" ? "a_fazer" : "concluido" });
@@ -119,30 +212,56 @@ export default function Tarefas() {
     }
   };
 
+  const openNova = (dateStr) => {
+    if (dateStr) setSelected(dateStr);
+    setEditing(null);
+    setOpen(true);
+  };
+
+  const openEdicao = (tarefa) => {
+    setEditing(tarefa);
+    setOpen(true);
+  };
+
   return (
     <div>
       <PageHeader
         title="Tarefas"
         subtitle="Sua agenda em formato de calendário"
         action={
-          <Button onClick={() => { setEditing(null); setOpen(true); }}>
+          <Button onClick={() => openNova()}>
             <Plus className="h-4 w-4 mr-1.5" /> Nova tarefa
           </Button>
         }
       />
 
+      <div className="flex items-center gap-1 mb-4 rounded-xl border border-ink-200 bg-ink-50/50 p-1 w-fit">
+        {VISOES.map((v) => (
+          <button
+            key={v.value}
+            onClick={() => setVisao(v.value)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              visao === v.value ? "bg-white shadow-sm text-ink-900" : "text-ink-400 hover:text-ink-900"
+            )}
+          >
+            <v.icon className="h-4 w-4" /> {v.label}
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="text-ink-400 text-sm">Carregando...</div>
-      ) : (
+      ) : visao === "mes" ? (
         <div className="grid lg:grid-cols-[1fr_320px] gap-5">
           <div className="rounded-3xl border border-ink-200 bg-white p-4 sm:p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold tracking-tight">{MESES[month]} {year}</h3>
               <div className="flex gap-1">
-                <button onClick={() => move(-1)} className="p-2 rounded-lg hover:bg-ink-100 text-ink-500">
+                <button onClick={() => moveMes(-1)} className="p-2 rounded-lg hover:bg-ink-100 text-ink-500">
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <button onClick={() => move(1)} className="p-2 rounded-lg hover:bg-ink-100 text-ink-500">
+                <button onClick={() => moveMes(1)} className="p-2 rounded-lg hover:bg-ink-100 text-ink-500">
                   <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
@@ -191,67 +310,133 @@ export default function Tarefas() {
 
           <div className="rounded-3xl border border-ink-200 bg-white p-5">
             <p className="text-xs text-ink-400">Dia selecionado</p>
-            <h3 className="font-semibold tracking-tight mb-4">
-              {new Date(selected + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })}
-            </h3>
+            <h3 className="font-semibold tracking-tight mb-4">{formatDiaCompleto(selected)}</h3>
 
-            {tarefasDoDia.length === 0 ? (
+            {tarefasDoDiaSel.length === 0 ? (
               <p className="text-sm text-ink-400">Nenhuma tarefa neste dia.</p>
             ) : (
               <div className="space-y-2">
-                {tarefasDoDia.map((tarefa) => {
-                  const concluida = tarefa.status === "concluido";
-                  return (
-                    <div
-                      key={tarefa.id}
-                      className="group flex items-start gap-2.5 rounded-xl border border-ink-200 px-3 py-2.5 hover:bg-ink-50"
-                    >
-                      <Checkbox
-                        checked={concluida}
-                        onCheckedChange={() => toggleConcluida(tarefa)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="mt-0.5 flex-shrink-0"
-                      />
-                      <div
-                        className="flex-1 min-w-0 cursor-pointer"
-                        onClick={() => { setEditing(tarefa); setOpen(true); }}
-                      >
-                        <p className={cn("text-sm font-medium text-ink-900 truncate", concluida && "line-through text-ink-400")}>
-                          {tarefa.titulo}
-                        </p>
-                        {tarefa.descricao && (
-                          <p className="text-xs text-ink-400 truncate mt-0.5">{tarefa.descricao}</p>
-                        )}
-                        {(tarefa.tag || tarefa.horario) && (
-                          <div className="flex items-center gap-1.5 mt-1.5">
-                            {tarefa.horario && (
-                              <span className="text-[10px] text-ink-400">{tarefa.horario.slice(0, 5)}</span>
-                            )}
-                            {tarefa.tag && (
-                              <span className="text-[10px] rounded-full bg-ink-100 text-ink-500 px-2 py-0.5 truncate max-w-[8rem]">
-                                {tarefa.tag}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => { setEditing(tarefa); setOpen(true); }}
-                        className="p-0.5 text-ink-300 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5 hover:text-ink-900"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  );
-                })}
+                {tarefasDoDiaSel.map((tarefa) => (
+                  <TarefaItem key={tarefa.id} tarefa={tarefa} onToggle={toggleConcluida} onEdit={openEdicao} />
+                ))}
               </div>
             )}
 
-            <Button
-              variant="outline"
-              className="w-full mt-4 rounded-xl"
-              onClick={() => { setEditing(null); setOpen(true); }}
-            >
+            <Button variant="outline" className="w-full mt-4 rounded-xl" onClick={() => openNova()}>
+              <Plus className="h-4 w-4 mr-1.5" /> Adicionar tarefa
+            </Button>
+          </div>
+        </div>
+      ) : visao === "semana" ? (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold tracking-tight">
+              {formatDiaCurto(semanaDias[0])} – {formatDiaCurto(semanaDias[6])}
+            </h3>
+            <div className="flex gap-1">
+              <button onClick={() => moveSemana(-1)} className="p-2 rounded-lg hover:bg-ink-100 text-ink-500">
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button onClick={() => setSelected(todayStr)} className="px-3 rounded-lg hover:bg-ink-100 text-ink-500 text-xs font-medium">
+                Hoje
+              </button>
+              <button onClick={() => moveSemana(1)} className="p-2 rounded-lg hover:bg-ink-100 text-ink-500">
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
+            {semanaDias.map((dateStr, i) => {
+              const itens = (tarefasPorDia[dateStr] || []).slice().sort((a, b) => (a.horario || "").localeCompare(b.horario || ""));
+              const isToday = dateStr === todayStr;
+              const isSelected = dateStr === selected;
+              return (
+                <div
+                  key={dateStr}
+                  className={cn(
+                    "rounded-2xl border p-3 min-h-[9rem]",
+                    isSelected ? "border-ink-900" : "border-ink-200",
+                    isToday && !isSelected && "bg-ink-50/60"
+                  )}
+                >
+                  <button
+                    onClick={() => setSelected(dateStr)}
+                    className="w-full flex items-center justify-between mb-2"
+                  >
+                    <span className="flex items-baseline gap-1.5">
+                      <span className="text-[11px] font-medium text-ink-400 uppercase">{DIAS[i]}</span>
+                      <span className={cn("text-sm font-semibold", isToday ? "text-ink-900" : "text-ink-600")}>
+                        {parseDateLocal(dateStr).getDate()}
+                      </span>
+                    </span>
+                    <span
+                      onClick={(e) => { e.stopPropagation(); openNova(dateStr); }}
+                      className="p-1 rounded-md text-ink-300 hover:text-ink-900 hover:bg-ink-100"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </span>
+                  </button>
+
+                  <div className="space-y-1.5">
+                    {itens.length === 0 ? (
+                      <p className="text-[11px] text-ink-300 italic">Nada aqui</p>
+                    ) : (
+                      itens.map((tarefa) => {
+                        const concluida = tarefa.status === "concluido";
+                        return (
+                          <div
+                            key={tarefa.id}
+                            onClick={() => openEdicao(tarefa)}
+                            className="flex items-start gap-1.5 rounded-lg px-1.5 py-1 hover:bg-ink-50 cursor-pointer"
+                          >
+                            <span className={cn("mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0", PRIORIDADE_COR[tarefa.prioridade])} />
+                            <span className={cn("text-xs text-ink-700 leading-snug truncate", concluida && "line-through text-ink-400")}>
+                              {tarefa.horario && <span className="text-ink-400 mr-1">{tarefa.horario.slice(0, 5)}</span>}
+                              {tarefa.titulo}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-xl mx-auto lg:mx-0">
+          <div className="rounded-3xl border border-ink-200 bg-white p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-xs text-ink-400">{DIAS[parseDateLocal(selected).getDay()]}</p>
+                <h3 className="font-semibold tracking-tight">{formatDiaCompleto(selected)}</h3>
+              </div>
+              <div className="flex gap-1">
+                <button onClick={() => moveDia(-1)} className="p-2 rounded-lg hover:bg-ink-100 text-ink-500">
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button onClick={() => setSelected(todayStr)} className="px-3 rounded-lg hover:bg-ink-100 text-ink-500 text-xs font-medium">
+                  Hoje
+                </button>
+                <button onClick={() => moveDia(1)} className="p-2 rounded-lg hover:bg-ink-100 text-ink-500">
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {tarefasDoDiaSel.length === 0 ? (
+              <p className="text-sm text-ink-400">Nenhuma tarefa neste dia.</p>
+            ) : (
+              <div className="space-y-2">
+                {tarefasDoDiaSel.map((tarefa) => (
+                  <TarefaItem key={tarefa.id} tarefa={tarefa} onToggle={toggleConcluida} onEdit={openEdicao} />
+                ))}
+              </div>
+            )}
+
+            <Button variant="outline" className="w-full mt-4 rounded-xl" onClick={() => openNova()}>
               <Plus className="h-4 w-4 mr-1.5" /> Adicionar tarefa
             </Button>
           </div>
