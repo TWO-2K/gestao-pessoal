@@ -21,6 +21,19 @@ import { grupoMuscularLabel } from "@/lib/gruposMusculares";
 import { recordesPorExercicio } from "@/lib/academiaMetrics";
 import { dataLocalHoje as dataDeHoje } from "@/lib/format";
 
+function diasAte(dataAlvo) {
+  const hoje = new Date(`${dataDeHoje()}T00:00:00`);
+  const alvo = new Date(`${dataAlvo}T00:00:00`);
+  return Math.round((alvo.getTime() - hoje.getTime()) / 86400000);
+}
+
+function textoPrazoPlano(dias) {
+  if (dias < 0) return "prazo do plano vencido";
+  if (dias === 0) return "prazo do plano termina hoje";
+  if (dias === 1) return "falta 1 dia pro prazo do plano";
+  return `faltam ${dias} dias pro prazo do plano`;
+}
+
 export default function TreinoHoje() {
   const { toast } = useToast();
   const { treinos, isLoading, saveTreino, deleteTreino } = useTreinos();
@@ -246,11 +259,18 @@ export default function TreinoHoje() {
   const todasSeriesFeitas = totalSeries > 0 && totalConcluidas === totalSeries;
   const treinoConcluido = todasSeriesFeitas || finalizado;
 
+  const planoAtivo = planoId ? planos.find((p) => p.id === planoId) : null;
+  const diasRestantesPlano = planoAtivo?.prazo ? diasAte(planoAtivo.prazo) : null;
+
   return (
     <div>
       <PageHeader
         title="Treino do dia"
-        subtitle={nome || "Sem plano pra esse dia — escolha outra data ou ajuste seus planos"}
+        subtitle={
+          nome
+            ? `${nome}${diasRestantesPlano !== null ? ` · ${textoPrazoPlano(diasRestantesPlano)}` : ""}`
+            : "Sem plano pra esse dia — escolha outra data ou ajuste seus planos"
+        }
         action={
           <div className="flex items-center gap-2">
             <Input type="date" value={data} onChange={(e) => setData(e.target.value)} className="w-auto" />
