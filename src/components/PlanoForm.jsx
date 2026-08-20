@@ -11,7 +11,7 @@ import { Plus, Trash2 } from "lucide-react";
 const novoExercicioPlano = (exercicio_id) => ({ exercicio_id, series_alvo: 3, reps_alvo: 12 });
 
 export default function PlanoForm({ plano, exerciciosCatalogo = [], onCreateExercicio, onSaved, onCancel }) {
-  const [form, setForm] = useState({ nome: "", dias_semana: [], exercicios: [] });
+  const [form, setForm] = useState({ nome: "", dias_semana: [], prazo: "", exercicios: [] });
   const [saving, setSaving] = useState(false);
   const [addingExercicio, setAddingExercicio] = useState(false);
   const [novoNome, setNovoNome] = useState("");
@@ -23,10 +23,11 @@ export default function PlanoForm({ plano, exerciciosCatalogo = [], onCreateExer
       setForm({
         nome: plano.nome || "",
         dias_semana: plano.dias_semana || [],
+        prazo: plano.prazo || "",
         exercicios: plano.exercicios || [],
       });
     } else {
-      setForm({ nome: "", dias_semana: [], exercicios: [] });
+      setForm({ nome: "", dias_semana: [], prazo: "", exercicios: [] });
     }
   }, [plano]);
 
@@ -91,6 +92,7 @@ export default function PlanoForm({ plano, exerciciosCatalogo = [], onCreateExer
         id: plano?.id,
         nome: form.nome,
         dias_semana: form.dias_semana,
+        prazo: form.prazo || null,
         exercicios: form.exercicios.map((ex) => ({
           exercicio_id: ex.exercicio_id,
           series_alvo: Number(ex.series_alvo) || 3,
@@ -129,6 +131,11 @@ export default function PlanoForm({ plano, exerciciosCatalogo = [], onCreateExer
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="prazo">Prazo (opcional)</Label>
+        <Input id="prazo" type="date" value={form.prazo} onChange={(e) => set("prazo", e.target.value)} />
       </div>
 
       <div className="space-y-2">

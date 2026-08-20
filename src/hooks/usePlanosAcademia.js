@@ -51,12 +51,21 @@ export function usePlanosAcademia() {
     ...mutationOptions,
   });
 
+  const toggleAtivoMutation = useMutation({
+    mutationFn: async ({ id, ativo }) => {
+      const { error } = await supabase.from("academia_planos").update({ ativo }).match({ id });
+      if (error) throw new Error(error.message);
+    },
+    ...mutationOptions,
+  });
+
   const saveMutation = useMutation({
     mutationFn: async (form) => {
       const targetUserId = viewedUserId || session?.user?.id;
       const planoPayload = {
         nome: form.nome,
         dias_semana: form.dias_semana,
+        prazo: form.prazo || null,
         user_id: targetUserId,
       };
 
@@ -94,5 +103,6 @@ export function usePlanosAcademia() {
     isLoading,
     deletePlano: deleteMutation.mutate,
     savePlano: saveMutation.mutateAsync,
+    toggleAtivoPlano: toggleAtivoMutation.mutate,
   };
 }
