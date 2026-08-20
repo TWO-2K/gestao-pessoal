@@ -8,11 +8,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { dataLocalHoje } from "@/lib/format";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { usePlannerSubtarefas } from "@/hooks/usePlannerSubtarefas";
 import { usePlannerEtiquetas } from "@/hooks/usePlannerEtiquetas";
 
 const DIAS_ABREV = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+
+const PRIORIDADES = [
+  { value: "baixa", label: "Baixa", dot: "bg-ink-300" },
+  { value: "media", label: "Média", dot: "bg-gold-500" },
+  { value: "alta", label: "Alta", dot: "bg-rust-500" },
+];
 
 const ETIQUETA_CORES = [
   { nome: "rust", classe: "bg-rust-500" },
@@ -76,6 +82,7 @@ function getOccurrenceDates(form) {
 export default function PlannerTarefaForm({ tarefa, defaultData, modo, quadroId, onSaved, onCancel, onDelete }) {
   const [form, setForm] = useState(() => makeEmptyForm(defaultData));
   const [saving, setSaving] = useState(false);
+  const [expandido, setExpandido] = useState(false);
   const { toast } = useToast();
   const isQuadro = modo === "quadro";
 
@@ -100,8 +107,10 @@ export default function PlannerTarefaForm({ tarefa, defaultData, modo, quadroId,
         horario: tarefa.horario || "",
         etiquetaIds: (tarefa.etiquetas || []).map((e) => e.id),
       });
+      setExpandido(!!(tarefa.descricao || tarefa.tag));
     } else {
       setForm(makeEmptyForm(defaultData));
+      setExpandido(false);
     }
   }, [tarefa, defaultData]);
 
@@ -201,63 +210,175 @@ export default function PlannerTarefaForm({ tarefa, defaultData, modo, quadroId,
         <Input id="titulo" value={form.titulo} onChange={(e) => set("titulo", e.target.value)} placeholder="O que precisa ser feito?" autoFocus required />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="descricao">Descrição (opcional)</Label>
-        <Textarea
-          id="descricao"
-          value={form.descricao}
-          onChange={(e) => set("descricao", e.target.value)}
-          placeholder="Detalhes..."
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
+      {isQuadro && (
         <div className="space-y-2">
-          <Label>Status</Label>
-          <Select value={form.status} onValueChange={(v) => set("status", v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione o status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="a_fazer">A fazer</SelectItem>
-              <SelectItem value="em_andamento">Em andamento</SelectItem>
-              <SelectItem value="concluido">Concluído</SelectItem>
-            </SelectContent>
-          </Select>
+          <Label htmlFor="descricao">Descrição (opcional)</Label>
+          <Textarea
+            id="descricao"
+            value={form.descricao}
+            onChange={(e) => set("descricao", e.target.value)}
+            placeholder="Detalhes..."
+          />
         </div>
-        <div className="space-y-2">
-          <Label>Prioridade</Label>
-          <Select value={form.prioridade} onValueChange={(v) => set("prioridade", v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione a prioridade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="baixa">Baixa</SelectItem>
-              <SelectItem value="media">Média</SelectItem>
-              <SelectItem value="alta">Alta</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      )}
 
-      {!isQuadro && (
+      {isQuadro ? (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select value={form.status} onValueChange={(v) => set("status", v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="a_fazer">A fazer</SelectItem>
+                <SelectItem value="em_andamento">Em andamento</SelectItem>
+                <SelectItem value="concluido">Concluído</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Prioridade</Label>
+            <Select value={form.prioridade} onValueChange={(v) => set("prioridade", v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a prioridade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="baixa">Baixa</SelectItem>
+                <SelectItem value="media">Média</SelectItem>
+                <SelectItem value="alta">Alta</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      ) : (
         <>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="data">Data</Label>
               <Input id="data" type="date" value={form.data} onChange={(e) => set("data", e.target.value)} />
-              <p className="text-[11px] text-ink-400">Deixe em branco para ficar no Quadro, sem dia fixo.</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="horario">Horário</Label>
+              <Label htmlFor="horario">Horário (opcional)</Label>
               <Input id="horario" type="time" value={form.horario} onChange={(e) => set("horario", e.target.value)} />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tag">Tag / Projeto</Label>
-            <Input id="tag" value={form.tag} onChange={(e) => set("tag", e.target.value)} placeholder="ex: trabalho, pessoal" />
+            <Label>Prioridade</Label>
+            <div className="flex gap-1.5">
+              {PRIORIDADES.map((p) => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => set("prioridade", p.value)}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-sm font-medium transition-colors",
+                    form.prioridade === p.value
+                      ? "border-ink-900 bg-ink-900 text-white"
+                      : "border-ink-200 text-ink-500 hover:bg-ink-50"
+                  )}
+                >
+                  <span className={cn("h-1.5 w-1.5 rounded-full", form.prioridade === p.value ? "bg-white" : p.dot)} />
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {tarefa && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="concluida"
+                checked={form.status === "concluido"}
+                onCheckedChange={(checked) => set("status", checked ? "concluido" : "a_fazer")}
+              />
+              <Label htmlFor="concluida" className="cursor-pointer">Concluída</Label>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setExpandido((v) => !v)}
+            className="flex items-center gap-1 text-xs font-medium text-ink-400 hover:text-ink-900"
+          >
+            {expandido ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {expandido ? "Menos opções" : "Mais opções (descrição, tag, repetição)"}
+          </button>
+
+          {expandido && (
+            <div className="space-y-4 pt-1">
+              <div className="space-y-2">
+                <Label htmlFor="descricao">Descrição (opcional)</Label>
+                <Textarea
+                  id="descricao"
+                  value={form.descricao}
+                  onChange={(e) => set("descricao", e.target.value)}
+                  placeholder="Detalhes..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tag">Tag / Projeto</Label>
+                <Input id="tag" value={form.tag} onChange={(e) => set("tag", e.target.value)} placeholder="ex: trabalho, pessoal" />
+              </div>
+
+              {!tarefa && form.data && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Repetição</Label>
+                    <Select value={form.repeticao} onValueChange={(v) => set("repeticao", v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a repetição" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nunca">Nunca</SelectItem>
+                        <SelectItem value="diaria">Diariamente</SelectItem>
+                        <SelectItem value="personalizado">Personalizado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {form.repeticao !== "nunca" && (
+                    <div className="space-y-3 pl-3 border-l-2 border-ink-100">
+                      {form.repeticao === "personalizado" && (
+                        <div className="space-y-2">
+                          <Label>Dias da semana</Label>
+                          <div className="flex gap-1">
+                            {DIAS_ABREV.map((label, dow) => (
+                              <button
+                                key={dow}
+                                type="button"
+                                onClick={() => toggleDiaSemana(dow)}
+                                className={cn(
+                                  "flex-1 rounded-lg border px-1 py-1.5 text-[11px] font-semibold transition-colors",
+                                  form.diasSemana.includes(dow)
+                                    ? "border-gold-400 bg-gold-50 text-ink-900"
+                                    : "border-ink-200 text-ink-400 hover:bg-ink-50"
+                                )}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        <Label htmlFor="repetirAte">Repetir até</Label>
+                        <Input
+                          id="repetirAte"
+                          type="date"
+                          value={form.repetirAte}
+                          min={form.data}
+                          onChange={(e) => set("repetirAte", e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
@@ -355,61 +476,6 @@ export default function PlannerTarefaForm({ tarefa, defaultData, modo, quadroId,
                 </Button>
               </div>
             </>
-          )}
-        </div>
-      )}
-
-      {!isQuadro && !tarefa && form.data && (
-        <div className="space-y-3">
-          <div className="space-y-2">
-            <Label>Repetição</Label>
-            <Select value={form.repeticao} onValueChange={(v) => set("repeticao", v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a repetição" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="nunca">Nunca</SelectItem>
-                <SelectItem value="diaria">Diariamente</SelectItem>
-                <SelectItem value="personalizado">Personalizado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {form.repeticao !== "nunca" && (
-            <div className="space-y-3 pl-3 border-l-2 border-ink-100">
-              {form.repeticao === "personalizado" && (
-                <div className="space-y-2">
-                  <Label>Dias da semana</Label>
-                  <div className="flex gap-1">
-                    {DIAS_ABREV.map((label, dow) => (
-                      <button
-                        key={dow}
-                        type="button"
-                        onClick={() => toggleDiaSemana(dow)}
-                        className={cn(
-                          "flex-1 rounded-lg border px-1 py-1.5 text-[11px] font-semibold transition-colors",
-                          form.diasSemana.includes(dow)
-                            ? "border-gold-400 bg-gold-50 text-ink-900"
-                            : "border-ink-200 text-ink-400 hover:bg-ink-50"
-                        )}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="repetirAte">Repetir até</Label>
-                <Input
-                  id="repetirAte"
-                  type="date"
-                  value={form.repetirAte}
-                  min={form.data}
-                  onChange={(e) => set("repetirAte", e.target.value)}
-                />
-              </div>
-            </div>
           )}
         </div>
       )}
