@@ -87,7 +87,7 @@ export default function Relatorios() {
         categoriaId,
         name: catMap[categoriaId]?.nome || "Sem categoria",
         value: total,
-        fill: catMap[categoriaId]?.cor || null,
+        fill: catMap[categoriaId]?.cor || (categoriaId === "sem-categoria" ? "#a3a3a3" : null),
       }))
       .sort((a, b) => b.value - a.value);
     return comCoresUnicas(itens);
