@@ -81,10 +81,12 @@ function EventoFuturoItem({ evento, onToggle, onEdit, onSortear }) {
         <p className={cn("text-sm font-medium text-ink-900 truncate", concluido && "line-through text-ink-400")}>
           {evento.titulo}
         </p>
-        <span className="inline-flex items-center gap-1 text-[11px] text-ink-400 flex-shrink-0">
-          <CalendarRange className="h-3 w-3" />
-          {formatData(evento.data_evento)}
-        </span>
+        {!concluido && (
+          <span className="inline-flex items-center gap-1 text-[11px] text-ink-400 flex-shrink-0">
+            <CalendarRange className="h-3 w-3" />
+            {formatData(evento.data_evento)}
+          </span>
+        )}
         {evento.descricao && (
           <p className="text-xs text-ink-400 truncate hidden sm:block">{evento.descricao}</p>
         )}
@@ -236,27 +238,6 @@ export default function EventosFuturosList() {
 
   return (
     <div>
-      <div className="flex gap-2 mb-4">
-        <Button size="sm" className="rounded-xl" onClick={openNovo}>
-          <Plus className="h-4 w-4 mr-1" /> Novo
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="rounded-xl"
-          onClick={handleDistribuir}
-          disabled={distribuindo}
-          title="Sorteia uma data no mês para cada evento pendente"
-        >
-          {distribuindo ? (
-            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-          ) : (
-            <Shuffle className="h-4 w-4 mr-1" />
-          )}
-          {distribuindo ? "Distribuindo..." : "Distribuir"}
-        </Button>
-      </div>
-
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="flex items-center gap-1.5 text-xs text-ink-500">
           <Circle className="h-3 w-3 text-gold-500 fill-gold-500" />
@@ -291,6 +272,26 @@ export default function EventosFuturosList() {
               {f.label}
             </button>
           ))}
+        </div>
+        <div className="flex gap-2 sm:ml-auto">
+          <Button size="sm" className="rounded-xl" onClick={openNovo}>
+            <Plus className="h-4 w-4 mr-1" /> Novo
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-xl"
+            onClick={handleDistribuir}
+            disabled={distribuindo}
+            title="Sorteia uma data no mês para cada evento pendente"
+          >
+            {distribuindo ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Shuffle className="h-4 w-4 mr-1" />
+            )}
+            {distribuindo ? "Distribuindo..." : "Distribuir"}
+          </Button>
         </div>
       </div>
 

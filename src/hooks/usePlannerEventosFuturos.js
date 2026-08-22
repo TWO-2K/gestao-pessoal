@@ -55,6 +55,14 @@ export function usePlannerEventosFuturos() {
         status,
         concluido_em: status === "concluido" ? new Date().toISOString() : null,
       };
+      if (status === "concluido") {
+        const ontem = new Date();
+        ontem.setDate(ontem.getDate() - 1);
+        const y = ontem.getFullYear();
+        const m = String(ontem.getMonth() + 1).padStart(2, "0");
+        const d = String(ontem.getDate()).padStart(2, "0");
+        payload.data_evento = `${y}-${m}-${d}`;
+      }
       const { error } = await supabase.from("planner_eventos_futuros").update(payload).match({ id });
       if (error) throw new Error(error.message);
     },
