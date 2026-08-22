@@ -1,13 +1,19 @@
 import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/PageHeader";
 import PlannerTarefaForm from "@/components/PlannerTarefaForm";
+import EventoFuturoForm from "@/components/planner/EventoFuturoForm";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, ChevronLeft, ChevronRight, Calendar, CalendarDays, Clock } from "lucide-react";
+import { Plus, Pencil, ChevronLeft, ChevronRight, Calendar, CalendarDays, Clock, Sparkles, Dumbbell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { dataLocalHoje } from "@/lib/format";
 import { usePlannerTarefas } from "@/hooks/usePlannerTarefas";
+import { usePlannerEventosFuturos } from "@/hooks/usePlannerEventosFuturos";
+import { usePlanosAcademia } from "@/hooks/usePlanosAcademia";
+import { useTreinos } from "@/hooks/useTreinos";
+import { diaSemanaDeData } from "@/lib/treinoUtils";
 import { useToast } from "@/components/ui/use-toast";
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -56,22 +62,34 @@ function formatDiaCurto(dateStr) {
 
 function TarefaItem({ tarefa, onToggle, onEdit }) {
   const concluida = tarefa.status === "concluido";
+  const evento = tarefa._tipo === "evento";
+  const treino = tarefa._tipo === "treino";
   return (
-    <div className="group flex items-start gap-2.5 rounded-xl border border-ink-200 px-3 py-2.5 hover:bg-ink-50">
+    <div
+      className={cn(
+        "group flex items-start gap-2.5 rounded-xl border px-3 py-2.5 hover:bg-ink-50",
+        evento ? "border-violet-200 bg-violet-50/40" : treino ? "border-emerald-200 bg-emerald-50/40" : "border-ink-200"
+      )}
+    >
       <Checkbox
         checked={concluida}
+        disabled={treino}
         onCheckedChange={() => onToggle(tarefa)}
         onClick={(e) => e.stopPropagation()}
         className="mt-0.5 flex-shrink-0"
       />
       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onEdit(tarefa)}>
-        <p className={cn("text-sm font-medium text-ink-900 truncate", concluida && "line-through text-ink-400")}>
-          {tarefa.titulo}
-        </p>
+        <div className="flex items-center gap-1.5">
+          {evento && <Sparkles className="h-3 w-3 text-violet-500 flex-shrink-0" />}
+          {treino && <Dumbbell className="h-3 w-3 text-emerald-500 flex-shrink-0" />}
+          <p className={cn("text-sm font-medium text-ink-900 truncate", concluida && "line-through text-ink-400")}>
+            {tarefa.titulo}
+          </p>
+        </div>
         {tarefa.descricao && (
           <p className="text-xs text-ink-400 truncate mt-0.5">{tarefa.descricao}</p>
         )}
-        {(tarefa.tag || tarefa.horario) && (
+        {(tarefa.tag || tarefa.horario || evento || treino) && (
           <div className="flex items-center gap-1.5 mt-1.5">
             {tarefa.horario && (
               <span className="text-[10px] text-ink-400">{tarefa.horario.slice(0, 5)}</span>
@@ -81,15 +99,27 @@ function TarefaItem({ tarefa, onToggle, onEdit }) {
                 {tarefa.tag}
               </span>
             )}
+            {evento && (
+              <span className="text-[10px] rounded-full bg-violet-100 text-violet-600 px-2 py-0.5 truncate">
+                Evento futuro
+              </span>
+            )}
+            {treino && (
+              <span className="text-[10px] rounded-full bg-emerald-100 text-emerald-600 px-2 py-0.5 truncate">
+                {concluida ? "Treino feito" : "Treino do dia"}
+              </span>
+            )}
           </div>
         )}
       </div>
-      <button
-        onClick={() => onEdit(tarefa)}
-        className="p-0.5 text-ink-300 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5 hover:text-ink-900"
-      >
-        <Pencil className="h-3.5 w-3.5" />
-      </button>
+      {!treino && (
+        <button
+          onClick={() => onEdit(tarefa)}
+          className="p-0.5 text-ink-300 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5 hover:text-ink-900"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }
@@ -104,9 +134,20 @@ export default function Tarefas() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [editingEvento, setEditingEvento] = useState(null);
+  const [eventoOpen, setEventoOpen] = useState(false);
   const { toast } = useToast();
 
+  const navigate = useNavigate();
   const { tarefas, isLoading, deleteTarefaAsync, deleteFuturas, createOrUpdateTarefa, createManyTarefas, updateStatus } = usePlannerTarefas();
+  const {
+    eventos: eventosFuturos,
+    createOrUpdateEvento,
+    updateStatus: updateStatusEvento,
+    deleteEventoAsync,
+  } = usePlannerEventosFuturos();
+  const { planos: planosAcademia } = usePlanosAcademia();
+  const { treinos: treinosAcademia } = useTreinos();
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
@@ -116,16 +157,6 @@ export default function Tarefas() {
     const d = parseDateLocal(dateStr);
     setCursor(new Date(d.getFullYear(), d.getMonth(), 1));
   };
-
-  const tarefasPorDia = useMemo(() => {
-    const map = {};
-    tarefas.forEach((t) => {
-      if (!t.data) return;
-      if (!map[t.data]) map[t.data] = [];
-      map[t.data].push(t);
-    });
-    return map;
-  }, [tarefas]);
 
   const days = useMemo(() => {
     const firstDay = new Date(year, month, 1);
@@ -152,6 +183,55 @@ export default function Tarefas() {
     });
   }, [selected]);
 
+  const diasVisiveis = useMemo(() => {
+    const set = new Set();
+    days.forEach((c) => c && set.add(c.dateStr));
+    semanaDias.forEach((d) => set.add(d));
+    set.add(selected);
+    return Array.from(set);
+  }, [days, semanaDias, selected]);
+
+  const tarefasPorDia = useMemo(() => {
+    const map = {};
+    tarefas.forEach((t) => {
+      if (!t.data) return;
+      if (!map[t.data]) map[t.data] = [];
+      map[t.data].push(t);
+    });
+    eventosFuturos.forEach((e) => {
+      if (!e.data_evento) return;
+      if (!map[e.data_evento]) map[e.data_evento] = [];
+      map[e.data_evento].push({ ...e, data: e.data_evento, _tipo: "evento" });
+    });
+    diasVisiveis.forEach((dateStr) => {
+      const diaSemana = diaSemanaDeData(dateStr);
+      const planosDoDia = planosAcademia.filter((p) => p.ativo !== false && (p.dias_semana || []).includes(diaSemana));
+      if (planosDoDia.length === 0) return;
+      const treinoReal = treinosAcademia.find((t) => t.data === dateStr);
+      if (!map[dateStr]) map[dateStr] = [];
+      if (treinoReal) {
+        map[dateStr].push({
+          id: `treino-${treinoReal.id}`,
+          titulo: treinoReal.nome || planosDoDia[0].nome,
+          status: treinoReal.finalizado ? "concluido" : "a_fazer",
+          data: dateStr,
+          _tipo: "treino",
+        });
+      } else {
+        planosDoDia.forEach((plano) => {
+          map[dateStr].push({
+            id: `treino-virtual-${plano.id}-${dateStr}`,
+            titulo: plano.nome,
+            status: "a_fazer",
+            data: dateStr,
+            _tipo: "treino",
+          });
+        });
+      }
+    });
+    return map;
+  }, [tarefas, eventosFuturos, diasVisiveis, planosAcademia, treinosAcademia]);
+
   const todayStr = dataLocalHoje();
   const tarefasDoDiaSel = (tarefasPorDia[selected] || []).slice().sort((a, b) => (a.horario || "").localeCompare(b.horario || ""));
 
@@ -160,6 +240,14 @@ export default function Tarefas() {
   const moveDia = (delta) => setSelected(addDays(selected, delta));
 
   const toggleConcluida = (tarefa) => {
+    if (tarefa._tipo === "treino") {
+      navigate(`/academia/hoje?data=${tarefa.data}`);
+      return;
+    }
+    if (tarefa._tipo === "evento") {
+      updateStatusEvento({ id: tarefa.id, status: tarefa.status === "concluido" ? "pendente" : "concluido" });
+      return;
+    }
     updateStatus({ id: tarefa.id, status: tarefa.status === "concluido" ? "a_fazer" : "concluido" });
   };
 
@@ -219,8 +307,33 @@ export default function Tarefas() {
   };
 
   const openEdicao = (tarefa) => {
+    if (tarefa._tipo === "treino") {
+      navigate(`/academia/hoje?data=${tarefa.data}`);
+      return;
+    }
+    if (tarefa._tipo === "evento") {
+      setEditingEvento(tarefa);
+      setEventoOpen(true);
+      return;
+    }
     setEditing(tarefa);
     setOpen(true);
+  };
+
+  const handleEventoSaved = async (payload) => {
+    await createOrUpdateEvento(payload);
+    setEventoOpen(false);
+    setEditingEvento(null);
+  };
+
+  const handleEventoDelete = async (evento) => {
+    setEventoOpen(false);
+    setEditingEvento(null);
+    try {
+      await deleteEventoAsync(evento.id);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro ao excluir", description: error.message });
+    }
   };
 
   return (
@@ -296,7 +409,13 @@ export default function Tarefas() {
                             key={t.id}
                             className={cn(
                               "h-1.5 w-1.5 rounded-full",
-                              isSelected ? "bg-white/80" : PRIORIDADE_COR[t.prioridade]
+                              isSelected
+                                ? "bg-white/80"
+                                : t._tipo === "evento"
+                                ? "bg-violet-500"
+                                : t._tipo === "treino"
+                                ? "bg-emerald-500"
+                                : PRIORIDADE_COR[t.prioridade]
                             )}
                           />
                         ))}
@@ -384,14 +503,18 @@ export default function Tarefas() {
                     ) : (
                       itens.map((tarefa) => {
                         const concluida = tarefa.status === "concluido";
+                        const evento = tarefa._tipo === "evento";
+                        const treino = tarefa._tipo === "treino";
                         return (
                           <div
                             key={tarefa.id}
                             onClick={() => openEdicao(tarefa)}
                             className="flex items-start gap-1.5 rounded-lg px-1.5 py-1 hover:bg-ink-50 cursor-pointer"
                           >
-                            <span className={cn("mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0", PRIORIDADE_COR[tarefa.prioridade])} />
+                            <span className={cn("mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0", evento ? "bg-violet-500" : treino ? "bg-emerald-500" : PRIORIDADE_COR[tarefa.prioridade])} />
                             <span className={cn("text-xs text-ink-700 leading-snug truncate", concluida && "line-through text-ink-400")}>
+                              {evento && <Sparkles className="h-3 w-3 text-violet-500 inline mr-1 -mt-0.5" />}
+                              {treino && <Dumbbell className="h-3 w-3 text-emerald-500 inline mr-1 -mt-0.5" />}
                               {tarefa.horario && <span className="text-ink-400 mr-1">{tarefa.horario.slice(0, 5)}</span>}
                               {tarefa.titulo}
                             </span>
@@ -454,6 +577,18 @@ export default function Tarefas() {
             onSaved={handleSaved}
             onCancel={() => setOpen(false)}
             onDelete={handleDeleteFromForm}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={eventoOpen} onOpenChange={setEventoOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Editar evento futuro</DialogTitle></DialogHeader>
+          <EventoFuturoForm
+            evento={editingEvento}
+            onSaved={handleEventoSaved}
+            onCancel={() => setEventoOpen(false)}
+            onDelete={handleEventoDelete}
           />
         </DialogContent>
       </Dialog>
