@@ -3,7 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query"
 import { queryClientInstance } from '@/lib/query-client'
 import { AuthProvider } from '@/lib/AuthContext'
 import { ViewAsProvider } from '@/lib/ViewAsContext'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import ScrollToTop from './components/ScrollToTop';
 import Layout from '@/components/Layout';
@@ -17,6 +17,7 @@ import Categorias from '@/pages/Categorias';
 import ContasPagamento from '@/pages/ContasPagamento';
 import Planner from '@/pages/Planner';
 import Tarefas from '@/pages/Tarefas';
+import EventosFuturos from '@/pages/EventosFuturos';
 import Midias from '@/pages/Midias';
 import Treinos from '@/pages/Treinos';
 import TreinoHoje from '@/pages/TreinoHoje';
@@ -50,7 +51,9 @@ function App() {
                 <Route path="/categorias" element={<Categorias />} />
                 <Route path="/contas-pagamento" element={<ContasPagamento />} />
                 <Route path="/planner" element={<Planner />} />
-                <Route path="/tarefas" element={<Tarefas />} />
+                <Route path="/calendario" element={<Tarefas />} />
+                <Route path="/tarefas" element={<Navigate to="/calendario" replace />} />
+                <Route path="/eventos-futuros" element={<EventosFuturos />} />
                 <Route path="/midias" element={<Midias />} />
                 <Route path="/midias/:tipoSlug" element={<Midias />} />
                 <Route path="/midias/:tipoSlug/:id" element={<Midias />} />

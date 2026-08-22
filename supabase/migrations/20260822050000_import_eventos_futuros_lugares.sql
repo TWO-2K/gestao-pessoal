@@ -1,0 +1,85 @@
+-- Importa a lista de lugares (AppSheet.ViewData.2026-08-22.csv) como eventos futuros.
+-- Data do evento: hoje (2026-08-22) para todos.
+-- Itens já "Visitado" no CSV entram como concluídos.
+-- Ajuste o e-mail abaixo se necessário antes de rodar.
+
+with usuario as (
+  select id as user_id from auth.users where email = 'admin.macom@gmail.com'
+),
+dados (titulo, visitado) as (
+  values
+    ('Peixaria Sabor Mister', false),
+    ('Planeta Food', false),
+    ('A''mar Restaurante', false),
+    ('Bia biscoitos decorados', false),
+    ('Caffe grani special', false),
+    ('Ilha da Fantasia', false),
+    ('Geek Burger', false),
+    ('Tia Maria Doceria', false),
+    ('Restaurante ver o açai', false),
+    ('Carne de sol do Picuí', false),
+    ('Gostosuras in Belém', false),
+    ('A Cabana Gastropub', false),
+    ('Salada de frutas belem', false),
+    ('D,lilavie', false),
+    ('Bar Restaurante Rota 66', false),
+    ('Greendoorburger', false),
+    ('The Waffle King - Belém', false),
+    ('Gocoffee', false),
+    ('Marquesa - Cafeteria', false),
+    ('Ragnar Burger', false),
+    ('Tio Armênio Belém', false),
+    ('Borba café', false),
+    ('Fat Guys', false),
+    ('O paraíso das Fontes', false),
+    ('Pizza do Fabio', false),
+    ('Ragna burguer', false),
+    ('Cafeteria Grão Durquesa', false),
+    ('MSC Cruzeiros', false),
+    ('restaurante porto verorio', false),
+    ('Sorveteria santa Clara', false),
+    ('Me Gusta sorveteria', false),
+    ('Raizes da Amazonia BELÉM', false),
+    ('Xícara da silva', false),
+    ('Restaurante - Famiglia D''Italia', false),
+    ('Restaurante - A Forneria', false),
+    ('Confeitaria & Padaria - Bella Florença', false),
+    ('Guará Acqua Park', false),
+    ('chale das torres', false),
+    ('Casa Assis', false),
+    ('Restaurante Ôchalé', false),
+    ('Doceria Charlotte', false),
+    ('Teatro da Paz', false),
+    ('Divino Pastel gourmet', false),
+    ('Komburger - Hamburgueria Belém', false),
+    ('Dot Burger', false),
+    ('Aqualand Resort', false),
+    ('Chalé das águas', false),
+    ('AldeiA Cotijuba', false),
+    ('Chalé da Árvore', false),
+    ('Bistro café club', false),
+    ('Cafeteria CofferLovers', true),
+    ('Roxy Bar', true),
+    ('Cinema Parque Shopping', true),
+    ('Circo Kroner', true),
+    ('Show que meu amor escolhe', true),
+    ('Boliche', true),
+    ('Ice Cream Roll (Pátio Belém)', true),
+    ('Parque Maguari', true),
+    ('Bar da Amiga da Lanna', true),
+    ('West Wood Restaurante', true),
+    ('Na bera', true),
+    ('Reserva Amazon', true),
+    ('Parque do Utinga', true),
+    ('Teatro Maria Sylvia Nunes', true)
+)
+insert into public.planner_eventos_futuros
+  (user_id, titulo, tag, data_evento, status, concluido_em)
+select
+  usuario.user_id,
+  dados.titulo,
+  'lugares',
+  current_date,
+  case when dados.visitado then 'concluido' else 'pendente' end,
+  case when dados.visitado then now() else null end
+from dados, usuario;

@@ -27,7 +27,8 @@ const navSections = [
     section: "Planner",
     items: [
       { to: "/planner", label: "Quadro", icon: CheckSquare },
-      { to: "/tarefas", label: "Tarefas", icon: CalendarDays },
+      { to: "/calendario", label: "Calendário", icon: CalendarDays },
+      { to: "/eventos-futuros", label: "Eventos futuros", icon: ListChecks },
     ],
   },
   {

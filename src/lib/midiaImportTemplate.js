@@ -10,19 +10,21 @@ export const COLUNAS_IMPORT = [
   "genero",
   "observacoes",
   "midia_pai",
+  "visivel_apenas_admin",
 ];
 
 export const TIPOS_VALIDOS = ["anime", "ova", "ona", "filme", "especial", "serie"];
 export const STATUS_VALIDOS = ["pendente", "planejado", "assistindo", "concluido", "pausado"];
 
 const LINHAS_EXEMPLO = [
-  { titulo: "One Piece", tipo: "anime", status: "assistindo", episodio_atual: "1085", ano: "1999", genero: "Ação; Aventura; Comédia", observacoes: "", midia_pai: "" },
-  { titulo: "One Piece Film Red", tipo: "filme", status: "concluido", episodio_atual: "", ano: "2022", genero: "Ação; Aventura", observacoes: "", midia_pai: "One Piece" },
-  { titulo: "Naruto", tipo: "anime", status: "concluido", episodio_atual: "220", ano: "2002", genero: "Ação; Aventura", observacoes: "", midia_pai: "" },
-  { titulo: "Naruto Shippuden", tipo: "anime", status: "concluido", episodio_atual: "500", ano: "2007", genero: "Ação; Aventura", observacoes: "", midia_pai: "Naruto" },
-  { titulo: "Bleach", tipo: "anime", status: "concluido", episodio_atual: "366", ano: "2004", genero: "Ação; Sobrenatural", observacoes: "", midia_pai: "" },
-  { titulo: "Bleach: Thousand-Year Blood War", tipo: "anime", status: "assistindo", episodio_atual: "27", ano: "2022", genero: "Ação; Sobrenatural", observacoes: "", midia_pai: "Bleach" },
-  { titulo: "Attack on Titan", tipo: "anime", status: "concluido", episodio_atual: "25", ano: "2013", genero: "Ação; Drama", observacoes: "Sem OVAs ou filmes vinculados", midia_pai: "" },
+  { titulo: "One Piece", tipo: "anime", status: "assistindo", episodio_atual: "1085", ano: "1999", genero: "Ação; Aventura; Comédia", observacoes: "", midia_pai: "", visivel_apenas_admin: "" },
+  { titulo: "One Piece Film Red", tipo: "filme", status: "concluido", episodio_atual: "", ano: "2022", genero: "Ação; Aventura", observacoes: "", midia_pai: "One Piece", visivel_apenas_admin: "" },
+  { titulo: "Naruto", tipo: "anime", status: "concluido", episodio_atual: "220", ano: "2002", genero: "Ação; Aventura", observacoes: "", midia_pai: "", visivel_apenas_admin: "" },
+  { titulo: "Naruto Shippuden", tipo: "anime", status: "concluido", episodio_atual: "500", ano: "2007", genero: "Ação; Aventura", observacoes: "", midia_pai: "Naruto", visivel_apenas_admin: "" },
+  { titulo: "Bleach", tipo: "anime", status: "concluido", episodio_atual: "366", ano: "2004", genero: "Ação; Sobrenatural", observacoes: "", midia_pai: "", visivel_apenas_admin: "" },
+  { titulo: "Bleach: Thousand-Year Blood War", tipo: "anime", status: "assistindo", episodio_atual: "27", ano: "2022", genero: "Ação; Sobrenatural", observacoes: "", midia_pai: "Bleach", visivel_apenas_admin: "" },
+  { titulo: "Attack on Titan", tipo: "anime", status: "concluido", episodio_atual: "25", ano: "2013", genero: "Ação; Drama", observacoes: "Sem OVAs ou filmes vinculados", midia_pai: "", visivel_apenas_admin: "" },
+  { titulo: "Segredo do Chefe", tipo: "anime", status: "planejado", episodio_atual: "", ano: "2024", genero: "", observacoes: "", midia_pai: "", visivel_apenas_admin: "sim" },
 ];
 
 export function gerarTemplateCSV() {

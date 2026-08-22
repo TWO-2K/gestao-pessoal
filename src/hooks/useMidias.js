@@ -47,6 +47,7 @@ export function useMidias() {
           status: meuStatus?.status || "pendente",
           episodio_atual: meuStatus?.episodio_atual ?? null,
           observacoes: meuStatus?.observacoes ?? null,
+          concluido_em: meuStatus?.concluido_em ?? null,
           statusPorUsuario,
         };
       });
@@ -61,6 +62,17 @@ export function useMidias() {
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
       const { error } = await supabase.from("lista_midias_catalogo").delete().match({ id });
+      if (error) throw new Error(error.message);
+    },
+    ...mutationOptions,
+  });
+
+  const toggleVisivelApenasAdminMutation = useMutation({
+    mutationFn: async ({ id, visivel_apenas_admin }) => {
+      const { error } = await supabase
+        .from("lista_midias_catalogo")
+        .update({ visivel_apenas_admin })
+        .match({ id });
       if (error) throw new Error(error.message);
     },
     ...mutationOptions,
@@ -84,6 +96,9 @@ export function useMidias() {
         franquia_id: form.franquia_id || null,
         midia_pai_id: form.midia_pai_id || null,
       };
+      if (form.visivel_apenas_admin !== undefined) {
+        catalogoPayload.visivel_apenas_admin = !!form.visivel_apenas_admin;
+      }
 
       let catalogoId = form.id;
       if (catalogoId) {
@@ -95,6 +110,10 @@ export function useMidias() {
         catalogoId = data.id;
       }
 
+      const statusAnterior = midias.find((m) => m.id === catalogoId)?.status;
+      const jaEstavaConcluido = statusAnterior === "concluido";
+      const concluidoAgora = form.status === "concluido";
+
       const statusPayload = {
         midia_id: catalogoId,
         user_id: userId,
@@ -102,6 +121,7 @@ export function useMidias() {
         episodio_atual: form.episodio_atual === "" || form.episodio_atual === null || form.episodio_atual === undefined ? null : Number(form.episodio_atual),
         observacoes: form.observacoes || null,
         updated_at: new Date().toISOString(),
+        concluido_em: concluidoAgora ? (jaEstavaConcluido ? midias.find((m) => m.id === catalogoId)?.concluido_em : new Date().toISOString()) : null,
       };
       const { error: statusError } = await supabase
         .from("lista_midia_status")
@@ -118,5 +138,6 @@ export function useMidias() {
     isLoading,
     deleteMidia: deleteMutation.mutate,
     createOrUpdateMidia: createOrUpdateMutation.mutateAsync,
+    toggleVisivelApenasAdmin: toggleVisivelApenasAdminMutation.mutate,
   };
 }

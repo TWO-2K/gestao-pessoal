@@ -207,6 +207,11 @@ export default function MidiaDetailSheet({
                 <span className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[midia.status]}`}>
                   {STATUS_LABEL[midia.status]}
                 </span>
+                {midia.status === "concluido" && midia.concluido_em && (
+                  <p className="text-[11px] text-ink-400 mt-1.5">
+                    em {new Date(midia.concluido_em).toLocaleDateString("pt-BR")}
+                  </p>
+                )}
               </div>
               <div className="rounded-xl border border-ink-200 bg-white shadow-sm px-3 py-2.5">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-400 mb-1.5">Episódio</p>
