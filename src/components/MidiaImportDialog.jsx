@@ -6,7 +6,10 @@ import { parseCSV, baixarCSV } from "@/lib/csv";
 import { gerarTemplateCSV, baixarTemplateXLSX, TIPOS_VALIDOS, STATUS_VALIDOS } from "@/lib/midiaImportTemplate";
 import { semAcento, normalizarCabecalho } from "@/lib/text";
 import { useViewAs } from "@/lib/ViewAsContext";
+import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 import { Upload, Download, CheckCircle2, AlertTriangle, History, X } from "lucide-react";
+
+const VALORES_SIM = ["sim", "s", "true", "1", "x", "yes"];
 
 const LOG_KEY_PREFIX = "midia_import_log_";
 
@@ -58,6 +61,8 @@ async function lerArquivo(file) {
 
 export default function MidiaImportDialog({ open, onOpenChange, midias, createOrUpdateMidia }) {
   const { viewedUserId } = useViewAs();
+  const { usuario } = useUsuarioAtual();
+  const isAdmin = usuario?.role === "admin";
   const [linhas, setLinhas] = useState([]);
   const [erros, setErros] = useState([]);
   const [nomeArquivo, setNomeArquivo] = useState("");
@@ -115,6 +120,10 @@ export default function MidiaImportDialog({ open, onOpenChange, midias, createOr
         status = "planejado";
       }
       const genero = (r.genero || "").split(";").map((g) => g.trim()).filter(Boolean).join(", ");
+      const querVisivelApenasAdmin = VALORES_SIM.includes(semAcento((r.visivel_apenas_admin || "").trim().toLowerCase()));
+      if (querVisivelApenasAdmin && !isAdmin) {
+        errosEncontrados.push(`Linha ${linhaNum}: "${titulo}" pedia visível apenas para admin, mas só admin pode marcar isso — importado como visível para todos.`);
+      }
       return {
         titulo,
         tipo,
@@ -124,6 +133,7 @@ export default function MidiaImportDialog({ open, onOpenChange, midias, createOr
         genero,
         observacoes: r.observacoes?.trim() || "",
         midia_pai: (r.midia_pai || "").trim(),
+        visivel_apenas_admin: querVisivelApenasAdmin && isAdmin,
       };
     }).filter(Boolean);
 
@@ -169,6 +179,7 @@ export default function MidiaImportDialog({ open, onOpenChange, midias, createOr
           observacoes: linha.observacoes,
           franquia_id: "",
           midia_pai_id: "",
+          visivel_apenas_admin: linha.visivel_apenas_admin,
         });
         if (salvo?.id) {
           registrarTitulo(linha.titulo, salvo.id, linha.tipo);
@@ -204,6 +215,7 @@ export default function MidiaImportDialog({ open, onOpenChange, midias, createOr
           observacoes: item.observacoes,
           franquia_id: "",
           midia_pai_id: paiId,
+          visivel_apenas_admin: item.visivel_apenas_admin,
         });
       } catch (err) {
         falhas.push(`Vincular "${item.titulo}" ao pai: ${err.message}`);
@@ -261,8 +273,9 @@ export default function MidiaImportDialog({ open, onOpenChange, midias, createOr
           )}
 
           <div className="rounded-xl border border-ink-200 bg-ink-50 p-3 text-sm text-ink-500 space-y-2">
-            <p>Envie um arquivo Excel (.xlsx) ou CSV com as colunas: <code className="text-xs">titulo, tipo, status, episodio_atual, ano, genero, observacoes, midia_pai</code>.</p>
+            <p>Envie um arquivo Excel (.xlsx) ou CSV com as colunas: <code className="text-xs">titulo, tipo, status, episodio_atual, ano, genero, observacoes, midia_pai, visivel_apenas_admin</code>.</p>
             <p>Use <code className="text-xs">midia_pai</code> com o título exato de outro item da planilha (ou já existente) para vincular OVAs/filmes/temporadas a um anime — deixe em branco quando não houver vínculo. Vários gêneros: separe por <code className="text-xs">;</code>.</p>
+            <p><code className="text-xs">visivel_apenas_admin</code> = <code className="text-xs">sim</code> esconde o item dos outros usuários — só funciona se quem importa for admin; do contrário é ignorado.</p>
             <div className="flex gap-2">
               <Button
                 type="button"

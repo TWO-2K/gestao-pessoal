@@ -9,11 +9,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Clapperboard, Upload, Search, Sparkles, Check, X, ChevronLeft, ChevronRight, Clock, ListTodo, PlayCircle, CheckCircle2, PauseCircle } from "lucide-react";
+import { Plus, Clapperboard, Upload, Search, Sparkles, Check, X, ChevronLeft, ChevronRight, Clock, ListTodo, PlayCircle, CheckCircle2, PauseCircle, Lock } from "lucide-react";
 import { useMidias } from "@/hooks/useMidias";
 import { useFranquias } from "@/hooks/useFranquias";
 import { useUsuarios } from "@/hooks/useUsuarios";
 import { useViewAs } from "@/lib/ViewAsContext";
+import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 
 const TIPO_LABEL = { anime: "Anime", ova: "OVA", ona: "ONA", filme: "Filme", especial: "Especial", serie: "Série" };
 
@@ -74,10 +75,12 @@ export default function Midias() {
   const [pagina, setPagina] = useState(1);
   const ITENS_POR_PAGINA = 20;
 
-  const { midias, isLoading, deleteMidia, createOrUpdateMidia } = useMidias();
+  const { midias, isLoading, deleteMidia, createOrUpdateMidia, toggleVisivelApenasAdmin } = useMidias();
   const { franquias, createFranquia } = useFranquias();
   const { usuarios } = useUsuarios();
   const { viewedUserId } = useViewAs();
+  const { usuario } = useUsuarioAtual();
+  const isAdmin = usuario?.role === "admin";
 
   const outrosUsuarios = useMemo(
     () => usuarios.filter((u) => u.ativo && u.id !== viewedUserId),
@@ -117,7 +120,14 @@ export default function Midias() {
         .filter((m) => statusFiltro === "todos" || m.status === statusFiltro)
         .filter((m) => !somenteNovidades || temNovidade.has(m.id))
         .filter((m) => m.titulo.toLowerCase().includes(busca.trim().toLowerCase()))
-        .sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR")),
+        .sort((a, b) => {
+          if (statusFiltro === "concluido") {
+            const dataA = a.concluido_em ? new Date(a.concluido_em).getTime() : 0;
+            const dataB = b.concluido_em ? new Date(b.concluido_em).getTime() : 0;
+            if (dataA !== dataB) return dataB - dataA;
+          }
+          return a.titulo.localeCompare(b.titulo, "pt-BR");
+        }),
     [midias, tipoEfetivo, statusFiltro, busca, somenteNovidades, temNovidade]
   );
 
@@ -379,6 +389,7 @@ export default function Midias() {
                   <th className="text-left px-4 py-2.5">Episódio</th>
                   <th className="text-left px-4 py-2.5">Status</th>
                   {outrosUsuarios.length > 0 && <th className="text-left px-4 py-2.5">Outros</th>}
+                  {isAdmin && <th className="w-10 px-4 py-2.5" title="Visível apenas para admin" />}
                 </tr>
               </thead>
               <tbody>
@@ -429,6 +440,22 @@ export default function Midias() {
                             );
                           })}
                         </div>
+                      </td>
+                    )}
+                    {isAdmin && (
+                      <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => toggleVisivelApenasAdmin({ id: m.id, visivel_apenas_admin: !m.visivel_apenas_admin })}
+                          title={m.visivel_apenas_admin ? "Visível só para admin — clique para tornar público" : "Marcar como visível só para admin"}
+                          className={`flex h-5 w-5 items-center justify-center rounded border transition-colors ${
+                            m.visivel_apenas_admin
+                              ? "bg-ink-900 border-ink-900 text-white"
+                              : "border-ink-200 text-transparent hover:border-ink-300"
+                          }`}
+                        >
+                          <Lock className="h-3 w-3" />
+                        </button>
                       </td>
                     )}
                   </tr>

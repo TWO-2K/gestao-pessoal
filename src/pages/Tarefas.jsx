@@ -226,7 +226,7 @@ export default function Tarefas() {
   return (
     <div>
       <PageHeader
-        title="Tarefas"
+        title="Calendário"
         subtitle="Sua agenda em formato de calendário"
         action={
           <Button onClick={() => openNova()}>
