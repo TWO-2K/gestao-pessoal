@@ -171,7 +171,7 @@ export default function Layout() {
       </aside>
 
       {/* Main */}
-      <main className="md:pl-64 pb-24 md:pb-0">
+      <main className="md:pl-64 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0">
         <IosInstallHint />
         {isViewingOther && (
           <div className="flex items-center gap-2 bg-gold-500/15 border-b border-gold-500/30 px-5 py-2 text-xs font-medium text-gold-700">
@@ -185,7 +185,7 @@ export default function Layout() {
       </main>
 
       {/* Bottom nav mobile — só os itens principais; o resto fica no menu "Mais" */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 bg-ink-900 flex justify-around px-1 py-2">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 bg-ink-900 flex justify-around px-1 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
         {mobilePrimaryNav.map((item) => {
           const active = location.pathname === item.to;
           return (
