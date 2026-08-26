@@ -60,10 +60,11 @@ function formatDiaCurto(dateStr) {
   return parseDateLocal(dateStr).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
 
-function TarefaItem({ tarefa, onToggle, onEdit }) {
+function TarefaItem({ tarefa, onToggle, onEdit, onEditForce }) {
   const concluida = tarefa.status === "concluido";
   const evento = tarefa._tipo === "evento";
   const treino = tarefa._tipo === "treino";
+  const pesagem = tarefa.tag === "pesagem";
   return (
     <div
       className={cn(
@@ -73,7 +74,7 @@ function TarefaItem({ tarefa, onToggle, onEdit }) {
     >
       <Checkbox
         checked={concluida}
-        disabled={treino}
+        disabled={treino || pesagem}
         onCheckedChange={() => onToggle(tarefa)}
         onClick={(e) => e.stopPropagation()}
         className="mt-0.5 flex-shrink-0"
@@ -114,7 +115,7 @@ function TarefaItem({ tarefa, onToggle, onEdit }) {
       </div>
       {!treino && (
         <button
-          onClick={() => onEdit(tarefa)}
+          onClick={() => (onEditForce || onEdit)(tarefa)}
           className="p-0.5 text-ink-300 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5 hover:text-ink-900"
         >
           <Pencil className="h-3.5 w-3.5" />
@@ -321,6 +322,24 @@ export default function Tarefas() {
       navigate(`/academia/hoje?data=${tarefa.data}`);
       return;
     }
+    if (tarefa.tag === "pesagem") {
+      navigate("/academia/peso");
+      return;
+    }
+    if (tarefa._tipo === "evento") {
+      setEditingEvento(tarefa);
+      setEventoOpen(true);
+      return;
+    }
+    setEditing(tarefa);
+    setOpen(true);
+  };
+
+  const openEdicaoForce = (tarefa) => {
+    if (tarefa._tipo === "treino") {
+      navigate(`/academia/hoje?data=${tarefa.data}`);
+      return;
+    }
     if (tarefa._tipo === "evento") {
       setEditingEvento(tarefa);
       setEventoOpen(true);
@@ -446,7 +465,7 @@ export default function Tarefas() {
             ) : (
               <div className="space-y-2">
                 {tarefasDoDiaSel.map((tarefa) => (
-                  <TarefaItem key={tarefa.id} tarefa={tarefa} onToggle={toggleConcluida} onEdit={openEdicao} />
+                  <TarefaItem key={tarefa.id} tarefa={tarefa} onToggle={toggleConcluida} onEdit={openEdicao} onEditForce={openEdicaoForce} />
                 ))}
               </div>
             )}
@@ -564,7 +583,7 @@ export default function Tarefas() {
             ) : (
               <div className="space-y-2">
                 {tarefasDoDiaSel.map((tarefa) => (
-                  <TarefaItem key={tarefa.id} tarefa={tarefa} onToggle={toggleConcluida} onEdit={openEdicao} />
+                  <TarefaItem key={tarefa.id} tarefa={tarefa} onToggle={toggleConcluida} onEdit={openEdicao} onEditForce={openEdicaoForce} />
                 ))}
               </div>
             )}

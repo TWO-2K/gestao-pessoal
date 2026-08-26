@@ -4,21 +4,41 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import PageHeader from "@/components/PageHeader";
 import PesoCorporalForm from "@/components/PesoCorporalForm";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Scale, TrendingUp } from "lucide-react";
-import { formatDate } from "@/lib/format";
+import { Plus, Pencil, Trash2, Scale, TrendingUp, CalendarPlus } from "lucide-react";
+import { formatDate, dataLocalHoje } from "@/lib/format";
 import { usePesoCorporal } from "@/hooks/usePesoCorporal";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function PesoCorporal() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [agendaOpen, setAgendaOpen] = useState(false);
+  const [dataAgendada, setDataAgendada] = useState(dataLocalHoje());
+  const [agendando, setAgendando] = useState(false);
+  const { toast } = useToast();
 
-  const { registros, isLoading, deleteRegistroPeso, saveRegistroPeso } = usePesoCorporal();
+  const { registros, isLoading, deleteRegistroPeso, saveRegistroPeso, agendarPesagem } = usePesoCorporal();
 
   const handleSaved = async (form) => {
     await saveRegistroPeso(form);
     setOpen(false);
     setEditing(null);
+  };
+
+  const handleAgendar = async (e) => {
+    e.preventDefault();
+    setAgendando(true);
+    try {
+      await agendarPesagem(dataAgendada);
+      setAgendaOpen(false);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro ao agendar", description: error.message });
+    } finally {
+      setAgendando(false);
+    }
   };
 
   const chartData = registros.map((r) => ({ label: formatDate(r.data), peso: r.peso }));
@@ -30,9 +50,14 @@ export default function PesoCorporal() {
         title="Peso Corporal"
         subtitle="Evolução do seu peso na balança"
         action={
-          <Button onClick={() => { setEditing(null); setOpen(true); }}>
-            <Plus className="h-4 w-4 mr-1.5" /> Novo registro
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => { setDataAgendada(dataLocalHoje()); setAgendaOpen(true); }}>
+              <CalendarPlus className="h-4 w-4 mr-1.5" /> Agendar pesagem
+            </Button>
+            <Button onClick={() => { setEditing(null); setOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1.5" /> Novo registro
+            </Button>
+          </div>
         }
       />
 
@@ -85,6 +110,28 @@ export default function PesoCorporal() {
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar registro" : "Novo registro"}</DialogTitle></DialogHeader>
           <PesoCorporalForm registro={editing} onSaved={handleSaved} onCancel={() => setOpen(false)} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={agendaOpen} onOpenChange={setAgendaOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Agendar pesagem</DialogTitle></DialogHeader>
+          <form onSubmit={handleAgendar} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="dataAgendada">Data</Label>
+              <Input
+                id="dataAgendada"
+                type="date"
+                value={dataAgendada}
+                onChange={(e) => setDataAgendada(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="ghost" onClick={() => setAgendaOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={agendando}>{agendando ? "Agendando..." : "Agendar"}</Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
