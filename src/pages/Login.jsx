@@ -3,15 +3,17 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import IosInstallHint from "@/components/IosInstallHint";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase, setRememberAccess } from "@/lib/supabaseClient";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [lembrar, setLembrar] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -21,6 +23,7 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
+      setRememberAccess(lembrar);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       navigate("/");
@@ -117,6 +120,12 @@ export default function Login() {
               required
             />
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Checkbox id="lembrar" checked={lembrar} onCheckedChange={(v) => setLembrar(!!v)} />
+          <Label htmlFor="lembrar" className="font-normal cursor-pointer">
+            Lembrar meu acesso
+          </Label>
         </div>
         <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
           {loading ? (

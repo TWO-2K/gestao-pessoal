@@ -53,6 +53,19 @@ export function usePlannerTarefas() {
     ...mutationOptions,
   });
 
+  const deleteAllMutation = useMutation({
+    mutationFn: async ({ serieId }) => {
+      const { data: deleted, error } = await supabase
+        .from("planner_tarefas")
+        .delete()
+        .eq("serie_id", serieId)
+        .select();
+      if (error) throw new Error(error.message);
+      if (!deleted || deleted.length === 0) throw new Error("Não foi possível excluir as tarefas (permissão negada ou já removidas).");
+    },
+    ...mutationOptions,
+  });
+
   const createOrUpdateMutation = useMutation({
     mutationFn: async (form) => {
       const targetUserId = viewedUserId || session?.user?.id;
@@ -116,6 +129,7 @@ export function usePlannerTarefas() {
     deleteTarefa: deleteMutation.mutate,
     deleteTarefaAsync: deleteMutation.mutateAsync,
     deleteFuturas: deleteFutureMutation.mutateAsync,
+    deleteSerieTodo: deleteAllMutation.mutateAsync,
     createOrUpdateTarefa: createOrUpdateMutation.mutateAsync,
     createManyTarefas: createManyMutation.mutateAsync,
     updateStatus: updateStatusMutation.mutate,

@@ -139,7 +139,7 @@ export default function Tarefas() {
   const { toast } = useToast();
 
   const navigate = useNavigate();
-  const { tarefas, isLoading, deleteTarefaAsync, deleteFuturas, createOrUpdateTarefa, createManyTarefas, updateStatus } = usePlannerTarefas();
+  const { tarefas, isLoading, deleteTarefaAsync, deleteFuturas, deleteSerieTodo, createOrUpdateTarefa, createManyTarefas, updateStatus } = usePlannerTarefas();
   const {
     eventos: eventosFuturos,
     createOrUpdateEvento,
@@ -293,6 +293,16 @@ export default function Tarefas() {
   const handleDeleteFuturas = async () => {
     try {
       await deleteFuturas({ serieId: deleting.serie_id, data: deleting.data });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro ao excluir", description: error.message });
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleDeleteTodas = async () => {
+    try {
+      await deleteSerieTodo({ serieId: deleting.serie_id });
     } catch (error) {
       toast({ variant: "destructive", title: "Erro ao excluir", description: error.message });
     } finally {
@@ -604,6 +614,7 @@ export default function Tarefas() {
           <div className="flex flex-col gap-2 pt-2">
             <Button variant="outline" onClick={handleDeleteOnly}>Só esta tarefa</Button>
             <Button variant="outline" onClick={handleDeleteFuturas}>Esta e as próximas</Button>
+            <Button variant="outline" onClick={handleDeleteTodas}>Excluir tudo</Button>
             <Button variant="ghost" onClick={() => setDeleting(null)}>Cancelar</Button>
           </div>
         </DialogContent>
