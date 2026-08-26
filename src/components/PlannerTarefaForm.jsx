@@ -44,6 +44,7 @@ function makeEmptyForm(defaultData) {
     horario: "",
     repeticao: "nunca",
     repetirAte: "",
+    repetirIndefinido: false,
     diasSemana: [],
     etiquetaIds: [],
   };
@@ -61,14 +62,48 @@ function toDateStr(date) {
   return `${y}-${m}-${d}`;
 }
 
-function getOccurrenceDates(form) {
-  if (!form.data || form.repeticao === "nunca" || !form.repetirAte) return [form.data || null];
+const HORIZONTE_INDEFINIDO_DIAS = {
+  diaria: 365,
+  personalizado: 365,
+  semanal: 730,
+  mensal: 1825,
+};
 
-  const dates = [];
+function getOccurrenceDates(form) {
+  if (!form.data || form.repeticao === "nunca") return [form.data || null];
+  if (!form.repetirIndefinido && !form.repetirAte) return [form.data || null];
+
   const start = parseDateLocal(form.data);
-  const end = parseDateLocal(form.repetirAte);
+  let end;
+  if (form.repetirIndefinido) {
+    end = new Date(start);
+    end.setDate(end.getDate() + (HORIZONTE_INDEFINIDO_DIAS[form.repeticao] ?? 365));
+  } else {
+    end = parseDateLocal(form.repetirAte);
+  }
   if (end < start) return [form.data];
 
+  if (form.repeticao === "semanal") {
+    const dates = [];
+    const cur = new Date(start);
+    while (cur <= end) {
+      dates.push(toDateStr(cur));
+      cur.setDate(cur.getDate() + 7);
+    }
+    return dates.length ? dates : [form.data];
+  }
+
+  if (form.repeticao === "mensal") {
+    const dates = [];
+    const cur = new Date(start);
+    while (cur <= end) {
+      dates.push(toDateStr(cur));
+      cur.setMonth(cur.getMonth() + 1);
+    }
+    return dates.length ? dates : [form.data];
+  }
+
+  const dates = [];
   const cur = new Date(start);
   while (cur <= end) {
     const dow = cur.getDay();
@@ -334,6 +369,8 @@ export default function PlannerTarefaForm({ tarefa, defaultData, modo, quadroId,
                       <SelectContent>
                         <SelectItem value="nunca">Nunca</SelectItem>
                         <SelectItem value="diaria">Diariamente</SelectItem>
+                        <SelectItem value="semanal">Semanalmente</SelectItem>
+                        <SelectItem value="mensal">Mensalmente</SelectItem>
                         <SelectItem value="personalizado">Personalizado</SelectItem>
                       </SelectContent>
                     </Select>
@@ -363,16 +400,28 @@ export default function PlannerTarefaForm({ tarefa, defaultData, modo, quadroId,
                           </div>
                         </div>
                       )}
-                      <div className="space-y-2">
-                        <Label htmlFor="repetirAte">Repetir até</Label>
-                        <Input
-                          id="repetirAte"
-                          type="date"
-                          value={form.repetirAte}
-                          min={form.data}
-                          onChange={(e) => set("repetirAte", e.target.value)}
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="repetirIndefinido"
+                          checked={form.repetirIndefinido}
+                          onCheckedChange={(v) => set("repetirIndefinido", !!v)}
                         />
+                        <Label htmlFor="repetirIndefinido" className="font-normal">
+                          Repetir indefinidamente
+                        </Label>
                       </div>
+                      {!form.repetirIndefinido && (
+                        <div className="space-y-2">
+                          <Label htmlFor="repetirAte">Repetir até</Label>
+                          <Input
+                            id="repetirAte"
+                            type="date"
+                            value={form.repetirAte}
+                            min={form.data}
+                            onChange={(e) => set("repetirAte", e.target.value)}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
