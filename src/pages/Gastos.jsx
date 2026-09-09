@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from "react";
 import PageHeader from "@/components/PageHeader";
 import GastoForm from "@/components/GastoForm";
+import ReparcelarGastoForm from "@/components/ReparcelarGastoForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Receipt } from "lucide-react";
+import { Plus, Pencil, Trash2, Receipt, Layers } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import MonthFilter, { isInMonth } from "@/components/MonthFilter";
 import { useGastos } from "@/hooks/useGastos";
@@ -11,7 +12,11 @@ import { useGastos } from "@/hooks/useGastos";
 export default function Gastos() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [mes, setMes] = useState(null);
+  const [reparcelando, setReparcelando] = useState(null);
+  const [mes, setMes] = useState(() => {
+    const now = new Date();
+    return { month: now.getMonth(), year: now.getFullYear() };
+  });
 
   const {
     gastos,
@@ -20,6 +25,7 @@ export default function Gastos() {
     isLoading,
     deleteGasto,
     createOrUpdateGasto,
+    reparcelarGasto,
     catMap,
     contaPagamentoMap,
   } = useGastos();
@@ -30,6 +36,16 @@ export default function Gastos() {
     setOpen(false);
     setEditing(null);
   };
+
+  const handleReparcelado = async (payload) => {
+    await reparcelarGasto(payload);
+    setReparcelando(null);
+  };
+
+  const grupoReparcelando = useMemo(() => {
+    if (!reparcelando) return [];
+    return gastos.filter((g) => g.parcelamento_id === reparcelando.parcelamento_id);
+  }, [gastos, reparcelando]);
 
   const filtrados = useMemo(() => gastos.filter((g) => {
     if (mes && !isInMonth(g.data, mes.month, mes.year)) return false;
@@ -101,6 +117,11 @@ export default function Gastos() {
                   <button onClick={() => { setEditing(gasto); setOpen(true); }} className="p-2 text-ink-400 hover:text-ink-900">
                     <Pencil className="h-4 w-4" />
                   </button>
+                  {gasto.total_parcelas > 1 && (
+                    <button onClick={() => setReparcelando(gasto)} title="Reparcelar" className="p-2 text-ink-400 hover:text-ink-900">
+                      <Layers className="h-4 w-4" />
+                    </button>
+                  )}
                   <button onClick={() => deleteGasto(gasto.id)} className="p-2 text-ink-400 hover:text-rust-600">
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -115,6 +136,15 @@ export default function Gastos() {
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar gasto" : "Novo gasto"}</DialogTitle></DialogHeader>
           <GastoForm gasto={editing} categorias={categorias} contasPagamento={contasPagamento} onSaved={handleSaved} onCancel={() => setOpen(false)} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(reparcelando)} onOpenChange={(v) => !v && setReparcelando(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Reparcelar gasto</DialogTitle></DialogHeader>
+          {grupoReparcelando.length > 0 && (
+            <ReparcelarGastoForm grupo={grupoReparcelando} onSaved={handleReparcelado} onCancel={() => setReparcelando(null)} />
+          )}
         </DialogContent>
       </Dialog>
     </div>
