@@ -4,6 +4,19 @@ import { useAuth } from "@/lib/AuthContext";
 import { useViewAs } from "@/lib/ViewAsContext";
 import { supabase } from "@/lib/supabaseClient";
 
+const addMonths = (dateString, months) => {
+  const date = new Date(`${dateString}T00:00:00`);
+  date.setMonth(date.getMonth() + months);
+  return date.toISOString().slice(0, 10);
+};
+
+const makeInstallmentGroupId = () => {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
 export function useGastos() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
@@ -46,8 +59,49 @@ export function useGastos() {
   const createOrUpdateMutation = useMutation({
     mutationFn: async (form) => {
       const targetUserId = viewedUserId || session?.user?.id;
-      const basePayload = { ...form };
+      const totalParcelas = form.parcelado ? Math.max(parseInt(form.total_parcelas, 10) || 1, 1) : 1;
+      const basePayload = {
+        ...form,
+        parcelado: totalParcelas > 1,
+        total_parcelas: totalParcelas,
+        parcela_numero: form.parcela_numero || 1,
+      };
       delete basePayload.id;
+
+      if (!form.id && totalParcelas > 1) {
+        const parcelamentoId = makeInstallmentGroupId();
+        const valorTotal = Number(form.valor);
+        const valorBase = Math.floor((valorTotal / totalParcelas) * 100) / 100;
+        let acumulado = 0;
+
+        const parcelas = Array.from({ length: totalParcelas }, (_, index) => {
+          const parcelaNumero = index + 1;
+          const isLast = parcelaNumero === totalParcelas;
+          const valor = isLast ? Number((valorTotal - acumulado).toFixed(2)) : valorBase;
+          acumulado = Number((acumulado + valor).toFixed(2));
+
+          return {
+            ...basePayload,
+            descricao: `${form.descricao} (${parcelaNumero}/${totalParcelas})`,
+            valor,
+            data: addMonths(form.data, index),
+            parcelamento_id: parcelamentoId,
+            parcela_numero: parcelaNumero,
+            total_parcelas: totalParcelas,
+            user_id: targetUserId,
+          };
+        });
+
+        if (!targetUserId) {
+          parcelas.forEach((parcela) => {
+            delete parcela.user_id;
+          });
+        }
+
+        const { error } = await supabase.from("gastos").insert(parcelas);
+        if (error) throw new Error(error.message);
+        return;
+      }
 
       const payload = targetUserId ? { ...basePayload, user_id: targetUserId } : basePayload;
       const { error } = form.id

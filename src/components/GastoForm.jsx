@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { dataLocalHoje } from "@/lib/format";
 
@@ -14,6 +15,8 @@ export default function GastoForm({ gasto, categorias, contasPagamento, onSaved,
     data: dataLocalHoje(),
     categoria_id: null,
     conta_pagamento_id: null,
+    parcelado: false,
+    total_parcelas: "2",
     observacao: "",
   });
   const [saving, setSaving] = useState(false);
@@ -27,6 +30,8 @@ export default function GastoForm({ gasto, categorias, contasPagamento, onSaved,
         data: gasto.data,
         categoria_id: gasto.categoria_id,
         conta_pagamento_id: gasto.conta_pagamento_id,
+        parcelado: gasto.parcelado || gasto.total_parcelas > 1,
+        total_parcelas: String(gasto.total_parcelas || 1),
         observacao: gasto.observacao || "",
       });
     } else {
@@ -36,6 +41,8 @@ export default function GastoForm({ gasto, categorias, contasPagamento, onSaved,
         data: dataLocalHoje(),
         categoria_id: null,
         conta_pagamento_id: null,
+        parcelado: false,
+        total_parcelas: "2",
         observacao: "",
       });
     }
@@ -104,6 +111,40 @@ export default function GastoForm({ gasto, categorias, contasPagamento, onSaved,
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Parcelamento</Label>
+        <div className="space-y-3 rounded-lg border border-ink-200 p-3">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="parcelado"
+              checked={form.parcelado}
+              disabled={Boolean(gasto)}
+              onCheckedChange={(c) => set("parcelado", c)}
+            />
+            <Label htmlFor="parcelado" className="font-normal">Compra parcelada no cartão?</Label>
+          </div>
+          {form.parcelado && (
+            <div className="space-y-2">
+              <Label htmlFor="total_parcelas">Número de parcelas</Label>
+              <Input
+                id="total_parcelas"
+                type="number"
+                min="2"
+                step="1"
+                value={form.total_parcelas}
+                disabled={Boolean(gasto)}
+                onChange={(e) => set("total_parcelas", e.target.value)}
+                required
+              />
+              {!gasto && (
+                <p className="text-xs text-ink-500">
+                  O valor será dividido igualmente entre as parcelas, uma por mês a partir da data informada.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <div className="space-y-2">
