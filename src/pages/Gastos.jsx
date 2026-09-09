@@ -68,7 +68,14 @@ export default function Gastos() {
               <div key={gasto.id} className="group flex items-start gap-3 rounded-2xl border border-ink-200 bg-white px-4 py-3.5">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="font-medium truncate min-w-0">{gasto.descricao}</p>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="font-medium truncate min-w-0">{gasto.descricao}</p>
+                      {gasto.total_parcelas > 1 && (
+                        <span className="flex-shrink-0 rounded bg-ink-100 px-1.5 py-0.5 text-[10px] font-medium text-ink-500">
+                          {gasto.parcela_numero}/{gasto.total_parcelas}
+                        </span>
+                      )}
+                    </div>
                     <p className="flex-shrink-0 font-mono font-semibold tabular-nums">{formatCurrency(gasto.valor)}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-ink-400">
