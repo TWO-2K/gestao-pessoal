@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Clapperboard, Upload, Search, Sparkles, Check, X, ChevronLeft, ChevronRight, Clock, ListTodo, PlayCircle, CheckCircle2, PauseCircle, Lock } from "lucide-react";
+import { Plus, Clapperboard, Upload, Search, Sparkles, Check, X, ChevronLeft, ChevronRight, Clock, ListTodo, PlayCircle, CheckCircle2, PauseCircle, Lock, List, LayoutGrid } from "lucide-react";
 import { useMidias } from "@/hooks/useMidias";
 import { useFranquias } from "@/hooks/useFranquias";
 import { useUsuarios } from "@/hooks/useUsuarios";
@@ -73,6 +73,7 @@ export default function Midias() {
   const [statusEmMassa, setStatusEmMassa] = useState("");
   const [aplicandoEmMassa, setAplicandoEmMassa] = useState(false);
   const [pagina, setPagina] = useState(1);
+  const [viewMode, setViewMode] = useState("list");
   const ITENS_POR_PAGINA = 20;
 
   const { midias, isLoading, deleteMidia, createOrUpdateMidia, toggleVisivelApenasAdmin } = useMidias();
@@ -112,6 +113,7 @@ export default function Midias() {
   }, [midias, filhosPorPaiId]);
 
   const [somenteNovidades, setSomenteNovidades] = useState(false);
+  const [privacidadeFiltro, setPrivacidadeFiltro] = useState("todos");
 
   const filtradas = useMemo(
     () =>
@@ -119,6 +121,7 @@ export default function Midias() {
         .filter((m) => tipoEfetivo === "todos" || m.tipo === tipoEfetivo)
         .filter((m) => statusFiltro === "todos" || m.status === statusFiltro)
         .filter((m) => !somenteNovidades || temNovidade.has(m.id))
+        .filter((m) => privacidadeFiltro === "todos" || (privacidadeFiltro === "privados" ? m.visivel_apenas_admin : !m.visivel_apenas_admin))
         .filter((m) => m.titulo.toLowerCase().includes(busca.trim().toLowerCase()))
         .sort((a, b) => {
           if (statusFiltro === "concluido") {
@@ -128,13 +131,13 @@ export default function Midias() {
           }
           return a.titulo.localeCompare(b.titulo, "pt-BR");
         }),
-    [midias, tipoEfetivo, statusFiltro, busca, somenteNovidades, temNovidade]
+    [midias, tipoEfetivo, statusFiltro, busca, somenteNovidades, privacidadeFiltro, temNovidade]
   );
 
   useEffect(() => {
     setSelecionados(new Set());
     setPagina(1);
-  }, [tipoEfetivo, statusFiltro, busca, tipoFiltro]);
+  }, [tipoEfetivo, statusFiltro, busca, tipoFiltro, privacidadeFiltro]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / ITENS_POR_PAGINA));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -327,12 +330,40 @@ export default function Midias() {
             <Sparkles className="h-4 w-4 mr-1.5" /> Novidades ({temNovidade.size})
           </Button>
         )}
+        {isAdmin && (
+          <Select value={privacidadeFiltro} onValueChange={setPrivacidadeFiltro}>
+            <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-[180px]">
+              <SelectValue placeholder="Privacidade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Privados e públicos</SelectItem>
+              <SelectItem value="privados">Só privados</SelectItem>
+              <SelectItem value="publicos">Só públicos</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
         <Button variant="outline" onClick={() => setImportOpen(true)}>
           <Upload className="h-4 w-4 mr-1.5" /> Importar
         </Button>
         <Button onClick={abrirNovo}>
           <Plus className="h-4 w-4 mr-1.5" /> Novo
         </Button>
+        <div className="flex items-center gap-0.5 rounded-xl border border-ink-200 p-0.5">
+          <button
+            onClick={() => setViewMode("list")}
+            title="Visualização em lista"
+            className={`rounded-lg p-1.5 transition-colors ${viewMode === "list" ? "bg-ink-900 text-white" : "text-ink-400 hover:text-ink-900"}`}
+          >
+            <List className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setViewMode("card")}
+            title="Visualização em cards"
+            className={`rounded-lg p-1.5 transition-colors ${viewMode === "card" ? "bg-ink-900 text-white" : "text-ink-400 hover:text-ink-900"}`}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {selecionados.size > 0 && (
@@ -374,6 +405,74 @@ export default function Midias() {
         <div className="text-center py-20 text-ink-400">
           <Clapperboard className="h-10 w-10 mx-auto mb-3 opacity-40" />
           <p>Nada por aqui ainda.</p>
+        </div>
+      ) : viewMode === "card" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {paginadas.map((m) => (
+            <div
+              key={m.id}
+              onClick={() => irPara(m)}
+              className={`cursor-pointer rounded-2xl border bg-white p-4 transition-colors hover:border-ink-300 ${selecionados.has(m.id) ? "bg-sky-50 border-sky-200" : "border-ink-200"}`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-1.5 min-w-0" onClick={(e) => toggleSelecionado(m.id, e)}>
+                  <Checkbox checked={selecionados.has(m.id)} onCheckedChange={() => {}} />
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {temNovidade.has(m.id) && (
+                    <span
+                      title="Tem temporada/relacionado novo desde que você concluiu"
+                      className="flex-shrink-0 flex items-center gap-0.5 text-[10px] font-medium rounded-full bg-sky-100 text-sky-700 px-1.5 py-0.5"
+                    >
+                      <Sparkles className="h-2.5 w-2.5" /> Novo
+                    </span>
+                  )}
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); toggleVisivelApenasAdmin({ id: m.id, visivel_apenas_admin: !m.visivel_apenas_admin }); }}
+                      title={m.visivel_apenas_admin ? "Visível só para admin — clique para tornar público" : "Marcar como visível só para admin"}
+                      className={`flex h-5 w-5 items-center justify-center rounded border transition-colors ${
+                        m.visivel_apenas_admin
+                          ? "bg-ink-900 border-ink-900 text-white"
+                          : "border-ink-200 text-transparent hover:border-ink-300"
+                      }`}
+                    >
+                      <Lock className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <p className="mt-2 font-medium text-ink-900 truncate">{m.titulo}</p>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 text-xs text-ink-400">
+                <span>{TIPO_LABEL[m.tipo]}</span>
+                {!["filme", "especial"].includes(m.tipo) && m.episodio_atual != null && (
+                  <span>Ep. {m.episodio_atual}</span>
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-2 mt-2.5">
+                <span className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[m.status]}`}>
+                  {STATUS_LABEL[m.status]}
+                </span>
+                {outrosUsuarios.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1">
+                    {outrosUsuarios.map((u) => {
+                      const st = m.statusPorUsuario?.[u.id]?.status || "pendente";
+                      return (
+                        <span
+                          key={u.id}
+                          title={`${u.nome}: ${STATUS_LABEL[st]}`}
+                          className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold uppercase ${STATUS_STYLE[st]}`}
+                        >
+                          {u.nome.trim().charAt(0)}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="rounded-2xl border border-ink-200 bg-white overflow-hidden">
