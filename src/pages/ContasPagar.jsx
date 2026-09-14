@@ -4,7 +4,7 @@ import ContaForm from "@/components/ContaForm";
 import ReparcelarForm from "@/components/ReparcelarForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, ArrowUpCircle, Check, Repeat, AlertTriangle, Clock, CheckCircle2, XCircle, Bell, BellOff, Layers } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUpCircle, Check, Repeat, AlertTriangle, Clock, CheckCircle2, XCircle, Bell, BellOff, Layers, CalendarClock } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import MonthFilter, { isInMonth } from "@/components/MonthFilter";
@@ -49,6 +49,7 @@ export default function ContasPagar() {
     toggleStatusConta,
     createOrUpdateConta,
     reparcelarConta,
+    adiarParcela,
     catMap,
     contaPagamentoMap,
   } = useContas();
@@ -224,6 +225,11 @@ export default function ContasPagar() {
                   {conta.total_parcelas > 1 && (
                     <button onClick={() => setReparcelando(conta)} title="Reparcelar" className="p-2 text-ink-400 hover:text-ink-900">
                       <Layers className="h-4 w-4" />
+                    </button>
+                  )}
+                  {!pago && (
+                    <button onClick={() => adiarParcela(conta)} title="Adiar para o próximo mês" className="p-2 text-ink-400 hover:text-ink-900">
+                      <CalendarClock className="h-4 w-4" />
                     </button>
                   )}
                   <button onClick={() => deleteConta(conta.id)} className="p-2 text-ink-400 hover:text-rust-600">

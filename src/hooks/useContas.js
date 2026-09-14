@@ -254,6 +254,15 @@ export function useContas() {
     ...mutationOptions,
   });
 
+  const adiarParcelaMutation = useMutation({
+    mutationFn: async (conta) => {
+      const novoVencimento = addMonths(conta.vencimento, 1);
+      const { error } = await supabase.from('contas_pagar').update({ vencimento: novoVencimento }).match({ id: conta.id });
+      if (error) throw error;
+    },
+    ...mutationOptions,
+  });
+
   const catMap = useMemo(() => Object.fromEntries(categorias.map((c) => [c.id, c])), [categorias]);
   const contaPagamentoMap = useMemo(() => Object.fromEntries(contasPagamento.map((c) => [c.id, c])), [contasPagamento]);
 
@@ -273,6 +282,7 @@ export function useContas() {
     isLoading,
     deleteConta: deleteMutation.mutate,
     toggleStatusConta: toggleStatusMutation.mutate,
+    adiarParcela: adiarParcelaMutation.mutate,
     createOrUpdateConta: createOrUpdateMutation.mutateAsync,
     reparcelarConta: reparcelarMutation.mutateAsync,
     catMap,
