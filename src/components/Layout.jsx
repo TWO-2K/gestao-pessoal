@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare, CalendarDays, Eye, ChevronDown, Clapperboard, Dumbbell, Scale, Target, ClipboardList, TrendingUp, Ruler, ListChecks } from "lucide-react";
+import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare, CalendarDays, Eye, ChevronDown, Clapperboard, Dumbbell, Scale, Target, ClipboardList, TrendingUp, Ruler, ListChecks, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 import { useUsuarios } from "@/hooks/useUsuarios";
@@ -98,6 +98,16 @@ export default function Layout() {
     setOpenSection((prev) => (prev === name ? null : name));
   };
 
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem("sidebar-collapsed") === "1"; } catch { return false; }
+  });
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      try { localStorage.setItem("sidebar-collapsed", prev ? "0" : "1"); } catch { /* ignore */ }
+      return !prev;
+    });
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/login", { replace: true });
@@ -106,29 +116,46 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-ink-50 text-ink-900 font-body">
       {/* Sidebar desktop — "lombada" de livro-caixa */}
-      <aside className="hidden md:flex fixed inset-y-0 left-0 w-64 flex-col bg-ink-900 px-5 py-7">
+      <aside
+        className={cn(
+          "hidden md:flex fixed inset-y-0 left-0 z-30 flex-col bg-ink-900 py-7 transition-[width] duration-200",
+          collapsed ? "w-[4.5rem] px-3" : "w-64 px-5"
+        )}
+      >
         <div className="absolute right-0 top-0 bottom-0 w-[3px] bg-gold-500/80" />
-        <div className="flex items-center gap-3 px-2 mb-10">
+        <div className={cn("flex items-center gap-3 mb-10", collapsed ? "justify-center" : "px-2")}>
           <div className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0">
             <img src="/pwa-192x192.png" alt="Logo" className="h-full w-full object-cover" />
           </div>
-          <div>
-            <p className="font-display text-lg leading-tight tracking-tight text-ink-50">Órbita</p>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-ink-50/40 leading-tight">Painel pessoal</p>
-          </div>
+          {!collapsed && (
+            <div>
+              <p className="font-display text-lg leading-tight tracking-tight text-ink-50">Órbita</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-ink-50/40 leading-tight">Painel pessoal</p>
+            </div>
+          )}
         </div>
+        <button
+          onClick={toggleCollapsed}
+          title={collapsed ? "Expandir menu" : "Recolher menu"}
+          aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+          className="absolute -right-3 top-9 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-ink-50/15 bg-ink-900 text-ink-50/50 hover:text-gold-400 hover:border-gold-500/60 transition-colors"
+        >
+          {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+        </button>
         <nav className="sidebar-scroll flex-1 min-h-0 overflow-y-auto space-y-3 pr-1 -mr-1">
           {sectionsWithAdmin.map((sec) => {
-            const isCollapsed = openSection !== sec.section;
+            const isCollapsed = !collapsed && openSection !== sec.section;
             return (
-              <div key={sec.section}>
-                <button
-                  onClick={() => toggleSection(sec.section)}
-                  className="w-full flex items-center justify-between px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-50/35 hover:text-ink-50/60 transition-colors"
-                >
-                  {sec.section}
-                  <ChevronDown className={cn("h-3 w-3 transition-transform", isCollapsed && "-rotate-90")} />
-                </button>
+              <div key={sec.section} className={cn(collapsed && "border-t border-ink-50/10 pt-3 first:border-t-0 first:pt-0")}>
+                {!collapsed && (
+                  <button
+                    onClick={() => toggleSection(sec.section)}
+                    className="w-full flex items-center justify-between px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-50/35 hover:text-ink-50/60 transition-colors"
+                  >
+                    {sec.section}
+                    <ChevronDown className={cn("h-3 w-3 transition-transform", isCollapsed && "-rotate-90")} />
+                  </button>
+                )}
                 {!isCollapsed && (
                   <div className="space-y-1">
                     {sec.items.map((item) => {
@@ -137,13 +164,15 @@ export default function Layout() {
                         <Link
                           key={item.to}
                           to={item.to}
+                          title={collapsed ? item.label : undefined}
                           className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                            "flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition-colors",
+                            collapsed ? "justify-center px-0" : "px-3",
                             active ? "bg-ink-50/10 text-gold-400" : "text-ink-50/60 hover:bg-ink-50/5 hover:text-ink-50"
                           )}
                         >
                           <item.icon className="h-[18px] w-[18px]" />
-                          {item.label}
+                          {!collapsed && item.label}
                         </Link>
                       );
                     })}
@@ -154,7 +183,7 @@ export default function Layout() {
           })}
         </nav>
 
-        {isAdmin && (
+        {isAdmin && !collapsed && (
           <div className="flex-shrink-0 border-t border-ink-50/10 pt-4 mt-2 mb-2">
             <AdminUserSwitcher />
           </div>
@@ -163,16 +192,25 @@ export default function Layout() {
         <div className="flex-shrink-0 border-t border-ink-50/10 pt-4 mt-2">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-50/60 hover:bg-ink-50/5 hover:text-rust-200 transition-colors"
+            title={collapsed ? "Sair" : undefined}
+            className={cn(
+              "w-full flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium text-ink-50/60 hover:bg-ink-50/5 hover:text-rust-200 transition-colors",
+              collapsed ? "justify-center px-0" : "px-3"
+            )}
           >
             <LogOut className="h-[18px] w-[18px]" />
-            Sair
+            {!collapsed && "Sair"}
           </button>
         </div>
       </aside>
 
       {/* Main */}
-      <main className="md:pl-64 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0">
+      <main
+        className={cn(
+          "pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0 transition-[padding] duration-200",
+          collapsed ? "md:pl-[4.5rem]" : "md:pl-64"
+        )}
+      >
         <IosInstallHint />
         {isViewingOther && (
           <div className="flex items-center gap-2 bg-gold-500/15 border-b border-gold-500/30 px-5 py-2 text-xs font-medium text-gold-700">
@@ -180,7 +218,12 @@ export default function Layout() {
             Visualizando dados de {viewedUsuario?.nome || viewedUsuario?.email || "outro usuário"}
           </div>
         )}
-        <div className="mx-auto max-w-5xl px-5 py-8 md:py-10">
+        <div
+          className={cn(
+            "mx-auto py-8 md:py-10",
+            location.pathname.startsWith("/midias") ? "max-w-[96rem] px-3 md:px-4" : "max-w-5xl px-5"
+          )}
+        >
           <Outlet />
         </div>
       </main>

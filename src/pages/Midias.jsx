@@ -75,6 +75,15 @@ export default function Midias() {
   const [pagina, setPagina] = useState(1);
   const [viewMode, setViewMode] = useState("list");
   const ITENS_POR_PAGINA = 20;
+  const [planejadosAberto, setPlanejadosAberto] = useState(() => {
+    try { return localStorage.getItem("midias-planejados-aberto") !== "0"; } catch { return true; }
+  });
+  const togglePlanejados = () => {
+    setPlanejadosAberto((prev) => {
+      try { localStorage.setItem("midias-planejados-aberto", prev ? "0" : "1"); } catch { /* ignore */ }
+      return !prev;
+    });
+  };
 
   const { midias, isLoading, deleteMidia, createOrUpdateMidia, toggleVisivelApenasAdmin } = useMidias();
   const { franquias, createFranquia } = useFranquias();
@@ -249,6 +258,17 @@ export default function Midias() {
     }
   };
 
+  const gruposPainel = useMemo(() => {
+    const porStatus = (status) =>
+      escopoMetricas
+        .filter((m) => m.status === status)
+        .sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR"));
+    return [
+      { status: "assistindo", label: "Assistindo", icon: PlayCircle, itens: porStatus("assistindo") },
+      { status: "planejado", label: "Planejados", icon: ListTodo, itens: porStatus("planejado") },
+    ];
+  }, [escopoMetricas]);
+
   return (
     <div>
       <PageHeader
@@ -399,6 +419,8 @@ export default function Midias() {
         </div>
       )}
 
+      <div className="flex items-start gap-4">
+      <div className="min-w-0 flex-1">
       {isLoading ? (
         <div className="text-ink-400 text-sm">Carregando...</div>
       ) : filtradas.length === 0 ? (
@@ -565,6 +587,72 @@ export default function Midias() {
         </div>
       )}
 
+      </div>
+    <aside
+      className={`hidden xl:block relative self-stretch min-h-[16rem] flex-shrink-0 rounded-2xl border border-ink-200 bg-white transition-[width] duration-200 ${planejadosAberto ? "w-72" : "w-12"}`}
+    >
+      <button
+        onClick={togglePlanejados}
+        title={planejadosAberto ? "Recolher painel" : "Mostrar painel"}
+        aria-label={planejadosAberto ? "Recolher painel" : "Mostrar painel"}
+        className="absolute -left-3 top-9 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-ink-200 bg-white text-ink-400 hover:text-ink-900 hover:border-ink-300 transition-colors"
+      >
+        {planejadosAberto ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+      </button>
+
+      {planejadosAberto ? (
+        <div className="scroll-fino absolute inset-0 overflow-y-auto rounded-2xl pb-2">
+          {gruposPainel.map((g) => (
+            <section key={g.status}>
+              <div className="flex items-center justify-between px-5 py-4 mb-1 border-b border-ink-100">
+                <div className="flex items-center gap-2">
+                  <g.icon className="h-4 w-4 text-ink-400" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">{g.label}</span>
+                </div>
+                <span className="rounded-full bg-ink-100 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-ink-500">
+                  {g.itens.length}
+                </span>
+              </div>
+              {g.itens.length === 0 ? (
+                <p className="px-5 py-4 text-xs text-ink-400">Nada por aqui.</p>
+              ) : (
+                <ul className="px-2 pb-2 space-y-0.5">
+                  {g.itens.map((m) => (
+                    <li key={m.id}>
+                      <button
+                        onClick={() => irPara(m)}
+                        title={m.titulo}
+                        className="w-full rounded-lg px-2.5 py-2 text-left text-ink-900 hover:bg-ink-50 transition-colors"
+                      >
+                        <p className="text-sm leading-snug truncate">{m.titulo}</p>
+                        <p className="text-[10px] uppercase tracking-wide text-ink-400">
+                          {[
+                            tipoEfetivo === "todos" ? TIPO_LABEL[m.tipo] : null,
+                            g.status === "assistindo" && !["filme", "especial"].includes(m.tipo) && m.episodio_atual != null
+                              ? `Ep. ${m.episodio_atual}`
+                              : null,
+                          ].filter(Boolean).join(" · ")}
+                        </p>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-3 py-3 text-ink-500">
+          {gruposPainel.map((g) => (
+            <div key={g.status} title={g.label} className="flex flex-col items-center gap-1">
+              <g.icon className="h-[18px] w-[18px] text-ink-400" />
+              <span className="text-[11px] font-semibold tabular-nums">{g.itens.length}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </aside>
+      </div>
       {!isLoading && filtradas.length > 0 && totalPaginas > 1 && (
         <div className="flex items-center justify-between mt-3 text-sm text-ink-500">
           <span>

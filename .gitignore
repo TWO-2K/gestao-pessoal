@@ -40,3 +40,5 @@ supabase/.temp
 dump_backup/
 .vercel
 .env*
+
+!.env.example
