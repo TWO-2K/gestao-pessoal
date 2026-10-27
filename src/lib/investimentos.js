@@ -100,17 +100,18 @@ export async function lerPlanilhaInvestimentos(file) {
   const avisos = [];
   const ativos = new Map();
   const garantirAtivo = (ticker) => {
-    if (!ativos.has(ticker)) ativos.set(ticker, { ticker, tipo: inferirTipoAtivo(ticker), meta_cotas: null, cotacao_atual: null, frequencia_pagamento: null });
+    if (!ativos.has(ticker)) ativos.set(ticker, { ticker, tipo: inferirTipoAtivo(ticker), meta_cotas: null, cotacao_atual: null, preco_teto: null, frequencia_pagamento: null });
     return ativos.get(ticker);
   };
 
-  // Carteira: D=ticker, G=meta, J=cotação de hoje, Q=frequência de pagamento
+  // Carteira: D=ticker, G=meta, J=cotação de hoje, Q=frequência de pagamento, T=valor teto
   linhas("Carteira").slice(1).forEach((r) => {
     const ticker = normalizarTicker(r[3]);
     if (!ticker || ticker === "CARTEIRA") return;
     const a = garantirAtivo(ticker);
     a.meta_cotas = num(r[6]);
     a.cotacao_atual = num(r[9]);
+    a.preco_teto = num(r[19]);
     if (typeof r[16] === "string" && r[16].trim()) a.frequencia_pagamento = r[16].trim();
   });
 

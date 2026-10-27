@@ -7,7 +7,7 @@ import InvestimentosImportDialog from "@/components/InvestimentosImportDialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
+import CarteiraTabela, { coresDosAtivos } from "@/components/CarteiraTabela";
 import TokenBrapiDialog from "@/components/TokenBrapiDialog";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Pencil, Trash2, Upload, LineChart, RefreshCw } from "lucide-react";
@@ -22,15 +22,46 @@ const mesAtual = () => { const n = new Date(); return { month: n.getMonth(), yea
 
 function Resumo({ itens }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
       {itens.map(([rotulo, valor]) => (
-        <div key={rotulo} className="rounded-2xl border border-ink-200 bg-white px-4 py-3">
+        <div key={rotulo} className="col-span-1 last:col-span-2 md:last:col-span-1 rounded-2xl border border-ink-200 bg-white px-4 py-3">
           <p className="text-xs text-ink-400">{rotulo}</p>
-          <p className="font-mono font-semibold tabular-nums mt-0.5">{valor}</p>
+          <p className="font-semibold tabular-nums mt-0.5">{valor}</p>
         </div>
       ))}
     </div>
   );
+}
+
+const nomeMes = (chave) => {
+  const [ano, mes] = chave.split("-");
+  return new Date(Number(ano), Number(mes) - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+};
+
+// Agrupa registros (já ordenados por data desc) por mês, com o subtotal de cada grupo
+function agruparPorMes(registros, valorDe) {
+  const grupos = new Map();
+  registros.forEach((r) => {
+    const chave = r.data.slice(0, 7);
+    if (!grupos.has(chave)) grupos.set(chave, { chave, itens: [], total: 0 });
+    const g = grupos.get(chave);
+    g.itens.push(r);
+    g.total += valorDe(r);
+  });
+  return [...grupos.values()];
+}
+
+function CabecalhoMes({ chave, total, rotuloTotal }) {
+  return (
+    <div className="flex items-baseline justify-between px-1 pt-2">
+      <h3 className="text-sm font-semibold capitalize text-ink-900">{nomeMes(chave)}</h3>
+      <span className="text-xs text-ink-400">{rotuloTotal} <b className="text-ink-700">{formatCurrency(total)}</b></span>
+    </div>
+  );
+}
+
+function Chip({ className, children }) {
+  return <span className={`ml-2 rounded px-1.5 py-0.5 text-[10px] font-medium ${className}`}>{children}</span>;
 }
 
 function Vazio({ children }) {
@@ -59,6 +90,7 @@ export default function Investimentos() {
   const [mesProventos, setMesProventos] = useState(mesAtual);
   const [dialog, setDialog] = useState(null); // { tipo: 'ativo'|'aporte'|'provento', item }
   const [importOpen, setImportOpen] = useState(false);
+  const [mostrarInativos, setMostrarInativos] = useState(false);
 
   const [tokenOpen, setTokenOpen] = useState(false);
   const [atualizando, setAtualizando] = useState(false);
@@ -69,7 +101,7 @@ export default function Investimentos() {
     if (!token) { setTokenOpen(true); return; }
     setAtualizando(true);
     try {
-      const { cotacoes, naoEncontrados } = await buscarCotacoes(ativos.map((a) => a.ticker), token);
+      const { cotacoes, naoEncontrados } = await buscarCotacoes(ativos.filter((a) => !a.inativo).map((a) => a.ticker), token);
       await inv.atualizarCotacoes(cotacoes);
       toast({
         title: `${cotacoes.size} cotações atualizadas`,
@@ -92,11 +124,28 @@ export default function Investimentos() {
     return { ...a, ...p, valorAtual, pctMeta };
   }), [ativos, posicoes]);
 
+  const qtdInativos = carteira.filter((a) => a.inativo).length;
+  // Inativos ficam numa visão separada; se o último for reativado, volta para a lista principal
+  const verInativos = mostrarInativos && qtdInativos > 0;
+  // Metas em andamento primeiro, concluídas por último (dentro de cada grupo, ordem alfabética)
+  const carteiraVisivel = useMemo(
+    () => carteira
+      .filter((a) => Boolean(a.inativo) === verInativos)
+      .sort((a, b) => Number(a.pctMeta >= 100) - Number(b.pctMeta >= 100)),
+    [carteira, verInativos]
+  );
+  // Nos formulários só aparecem ativos em uso (mais o já escolhido, ao editar um registro antigo)
+  const ativosEmUso = (atual) => ativos.filter((a) => !a.inativo || a.id === atual);
+
+  // Totais do resumo: só ativos em uso
   const totais = useMemo(() => {
-    const investido = carteira.reduce((s, a) => s + a.investido, 0);
-    const valorAtual = carteira.reduce((s, a) => s + (a.valorAtual ?? a.investido), 0);
-    const recebido = proventos.reduce((s, p) => s + Number(p.valor), 0);
-    return { investido, valorAtual, recebido };
+    const emUso = carteira.filter((a) => !a.inativo);
+    const idsEmUso = new Set(emUso.map((a) => a.id));
+    const investido = emUso.reduce((s, a) => s + a.investido, 0);
+    const valorAtual = emUso.reduce((s, a) => s + (a.valorAtual ?? a.investido), 0);
+    const recebido = proventos.filter((p) => idsEmUso.has(p.ativo_id)).reduce((s, p) => s + Number(p.valor), 0);
+    const cotas = emUso.reduce((s, a) => s + a.cotas, 0);
+    return { investido, valorAtual, recebido, cotas };
   }, [carteira, proventos]);
 
   const aportesFiltrados = useMemo(
@@ -112,6 +161,17 @@ export default function Investimentos() {
     [proventos, mesProventos]
   );
   const totalProventosMes = proventosFiltrados.reduce((s, p) => s + Number(p.valor), 0);
+
+  const paleta = useMemo(() => {
+    const cores = coresDosAtivos(ativos.length);
+    return new Map(ativos.map((a, i) => [a.id, cores[i]]));
+  }, [ativos]);
+  const corDe = (ativoId) => paleta.get(ativoId) || { texto: "inherit", barra: "#BCAF87" };
+  const gruposAportes = useMemo(
+    () => agruparPorMes(aportesFiltrados, (a) => (a.status === "realizado" && a.tipo === "compra" ? a.quantidade * a.preco : 0)),
+    [aportesFiltrados]
+  );
+  const gruposProventos = useMemo(() => agruparPorMes(proventosFiltrados, (p) => Number(p.valor)), [proventosFiltrados]);
 
   const proventosPorMes = useMemo(() => {
     const mapa = new Map();
@@ -132,7 +192,7 @@ export default function Investimentos() {
   }[aba];
 
   return (
-    <div>
+    <div className="tabular-nums">
       <PageHeader
         title="Investimentos"
         subtitle="Carteira, aportes e proventos"
@@ -157,6 +217,7 @@ export default function Investimentos() {
           ["Valor atual", formatCurrency(totais.valorAtual)],
           ["Resultado", formatCurrency(totais.valorAtual - totais.investido)],
           ["Proventos recebidos", formatCurrency(totais.recebido)],
+          ["Total de cotas", fmtNum(totais.cotas)],
         ]}
       />
 
@@ -171,83 +232,75 @@ export default function Investimentos() {
           </TabsList>
 
           <TabsContent value="carteira">
-            {carteira.length === 0 ? (
-              <Vazio>Nenhum ativo. Cadastre um ou importe sua planilha.</Vazio>
-            ) : (
-              <div className="space-y-2.5">
-                {carteira.map((a) => (
-                  <div key={a.id} className="group rounded-2xl border border-ink-200 bg-white px-4 py-3.5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-medium">
-                          {a.ticker}
-                          <span className="ml-2 rounded bg-ink-100 px-1.5 py-0.5 text-[10px] font-medium text-ink-500">{tipoLabel(a.tipo)}</span>
-                        </p>
-                        <p className="text-xs text-ink-400 mt-1">
-                          {fmtNum(a.cotas)} cotas · PM {formatCurrency(a.precoMedio)}
-                          {a.cotacao_atual ? ` · hoje ${formatCurrency(a.cotacao_atual)}` : ""}
-                          {a.frequencia_pagamento ? ` · ${a.frequencia_pagamento}/ano` : ""}
-                        </p>
-                      </div>
-                      <div className="flex items-start gap-1">
-                        <div className="text-right">
-                          <p className="font-mono font-semibold tabular-nums">{formatCurrency(a.investido)}</p>
-                          {a.valorAtual != null && (
-                            <p className={`text-xs font-mono tabular-nums ${a.valorAtual >= a.investido ? "text-forest-600" : "text-rust-600"}`}>
-                              {formatCurrency(a.valorAtual - a.investido)}
-                            </p>
-                          )}
-                        </div>
-                        <Acoes
-                          onEdit={() => setDialog({ tipo: "ativo", item: a })}
-                          onDelete={() => window.confirm(`Excluir ${a.ticker} e todos os aportes e proventos dele?`) && inv.removerAtivo(a.id)}
-                        />
-                      </div>
-                    </div>
-                    {a.pctMeta != null && (
-                      <div className="mt-3 flex items-center gap-3">
-                        <Progress value={a.pctMeta} className="h-1.5 flex-1" />
-                        <span className="text-xs text-ink-400 tabular-nums">
-                          {fmtNum(a.cotas)}/{fmtNum(a.meta_cotas)} · {a.pctMeta.toFixed(1)}%
-                        </span>
-                      </div>
-                    )}
-                    {a.planejadoCotas > 0 && <p className="text-xs text-ink-400 mt-2">{fmtNum(a.planejadoCotas)} cotas planejadas</p>}
-                  </div>
+            {qtdInativos > 0 && (
+              <div className="mb-3 inline-flex rounded-lg bg-ink-100 p-0.5 text-xs font-medium">
+                {[[false, `Em uso (${carteira.length - qtdInativos})`], [true, `Inativos (${qtdInativos})`]].map(([valor, rotulo]) => (
+                  <button
+                    key={String(valor)}
+                    onClick={() => setMostrarInativos(valor)}
+                    className={`rounded-md px-3 py-1.5 transition-colors ${verInativos === valor ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:text-ink-900"}`}
+                  >
+                    {rotulo}
+                  </button>
                 ))}
               </div>
+            )}
+            {carteiraVisivel.length === 0 ? (
+              <Vazio>{carteira.length === 0 ? "Nenhum ativo. Cadastre um ou importe sua planilha." : "Todos os ativos estão inativos."}</Vazio>
+            ) : (
+              <CarteiraTabela
+                carteira={carteiraVisivel}
+                cores={paleta}
+                onToggleInativo={(a) => inv.salvarAtivo({ id: a.id, inativo: !a.inativo })}
+                onEdit={(a) => setDialog({ tipo: "ativo", item: a })}
+                onDelete={(a) => window.confirm(`Excluir ${a.ticker} e todos os aportes e proventos dele?`) &&inv.removerAtivo(a.id)}
+              />
             )}
           </TabsContent>
 
           <TabsContent value="aportes">
             <div className="flex flex-wrap items-center gap-3 mb-4">
               <MonthFilter value={mesAportes} onChange={setMesAportes} />
-              <span className="text-sm text-ink-500">Aportado: <b className="font-mono">{formatCurrency(totalAportado)}</b></span>
+              <span className="text-sm text-ink-500">Aportado: <b className="tabular-nums">{formatCurrency(totalAportado)}</b></span>
             </div>
             {aportesFiltrados.length === 0 ? (
               <Vazio>Nenhum aporte neste período.</Vazio>
             ) : (
               <div className="space-y-2">
-                {aportesFiltrados.map((ap) => (
-                  <div key={ap.id} className="group flex items-center gap-3 rounded-2xl border border-ink-200 bg-white px-4 py-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium">
-                        {ativoMap[ap.ativo_id]?.ticker || "—"}
-                        {ap.tipo === "venda" && <span className="ml-2 text-xs text-rust-600">venda</span>}
-                        {ap.status === "planejado" && (
-                          <span className="ml-2 rounded bg-ink-100 px-1.5 py-0.5 text-[10px] font-medium text-ink-500">planejado</span>
-                        )}
-                      </p>
-                      <p className="text-xs text-ink-400 mt-0.5">
-                        {formatDate(ap.data)} · {fmtNum(ap.quantidade)} × {formatCurrency(ap.preco)}
-                      </p>
-                    </div>
-                    <p className="font-mono font-semibold tabular-nums">{formatCurrency(ap.quantidade * ap.preco)}</p>
-                    <Acoes
-                      onEdit={() => setDialog({ tipo: "aporte", item: ap })}
-                      onDelete={() => inv.removerAporte(ap.id)}
-                    />
-                  </div>
+                {gruposAportes.map((g) => (
+                  <React.Fragment key={g.chave}>
+                    <CabecalhoMes chave={g.chave} total={g.total} rotuloTotal="aportado" />
+                    {g.itens.map((ap) => {
+                      const cor = corDe(ap.ativo_id);
+                      const venda = ap.tipo === "venda";
+                      const planejado = ap.status === "planejado";
+                      return (
+                        <div
+                          key={ap.id}
+                          className={`group flex items-center gap-3 rounded-2xl border border-l-4 bg-white even:bg-ink-50/70 px-4 py-3 ${planejado ? "border-dashed border-ink-300" : "border-ink-200"}`}
+                          style={{ borderLeftColor: cor.barra }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold" style={{ color: cor.texto }}>
+                              {ativoMap[ap.ativo_id]?.ticker || "—"}
+                              <Chip className={venda ? "bg-rust-50 text-rust-600" : "bg-forest-50 text-forest-600"}>{venda ? "venda" : "compra"}</Chip>
+                              {planejado && <Chip className="bg-gold-500/15 text-gold-700">planejado</Chip>}
+                            </p>
+                            <p className="text-xs text-ink-400 mt-0.5">
+                              {formatDate(ap.data)} · {fmtNum(ap.quantidade)} × {formatCurrency(ap.preco)}
+                            </p>
+                          </div>
+                          <p className={`font-semibold tabular-nums ${venda ? "text-rust-600" : planejado ? "text-ink-400" : ""}`}>
+                            {venda ? "−" : ""}{formatCurrency(ap.quantidade * ap.preco)}
+                          </p>
+                          <Acoes
+                            onEdit={() => setDialog({ tipo: "aporte", item: ap })}
+                            onDelete={() => inv.removerAporte(ap.id)}
+                          />
+                        </div>
+                      );
+                    })}
+                  </React.Fragment>
                 ))}
               </div>
             )}
@@ -260,31 +313,46 @@ export default function Investimentos() {
                   <BarChart data={proventosPorMes}>
                     <XAxis dataKey="mes" tickLine={false} axisLine={false} fontSize={11} />
                     <Tooltip formatter={(v) => formatCurrency(v)} cursor={{ fill: "transparent" }} />
-                    <Bar dataKey="total" name="Proventos" fill="currentColor" className="text-ink-900" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="total" name="Proventos" fill="currentColor" className="text-forest-500" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
             <div className="flex flex-wrap items-center gap-3 mb-4">
               <MonthFilter value={mesProventos} onChange={setMesProventos} />
-              <span className="text-sm text-ink-500">Recebido: <b className="font-mono">{formatCurrency(totalProventosMes)}</b></span>
+              <span className="text-sm text-ink-500">Recebido: <b className="tabular-nums">{formatCurrency(totalProventosMes)}</b></span>
             </div>
             {proventosFiltrados.length === 0 ? (
               <Vazio>Nenhum provento neste período.</Vazio>
             ) : (
               <div className="space-y-2">
-                {proventosFiltrados.map((pv) => (
-                  <div key={pv.id} className="group flex items-center gap-3 rounded-2xl border border-ink-200 bg-white px-4 py-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium">{ativoMap[pv.ativo_id]?.ticker || "—"}</p>
-                      <p className="text-xs text-ink-400 mt-0.5 capitalize">{formatDate(pv.data)} · {pv.tipo}</p>
-                    </div>
-                    <p className="font-mono font-semibold tabular-nums">{formatCurrency(pv.valor)}</p>
-                    <Acoes
-                      onEdit={() => setDialog({ tipo: "provento", item: pv })}
-                      onDelete={() => inv.removerProvento(pv.id)}
-                    />
-                  </div>
+                {gruposProventos.map((g) => (
+                  <React.Fragment key={g.chave}>
+                    <CabecalhoMes chave={g.chave} total={g.total} rotuloTotal="recebido" />
+                    {g.itens.map((pv) => {
+                      const cor = corDe(pv.ativo_id);
+                      return (
+                        <div
+                          key={pv.id}
+                          className="group flex items-center gap-3 rounded-2xl border border-l-4 border-ink-200 bg-white even:bg-ink-50/70 px-4 py-3"
+                          style={{ borderLeftColor: cor.barra }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold" style={{ color: cor.texto }}>
+                              {ativoMap[pv.ativo_id]?.ticker || "—"}
+                              <Chip className="bg-ink-100 text-ink-500 capitalize">{pv.tipo}</Chip>
+                            </p>
+                            <p className="text-xs text-ink-400 mt-0.5">{formatDate(pv.data)}</p>
+                          </div>
+                          <p className="font-semibold tabular-nums text-forest-600">+{formatCurrency(pv.valor)}</p>
+                          <Acoes
+                            onEdit={() => setDialog({ tipo: "provento", item: pv })}
+                            onDelete={() => inv.removerProvento(pv.id)}
+                          />
+                        </div>
+                      );
+                    })}
+                  </React.Fragment>
                 ))}
               </div>
             )}
@@ -302,8 +370,8 @@ export default function Investimentos() {
             </DialogTitle>
           </DialogHeader>
           {dialog?.tipo === "ativo" && <AtivoForm ativo={dialog.item} onSaved={salvar(inv.salvarAtivo)} onCancel={fechar} />}
-          {dialog?.tipo === "aporte" && <AporteForm aporte={dialog.item} ativos={ativos} onSaved={salvar(inv.salvarAporte)} onCancel={fechar} />}
-          {dialog?.tipo === "provento" && <ProventoForm provento={dialog.item} ativos={ativos} onSaved={salvar(inv.salvarProvento)} onCancel={fechar} />}
+          {dialog?.tipo === "aporte" && <AporteForm aporte={dialog.item} posicoes={posicoes} ativos={ativosEmUso(dialog.item?.ativo_id)} onSaved={salvar(inv.salvarAporte)} onCancel={fechar} />}
+          {dialog?.tipo === "provento" && <ProventoForm provento={dialog.item} ativos={ativosEmUso(dialog.item?.ativo_id)} onSaved={salvar(inv.salvarProvento)} onCancel={fechar} />}
         </DialogContent>
       </Dialog>
 

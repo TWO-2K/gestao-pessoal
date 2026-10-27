@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { dataLocalHoje } from "@/lib/format";
@@ -59,6 +60,8 @@ export function AtivoForm({ ativo, onSaved, onCancel }) {
       tipo: ativo?.tipo || "acao",
       meta_cotas: ativo?.meta_cotas ?? "",
       cotacao_atual: ativo?.cotacao_atual ?? "",
+      preco_teto: ativo?.preco_teto ?? "",
+      inativo: ativo?.inativo || false,
       frequencia_pagamento: ativo?.frequencia_pagamento || "",
     },
     onSaved
@@ -72,6 +75,8 @@ export function AtivoForm({ ativo, onSaved, onCancel }) {
         tipo: f.tipo,
         meta_cotas: numOuNull(f.meta_cotas),
         cotacao_atual: numOuNull(f.cotacao_atual),
+        preco_teto: numOuNull(f.preco_teto),
+        inativo: f.inativo,
         frequencia_pagamento: f.frequencia_pagamento || null,
       }))}
       className="space-y-4"
@@ -100,7 +105,7 @@ export function AtivoForm({ ativo, onSaved, onCancel }) {
         <Label htmlFor="nome">Nome (opcional)</Label>
         <Input id="nome" value={form.nome} onChange={(e) => set("nome", e.target.value)} />
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="meta">Meta (cotas)</Label>
           <Input id="meta" type="number" step="1" value={form.meta_cotas} onChange={(e) => set("meta_cotas", e.target.value)} />
@@ -110,16 +115,27 @@ export function AtivoForm({ ativo, onSaved, onCancel }) {
           <Input id="cotacao" type="number" step="0.01" value={form.cotacao_atual} onChange={(e) => set("cotacao_atual", e.target.value)} />
         </div>
         <div className="space-y-2">
+          <Label htmlFor="teto">Valor teto (R$)</Label>
+          <Input id="teto" type="number" step="0.01" value={form.preco_teto} onChange={(e) => set("preco_teto", e.target.value)} />
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="freq">Pagamentos/ano</Label>
           <Input id="freq" value={form.frequencia_pagamento} onChange={(e) => set("frequencia_pagamento", e.target.value)} placeholder="12x" />
         </div>
+      </div>
+      <div className="flex items-center justify-between gap-4 rounded-xl bg-ink-50 px-3 py-2.5">
+        <div>
+          <Label htmlFor="ativo-em-uso">Ativo em uso</Label>
+          <p className="text-xs text-ink-400">Desligue se ainda não usa ou não usa mais: ele sai da carteira e das cotações.</p>
+        </div>
+        <Switch id="ativo-em-uso" checked={!form.inativo} onCheckedChange={(v) => set("inativo", !v)} />
       </div>
       <Rodape saving={saving} onCancel={onCancel} />
     </form>
   );
 }
 
-export function AporteForm({ aporte, ativos, onSaved, onCancel }) {
+export function AporteForm({ aporte, ativos, posicoes, onSaved, onCancel }) {
   const { form, set, saving, submit } = useFormulario(
     {
       ativo_id: aporte?.ativo_id || "",
@@ -132,6 +148,7 @@ export function AporteForm({ aporte, ativos, onSaved, onCancel }) {
     onSaved
   );
   const total = (parseFloat(form.quantidade) || 0) * (parseFloat(form.preco) || 0);
+  const posicao = posicoes?.get(form.ativo_id);
   return (
     <form
       onSubmit={submit((f) => ({
@@ -146,6 +163,12 @@ export function AporteForm({ aporte, ativos, onSaved, onCancel }) {
       className="space-y-4"
     >
       <SelectAtivo ativos={ativos} value={form.ativo_id} onChange={(v) => set("ativo_id", v)} />
+      {posicao && (
+        <p className="-mt-2 rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-500">
+          Já adquiridas: <b className="tabular-nums text-ink-900">{Number(posicao.cotas).toLocaleString("pt-BR", { maximumFractionDigits: 4 })}</b> cotas
+          {posicao.planejadoCotas > 0 && ` (+${Number(posicao.planejadoCotas).toLocaleString("pt-BR", { maximumFractionDigits: 4 })} planejadas)`}
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Operação</Label>

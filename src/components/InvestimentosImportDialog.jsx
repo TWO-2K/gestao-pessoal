@@ -31,10 +31,10 @@ export default function InvestimentosImportDialog({ open, onOpenChange, importar
     }
   };
 
-  const confirmar = async () => {
+  const confirmar = async (apenasAtivos = false) => {
     setImportando(true);
     try {
-      setResultado(await importar(dados));
+      setResultado(await importar(apenasAtivos ? { ...dados, aportes: [], proventos: [] } : dados));
     } catch (err) {
       toast({ variant: "destructive", title: "Erro ao importar", description: err.message });
     } finally {
@@ -77,7 +77,8 @@ export default function InvestimentosImportDialog({ open, onOpenChange, importar
                 )}
                 <div className="flex justify-end gap-2">
                   <Button variant="ghost" onClick={() => handleClose(false)}>Cancelar</Button>
-                  <Button onClick={confirmar} disabled={importando}>{importando ? "Importando..." : "Importar"}</Button>
+                  <Button variant="outline" onClick={() => confirmar(true)} disabled={importando}>Só atualizar valor teto</Button>
+                  <Button onClick={() => confirmar(false)} disabled={importando}>{importando ? "Importando..." : "Importar tudo"}</Button>
                 </div>
               </>
             )}

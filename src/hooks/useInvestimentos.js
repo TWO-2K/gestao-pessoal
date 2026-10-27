@@ -58,7 +58,7 @@ export function useInvestimentos() {
       const resultados = await Promise.all(
         ativos
           .filter((a) => cotacoes.has(a.ticker))
-          .map((a) => supabase.from("invest_ativos").update({ cotacao_atual: cotacoes.get(a.ticker) }).match({ id: a.id }))
+          .map((a) => supabase.from("invest_ativos").update(cotacoes.get(a.ticker)).match({ id: a.id }))
       );
       const falha = resultados.find((r) => r.error);
       if (falha) throw new Error(falha.error.message);
@@ -71,6 +71,12 @@ export function useInvestimentos() {
     mutationFn: async ({ ativos: novos, aportes: novosAportes, proventos: novosProventos }) => {
       const userId = targetUserId();
       const existentes = new Map(ativos.map((a) => [a.ticker, a.id]));
+      // Ativos já cadastrados: só atualiza o valor teto vindo da planilha
+      const jaExistem = novos.filter((a) => existentes.has(a.ticker) && a.preco_teto != null);
+      for (const a of jaExistem) {
+        const { error } = await supabase.from("invest_ativos").update({ preco_teto: a.preco_teto }).match({ id: existentes.get(a.ticker) });
+        if (error) throw new Error(error.message);
+      }
       const faltando = novos.filter((a) => !existentes.has(a.ticker)).map((a) => ({ ...a, user_id: userId }));
       if (faltando.length) {
         const { data: criados, error } = await supabase.from("invest_ativos").insert(faltando).select("id, ticker");

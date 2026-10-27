@@ -222,7 +222,7 @@ export default function Layout() {
         <div
           className={cn(
             "mx-auto py-8 md:py-10",
-            location.pathname.startsWith("/midias") ? "max-w-[96rem] px-3 md:px-4" : "max-w-5xl px-5"
+            ["/midias", "/investimentos"].some((p) => location.pathname.startsWith(p)) ? "max-w-[96rem] px-3 md:px-4" : "max-w-5xl px-5"
           )}
         >
           <Outlet />
