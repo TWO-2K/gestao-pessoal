@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare, CalendarDays, Eye, ChevronDown, Clapperboard, Dumbbell, Scale, Target, ClipboardList, TrendingUp, Ruler, ListChecks, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare, CalendarDays, Eye, ChevronDown, Clapperboard, Dumbbell, Scale, Target, ClipboardList, TrendingUp, Ruler, ListChecks, ChevronLeft, ChevronRight, PiggyBank } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 import { useUsuarios } from "@/hooks/useUsuarios";
@@ -19,6 +19,7 @@ const navSections = [
       { to: "/contas", label: "Contas a Pagar", icon: ArrowUpCircle },
       { to: "/gastos", label: "Gastos", icon: Receipt },
       { to: "/receber", label: "A Receber", icon: ArrowDownCircle },
+      { to: "/investimentos", label: "Investimentos", icon: PiggyBank },
       { to: "/categorias", label: "Categorias", icon: Tag },
       { to: "/contas-pagamento", label: "Contas/Cartões", icon: CreditCard },
     ],

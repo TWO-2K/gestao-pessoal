@@ -19,6 +19,7 @@ import Planner from '@/pages/Planner';
 import Tarefas from '@/pages/Tarefas';
 import EventosFuturos from '@/pages/EventosFuturos';
 import Midias from '@/pages/Midias';
+import Investimentos from "@/pages/Investimentos";
 import Treinos from '@/pages/Treinos';
 import TreinoHoje from '@/pages/TreinoHoje';
 import PesoCorporal from '@/pages/PesoCorporal';
@@ -48,6 +49,7 @@ function App() {
                 <Route path="/contas" element={<ContasPagar />} />
                 <Route path="/gastos" element={<Gastos />} />
                 <Route path="/receber" element={<DividasReceber />} />
+                <Route path="/investimentos" element={<Investimentos />} />
                 <Route path="/categorias" element={<Categorias />} />
                 <Route path="/contas-pagamento" element={<ContasPagamento />} />
                 <Route path="/planner" element={<Planner />} />
