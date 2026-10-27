@@ -1,6 +1,7 @@
 // Cotações da B3 via brapi.dev (https://brapi.dev). O token gratuito fica só no navegador do usuário.
 const TOKEN_KEY = "brapi_token";
-const LOTE = 10;
+// O plano gratuito aceita 1 ticker por consulta e 1 consulta simultânea.
+const LOTE = 1;
 
 export function lerTokenBrapi() {
   try {
@@ -28,6 +29,7 @@ export async function buscarCotacoes(tickers, token) {
       headers: { Authorization: `Bearer ${token}` },
     });
     const corpo = await res.json().catch(() => ({}));
+    if (res.status === 404) continue; // ticker desconhecido na brapi
     if (res.status === 401 || res.status === 403) throw new Error("Token da brapi inválido ou sem permissão.");
     if (res.status === 429) throw new Error("Limite de consultas da brapi atingido. Tente novamente em alguns minutos.");
     if (!res.ok) throw new Error(corpo.message || `Erro ${res.status} ao consultar cotações.`);
