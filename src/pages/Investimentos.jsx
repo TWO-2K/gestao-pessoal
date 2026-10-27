@@ -10,8 +10,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CarteiraTabela, { coresDosAtivos } from "@/components/CarteiraTabela";
 import TokenBrapiDialog from "@/components/TokenBrapiDialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Pencil, Trash2, Upload, LineChart, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Download, LineChart, RefreshCw, Table2, LayoutGrid } from "lucide-react";
 import { buscarCotacoes, lerTokenBrapi } from "@/lib/cotacoes";
+import { baixarRelatorioInvestimentos } from "@/lib/relatorioInvestimentos";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { TIPOS_ATIVO } from "@/lib/investimentos";
 import { useInvestimentos } from "@/hooks/useInvestimentos";
@@ -20,13 +21,21 @@ const tipoLabel = (v) => TIPOS_ATIVO.find((t) => t.value === v)?.label || v;
 const fmtNum = (n) => Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 4 });
 const mesAtual = () => { const n = new Date(); return { month: n.getMonth(), year: n.getFullYear() }; };
 
+const TONS = {
+  azul: { texto: "text-blue-700", borda: "border-t-blue-500" },
+  verde: { texto: "text-forest-600", borda: "border-t-forest-400" },
+  vermelho: { texto: "text-rust-600", borda: "border-t-rust-500" },
+  dourado: { texto: "text-gold-600", borda: "border-t-gold-500" },
+  violeta: { texto: "text-violet-700", borda: "border-t-violet-500" },
+};
+
 function Resumo({ itens }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-      {itens.map(([rotulo, valor]) => (
-        <div key={rotulo} className="col-span-1 last:col-span-2 md:last:col-span-1 rounded-2xl border border-ink-200 bg-white px-4 py-3">
+      {itens.map(([rotulo, valor, tom]) => (
+        <div key={rotulo} className={`col-span-1 last:col-span-2 md:last:col-span-1 rounded-2xl border border-ink-200 border-t-4 bg-white px-4 py-3 ${tom.borda}`}>
           <p className="text-xs text-ink-400">{rotulo}</p>
-          <p className="font-semibold tabular-nums mt-0.5">{valor}</p>
+          <p className={`text-lg font-semibold tabular-nums mt-0.5 ${tom.texto}`}>{valor}</p>
         </div>
       ))}
     </div>
@@ -91,6 +100,13 @@ export default function Investimentos() {
   const [dialog, setDialog] = useState(null); // { tipo: 'ativo'|'aporte'|'provento', item }
   const [importOpen, setImportOpen] = useState(false);
   const [mostrarInativos, setMostrarInativos] = useState(false);
+  const [modo, setModo] = useState(() => {
+    try { return localStorage.getItem("investimentos_modo") === "cards" ? "cards" : "tabela"; } catch { return "tabela"; }
+  });
+  const trocarModo = (valor) => {
+    setModo(valor);
+    try { localStorage.setItem("investimentos_modo", valor); } catch { /* sem storage */ }
+  };
 
   const [tokenOpen, setTokenOpen] = useState(false);
   const [atualizando, setAtualizando] = useState(false);
@@ -148,6 +164,8 @@ export default function Investimentos() {
     return { investido, valorAtual, recebido, cotas };
   }, [carteira, proventos]);
 
+  const resultado = totais.valorAtual - totais.investido;
+
   const aportesFiltrados = useMemo(
     () => aportes.filter((a) => !mesAportes || isInMonth(a.data, mesAportes.month, mesAportes.year)),
     [aportes, mesAportes]
@@ -201,6 +219,13 @@ export default function Investimentos() {
             <Button variant="outline" onClick={atualizarCotacoes} disabled={atualizando || ativos.length === 0}>
               <RefreshCw className={`h-4 w-4 mr-1.5 ${atualizando ? "animate-spin" : ""}`} /> Cotações
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => baixarRelatorioInvestimentos({ carteira, aportes, proventos, ativoMap, totais })}
+              disabled={ativos.length === 0}
+            >
+              <Download className="h-4 w-4 mr-1.5" /> Relatório
+            </Button>
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <Upload className="h-4 w-4 mr-1.5" /> Importar
             </Button>
@@ -213,11 +238,11 @@ export default function Investimentos() {
 
       <Resumo
         itens={[
-          ["Investido", formatCurrency(totais.investido)],
-          ["Valor atual", formatCurrency(totais.valorAtual)],
-          ["Resultado", formatCurrency(totais.valorAtual - totais.investido)],
-          ["Proventos recebidos", formatCurrency(totais.recebido)],
-          ["Total de cotas", fmtNum(totais.cotas)],
+          ["Investido", formatCurrency(totais.investido), TONS.azul],
+          ["Valor atual", formatCurrency(totais.valorAtual), totais.valorAtual >= totais.investido ? TONS.verde : TONS.vermelho],
+          ["Resultado", `${resultado >= 0 ? "+" : ""}${formatCurrency(resultado)}`, resultado >= 0 ? TONS.verde : TONS.vermelho],
+          ["Proventos recebidos", `+${formatCurrency(totais.recebido)}`, TONS.dourado],
+          ["Total de cotas", fmtNum(totais.cotas), TONS.violeta],
         ]}
       />
 
@@ -232,25 +257,39 @@ export default function Investimentos() {
           </TabsList>
 
           <TabsContent value="carteira">
-            {qtdInativos > 0 && (
-              <div className="mb-3 inline-flex rounded-lg bg-ink-100 p-0.5 text-xs font-medium">
-                {[[false, `Em uso (${carteira.length - qtdInativos})`], [true, `Inativos (${qtdInativos})`]].map(([valor, rotulo]) => (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              {qtdInativos > 0 ? (
+                <div className="inline-flex rounded-lg bg-ink-100 p-0.5 text-xs font-medium">
+                  {[[false, `Em uso (${carteira.length - qtdInativos})`], [true, `Inativos (${qtdInativos})`]].map(([valor, rotulo]) => (
+                    <button
+                      key={String(valor)}
+                      onClick={() => setMostrarInativos(valor)}
+                      className={`rounded-md px-3 py-1.5 transition-colors ${verInativos === valor ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:text-ink-900"}`}
+                    >
+                      {rotulo}
+                    </button>
+                  ))}
+                </div>
+              ) : <span />}
+              <div className="hidden md:inline-flex rounded-lg bg-ink-100 p-0.5 text-xs font-medium">
+                {[["tabela", Table2, "Tabela"], ["cards", LayoutGrid, "Cards"]].map(([valor, Icone, rotulo]) => (
                   <button
-                    key={String(valor)}
-                    onClick={() => setMostrarInativos(valor)}
-                    className={`rounded-md px-3 py-1.5 transition-colors ${verInativos === valor ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:text-ink-900"}`}
+                    key={valor}
+                    onClick={() => trocarModo(valor)}
+                    className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors ${modo === valor ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:text-ink-900"}`}
                   >
-                    {rotulo}
+                    <Icone className="h-3.5 w-3.5" /> {rotulo}
                   </button>
                 ))}
               </div>
-            )}
+            </div>
             {carteiraVisivel.length === 0 ? (
               <Vazio>{carteira.length === 0 ? "Nenhum ativo. Cadastre um ou importe sua planilha." : "Todos os ativos estão inativos."}</Vazio>
             ) : (
               <CarteiraTabela
                 carteira={carteiraVisivel}
                 cores={paleta}
+                modo={modo}
                 onToggleInativo={(a) => inv.salvarAtivo({ id: a.id, inativo: !a.inativo })}
                 onEdit={(a) => setDialog({ tipo: "ativo", item: a })}
                 onDelete={(a) => window.confirm(`Excluir ${a.ticker} e todos os aportes e proventos dele?`) &&inv.removerAtivo(a.id)}

@@ -90,12 +90,22 @@ function Resultado({ ativo }) {
   );
 }
 
+// Cor da meta por faixa de progresso: do vermelho ao verde (100% = concluída)
+function corMeta(pct) {
+  if (pct >= 100) return { barra: "[&>div]:bg-forest-500", trilho: "bg-forest-100", texto: "text-forest-600" };
+  if (pct >= 75) return { barra: "[&>div]:bg-lime-500", trilho: "bg-lime-100", texto: "text-lime-700" };
+  if (pct >= 50) return { barra: "[&>div]:bg-yellow-500", trilho: "bg-yellow-100", texto: "text-yellow-700" };
+  if (pct >= 25) return { barra: "[&>div]:bg-orange-500", trilho: "bg-orange-100", texto: "text-orange-700" };
+  return { barra: "[&>div]:bg-rust-500", trilho: "bg-rust-100", texto: "text-rust-600" };
+}
+
 function Meta({ ativo }) {
   if (ativo.pctMeta == null) return <span className="text-ink-300">—</span>;
   const concluida = ativo.pctMeta >= 100;
+  const cor = corMeta(ativo.pctMeta);
   return (
     <div className="min-w-[110px] w-full">
-      <Progress value={ativo.pctMeta} className={cn("h-1.5", concluida && "bg-forest-100 [&>div]:bg-forest-500")} />
+      <Progress value={ativo.pctMeta} className={cn("h-1.5", cor.trilho, cor.barra)} />
       {concluida ? (
         <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-forest-600">
           <CheckCircle2 className="h-3.5 w-3.5" />
@@ -103,7 +113,7 @@ function Meta({ ativo }) {
         </p>
       ) : (
         <p className="text-xs text-ink-400 tabular-nums mt-1">
-          {fmtNum(ativo.cotas)}/{fmtNum(ativo.meta_cotas)} · {ativo.pctMeta.toFixed(0)}%
+          {fmtNum(ativo.cotas)}/{fmtNum(ativo.meta_cotas)} · <b className={cn("font-semibold", cor.texto)}>{ativo.pctMeta.toFixed(0)}%</b>
         </p>
       )}
     </div>
@@ -187,7 +197,7 @@ function DetalheAtivo({ ativo, tom, onClose, onEdit, onDelete, onToggleInativo }
   );
 }
 
-export default function CarteiraTabela({ carteira, cores: coresRecebidas, onEdit, onDelete, onToggleInativo }) {
+export default function CarteiraTabela({ carteira, modo = "tabela", cores: coresRecebidas, onEdit, onDelete, onToggleInativo }) {
   // Uma cor única por ativo
   const paleta = coresDosAtivos(carteira.length);
   const cores = coresRecebidas || new Map(carteira.map((a, i) => [a.id, paleta[i]]));
@@ -207,7 +217,7 @@ export default function CarteiraTabela({ carteira, cores: coresRecebidas, onEdit
       />
 
       {/* Desktop: tabela */}
-      <div className="hidden md:block rounded-2xl border border-ink-200 bg-white overflow-x-auto">
+      <div className={cn("rounded-2xl border border-ink-200 bg-white overflow-x-auto", modo === "cards" ? "hidden" : "hidden md:block")}>
         <Table>
           <TableHeader>
             <TableRow>
@@ -248,8 +258,8 @@ export default function CarteiraTabela({ carteira, cores: coresRecebidas, onEdit
         </Table>
       </div>
 
-      {/* Mobile: cartões */}
-      <div className="md:hidden space-y-2.5">
+      {/* Cartões: sempre no mobile; no desktop só no modo "cards" */}
+      <div className={modo === "cards" ? "grid gap-3 sm:grid-cols-2 xl:grid-cols-3" : "md:hidden space-y-2.5"}>
         {carteira.map((a) => (
           <div key={a.id} onClick={() => setSelecionadoId(a.id)} className={cn("cursor-pointer rounded-2xl border border-ink-200 border-l-4 bg-white even:bg-ink-50/70 px-4 py-3.5", a.inativo && "opacity-50")} style={{ borderLeftColor: tomAtivo(a).barra }}>
             <div className="flex items-start justify-between gap-3">
