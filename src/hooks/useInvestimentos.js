@@ -58,7 +58,7 @@ export function useInvestimentos() {
       const resultados = await Promise.all(
         ativos
           .filter((a) => cotacoes.has(a.ticker))
-          .map((a) => supabase.from("invest_ativos").update(cotacoes.get(a.ticker)).match({ id: a.id }))
+          .map((a) => supabase.from("invest_ativos").update({ ...cotacoes.get(a.ticker), cotacao_atualizada_em: new Date().toISOString() }).match({ id: a.id }))
       );
       const falha = resultados.find((r) => r.error);
       if (falha) throw new Error(falha.error.message);

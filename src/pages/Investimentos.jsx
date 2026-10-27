@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CarteiraTabela, { coresDosAtivos } from "@/components/CarteiraTabela";
 import TokenBrapiDialog from "@/components/TokenBrapiDialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Pencil, Trash2, Upload, Download, LineChart, RefreshCw, Table2, LayoutGrid } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Download, LineChart, RefreshCw, Clock, Table2, LayoutGrid } from "lucide-react";
 import { buscarCotacoes, lerTokenBrapi } from "@/lib/cotacoes";
 import { baixarRelatorioInvestimentos } from "@/lib/relatorioInvestimentos";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -130,6 +130,12 @@ export default function Investimentos() {
     }
   };
 
+  const ultimaCotacao = useMemo(() => {
+    const datas = ativos.filter((a) => !a.inativo && a.cotacao_atualizada_em).map((a) => new Date(a.cotacao_atualizada_em));
+    if (!datas.length) return null;
+    return new Date(Math.max(...datas)).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }).replace(",", "");
+  }, [ativos]);
+
   const fechar = () => setDialog(null);
   const salvar = (fn) => async (dados) => { await fn(dados); fechar(); };
 
@@ -215,7 +221,12 @@ export default function Investimentos() {
         title="Investimentos"
         subtitle="Carteira, aportes e proventos"
         action={
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            {ultimaCotacao && (
+              <span className="hidden md:inline-flex items-center gap-1 text-xs text-ink-400" title="Última atualização das cotações">
+                <Clock className="h-3 w-3" /> {ultimaCotacao}
+              </span>
+            )}
             <Button variant="outline" onClick={atualizarCotacoes} disabled={atualizando || ativos.length === 0}>
               <RefreshCw className={`h-4 w-4 mr-1.5 ${atualizando ? "animate-spin" : ""}`} /> Cotações
             </Button>
