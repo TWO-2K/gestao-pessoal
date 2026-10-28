@@ -149,6 +149,12 @@ export function AporteForm({ aporte, ativos, posicoes, onSaved, onCancel }) {
   );
   const total = (parseFloat(form.quantidade) || 0) * (parseFloat(form.preco) || 0);
   const posicao = posicoes?.get(form.ativo_id);
+  const meta = Number(ativos?.find((a) => a.id === form.ativo_id)?.meta_cotas) || 0;
+  // Ao editar, a própria quantidade já está contada na posição, então volta para o saldo
+  const propria = aporte && aporte.tipo !== "venda" && aporte.ativo_id === form.ativo_id ? Number(aporte.quantidade) || 0 : 0;
+  const faltam = meta > 0 && form.tipo === "compra" ? Math.max(0, meta - (posicao?.cotas || 0) - (posicao?.planejadoCotas || 0) + propria) : null;
+  const excedeMeta = faltam !== null && (parseFloat(form.quantidade) || 0) > faltam + 1e-9;
+  const fmt = (n) => Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 4 });
   return (
     <form
       onSubmit={submit((f) => ({
@@ -163,10 +169,12 @@ export function AporteForm({ aporte, ativos, posicoes, onSaved, onCancel }) {
       className="space-y-4"
     >
       <SelectAtivo ativos={ativos} value={form.ativo_id} onChange={(v) => set("ativo_id", v)} />
-      {posicao && (
+      {form.ativo_id && (
         <p className="-mt-2 rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-500">
-          Já adquiridas: <b className="tabular-nums text-ink-900">{Number(posicao.cotas).toLocaleString("pt-BR", { maximumFractionDigits: 4 })}</b> cotas
-          {posicao.planejadoCotas > 0 && ` (+${Number(posicao.planejadoCotas).toLocaleString("pt-BR", { maximumFractionDigits: 4 })} planejadas)`}
+          Já adquiridas: <b className="tabular-nums text-ink-900">{fmt(posicao?.cotas || 0)}</b> cotas
+          {posicao?.planejadoCotas > 0 && ` (+${fmt(posicao.planejadoCotas)} planejadas)`}
+          {meta > 0 && <> · Meta: <b className="tabular-nums text-ink-900">{fmt(meta)}</b></>}
+          {faltam !== null && <> · Faltam: <b className={`tabular-nums ${faltam === 0 ? "text-rust" : "text-forest"}`}>{fmt(faltam)}</b></>}
         </p>
       )}
       <div className="grid grid-cols-2 gap-4">
@@ -198,15 +206,16 @@ export function AporteForm({ aporte, ativos, posicoes, onSaved, onCancel }) {
         </div>
         <div className="space-y-2">
           <Label htmlFor="ap-qtd">Cotas</Label>
-          <Input id="ap-qtd" type="number" step="any" min="0" value={form.quantidade} onChange={(e) => set("quantidade", e.target.value)} required />
+          <Input id="ap-qtd" type="number" step="any" min="0" max={faltam ?? undefined} value={form.quantidade} onChange={(e) => set("quantidade", e.target.value)} required />
         </div>
         <div className="space-y-2">
           <Label htmlFor="ap-preco">Preço (R$)</Label>
           <Input id="ap-preco" type="number" step="0.01" min="0" value={form.preco} onChange={(e) => set("preco", e.target.value)} />
         </div>
       </div>
+      {excedeMeta && <p className="text-xs text-rust">Passa da meta: só dá para comprar mais {fmt(faltam)} cotas. Ajuste a meta do ativo para aportar mais.</p>}
       {total > 0 && <p className="text-xs text-ink-500">Total: {total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>}
-      <Rodape saving={saving || !form.ativo_id} onCancel={onCancel} />
+      <Rodape saving={saving || !form.ativo_id || excedeMeta} onCancel={onCancel} />
     </form>
   );
 }
