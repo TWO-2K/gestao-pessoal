@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { dataLocalHoje } from "@/lib/format";
 
 export const TIPOS_ATIVO = [
   { value: "acao", label: "Ação" },
@@ -54,6 +55,16 @@ export function calcularPosicoes(aportes) {
     p.precoMedio = p.cotas > 0 ? p.investido / p.cotas : 0;
   }
   return posicoes;
+}
+
+/**
+ * Cotas que dão direito a um provento: compras e vendas realizadas até a data-com (inclusive).
+ * Se a data-com ainda não chegou, o resultado é a posição de hoje (estimativa).
+ */
+export function cotasNaDataCom(aportes, ativoId, dataCom) {
+  return aportes
+    .filter((ap) => ap.ativo_id === ativoId && ap.status !== "planejado" && (!dataCom || ap.data <= dataCom))
+    .reduce((soma, ap) => soma + (ap.tipo === "venda" ? -1 : 1) * (Number(ap.quantidade) || 0), 0);
 }
 
 const num = (v) => {
@@ -162,3 +173,6 @@ export async function lerPlanilhaInvestimentos(file) {
 
   return { ativos: [...ativos.values()], aportes, proventos, avisos };
 }
+
+// Provento previsto que ainda não chegou na data de pagamento; depois dela conta como recebido sozinho.
+export const aindaPrevisto = (p) => p.status === "previsto" && p.data > dataLocalHoje();

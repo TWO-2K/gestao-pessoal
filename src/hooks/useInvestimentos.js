@@ -54,7 +54,7 @@ export function useInvestimentos() {
   const removerProvento = useMutation({ mutationFn: remover("invest_proventos"), ...options });
 
   const atualizarCotacoes = useMutation({
-    mutationFn: async (cotacoes) => {
+    mutationFn: async ({ cotacoes }) => {
       const resultados = await Promise.all(
         ativos
           .filter((a) => cotacoes.has(a.ticker))

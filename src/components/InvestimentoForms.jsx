@@ -227,12 +227,13 @@ export function ProventoForm({ provento, ativos, onSaved, onCancel }) {
       data: provento?.data || dataLocalHoje(),
       tipo: provento?.tipo || "dividendo",
       valor: provento?.valor ?? "",
+      status: provento?.status || "recebido",
     },
     onSaved
   );
   return (
     <form
-      onSubmit={submit((f) => ({ id: provento?.id, ativo_id: f.ativo_id, data: f.data, tipo: f.tipo, valor: parseFloat(f.valor) }))}
+      onSubmit={submit((f) => ({ id: provento?.id, ativo_id: f.ativo_id, data: f.data, tipo: f.tipo, valor: parseFloat(f.valor), status: f.status }))}
       className="space-y-4"
     >
       <SelectAtivo ativos={ativos} value={form.ativo_id} onChange={(v) => set("ativo_id", v)} />
@@ -252,6 +253,16 @@ export function ProventoForm({ provento, ativos, onSaved, onCancel }) {
           <Label htmlFor="pv-valor">Valor (R$)</Label>
           <Input id="pv-valor" type="number" step="0.01" min="0" value={form.valor} onChange={(e) => set("valor", e.target.value)} required />
         </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Situação</Label>
+        <Select value={form.status} onValueChange={(v) => set("status", v)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="recebido">Recebido</SelectItem>
+            <SelectItem value="previsto">Previsto (ainda vai cair)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <Rodape saving={saving || !form.ativo_id} onCancel={onCancel} />
     </form>

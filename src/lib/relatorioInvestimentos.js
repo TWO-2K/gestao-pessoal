@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { TIPOS_ATIVO } from "@/lib/investimentos";
+import { TIPOS_ATIVO, aindaPrevisto } from "@/lib/investimentos";
 
 const MOEDA = '"R$" #,##0.00';
 const PERCENTUAL = '0.0"%"';
@@ -87,7 +87,7 @@ export function baixarRelatorioInvestimentos({ carteira, aportes, proventos, ati
   );
 
   const wsProventos = criarAba(
-    proventos.map((pv) => ({ Data: dataBr(pv.data), Ativo: ticker(pv.ativo_id), Tipo: pv.tipo, Valor: Number(pv.valor) })),
+    proventos.map((pv) => ({ Data: dataBr(pv.data), Ativo: ticker(pv.ativo_id), Tipo: pv.tipo, Situação: aindaPrevisto(pv) ? "Previsto" : "Recebido", Valor: Number(pv.valor) })),
     { Valor: MOEDA }
   );
 

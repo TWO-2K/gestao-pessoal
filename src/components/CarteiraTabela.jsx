@@ -129,7 +129,7 @@ function Info({ rotulo, children }) {
   );
 }
 
-function DetalheAtivo({ ativo, tom, onClose, onEdit, onDelete, onToggleInativo }) {
+function DetalheAtivo({ ativo, tom, podeExcluir, onClose, onEdit, onDelete, onToggleInativo }) {
   if (!ativo) return null;
   const pctResultado = ativo.valorAtual != null && ativo.investido > 0 ? ((ativo.valorAtual - ativo.investido) / ativo.investido) * 100 : null;
   return (
@@ -185,7 +185,13 @@ function DetalheAtivo({ ativo, tom, onClose, onEdit, onDelete, onToggleInativo }
             {ativo.inativo ? <Power className="mr-1.5 h-4 w-4" /> : <PowerOff className="mr-1.5 h-4 w-4" />}
             {ativo.inativo ? "Reativar" : "Desativar"}
           </Button>
-          <Button variant="outline" className="text-rust-600" onClick={() => onDelete(ativo)}>
+          <Button
+            variant="outline"
+            className="text-rust-600"
+            disabled={!podeExcluir}
+            title={podeExcluir ? undefined : "Ativo com aportes ou proventos não pode ser excluído; desative-o."}
+            onClick={() => onDelete(ativo)}
+          >
             <Trash2 className="mr-1.5 h-4 w-4" /> Excluir
           </Button>
           <Button onClick={() => onEdit(ativo)}>
@@ -197,7 +203,7 @@ function DetalheAtivo({ ativo, tom, onClose, onEdit, onDelete, onToggleInativo }
   );
 }
 
-export default function CarteiraTabela({ carteira, modo = "tabela", cores: coresRecebidas, onEdit, onDelete, onToggleInativo }) {
+export default function CarteiraTabela({ carteira, modo = "tabela", cores: coresRecebidas, podeExcluir, onEdit, onDelete, onToggleInativo }) {
   // Uma cor única por ativo
   const paleta = coresDosAtivos(carteira.length);
   const cores = coresRecebidas || new Map(carteira.map((a, i) => [a.id, paleta[i]]));
@@ -210,6 +216,7 @@ export default function CarteiraTabela({ carteira, modo = "tabela", cores: cores
       <DetalheAtivo
         ativo={selecionado}
         tom={selecionado && tomAtivo(selecionado)}
+        podeExcluir={selecionado ? podeExcluir(selecionado) : false}
         onClose={fechar}
         onEdit={(a) => { fechar(); onEdit(a); }}
         onDelete={(a) => { fechar(); onDelete(a); }}
@@ -238,8 +245,7 @@ export default function CarteiraTabela({ carteira, modo = "tabela", cores: cores
                   <div className="flex items-center gap-2"><span className="h-6 w-1 rounded-full" style={{ backgroundColor: tomAtivo(a).barra }} /><p className="font-semibold" style={{ color: tomAtivo(a).texto }}>{a.ticker}</p></div>
                   <p className="text-[10px] text-ink-400">
                     {tipoLabel(a.tipo)}{a.frequencia_pagamento ? ` · ${a.frequencia_pagamento}/ano` : ""}
-                  </p>
-                </TableCell>
+                  </p>                </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {fmtNum(a.cotas)}
                   {a.planejadoCotas > 0 && <p className="text-[10px] text-ink-400 font-sans">+{fmtNum(a.planejadoCotas)} plan.</p>}
@@ -266,8 +272,7 @@ export default function CarteiraTabela({ carteira, modo = "tabela", cores: cores
               <div className="min-w-0">
                 <p className="font-semibold" style={{ color: tomAtivo(a).texto }}>
                   {a.ticker}
-                  <span className="ml-2 rounded bg-ink-100 px-1.5 py-0.5 text-[10px] font-medium text-ink-500">{tipoLabel(a.tipo)}</span>
-                </p>
+                  <span className="ml-2 rounded bg-ink-100 px-1.5 py-0.5 text-[10px] font-medium text-ink-500">{tipoLabel(a.tipo)}</span>                </p>
                 <p className="text-xs text-ink-400 mt-1">
                   {fmtNum(a.cotas)} cotas
                   {a.planejadoCotas > 0 ? ` · +${fmtNum(a.planejadoCotas)} plan.` : ""}
@@ -279,7 +284,7 @@ export default function CarteiraTabela({ carteira, modo = "tabela", cores: cores
               </div>
             </div>
 
-            <div className="mt-3 grid grid-cols-4 gap-2 rounded-xl bg-ink-50 px-3 py-2">
+            <div className="mt-3 grid grid-cols-2 min-[420px]:grid-cols-4 gap-2 rounded-xl bg-ink-50 px-3 py-2">
               <div>
                 <p className="text-[10px] uppercase tracking-wide text-ink-400">Hoje</p>
                 <p className="text-sm"><CotacaoHoje ativo={a} /></p>
