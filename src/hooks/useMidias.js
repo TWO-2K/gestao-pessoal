@@ -48,6 +48,7 @@ export function useMidias() {
           episodio_atual: meuStatus?.episodio_atual ?? null,
           observacoes: meuStatus?.observacoes ?? null,
           concluido_em: meuStatus?.concluido_em ?? null,
+          ordem_planejado: meuStatus?.ordem_planejado ?? null,
           statusPorUsuario,
         };
       });
@@ -73,6 +74,46 @@ export function useMidias() {
         .from("lista_midias_catalogo")
         .update({ visivel_apenas_admin })
         .match({ id });
+      if (error) throw new Error(error.message);
+    },
+    ...mutationOptions,
+  });
+
+  // ids na nova ordem; grava a posição de cada item planejado (0 = maior prioridade)
+  const ordenarPlanejadosMutation = useMutation({
+    mutationFn: async (idsOrdenados) => {
+      const atuais = Object.fromEntries(midias.map((m) => [m.id, m.ordem_planejado]));
+      const alterados = idsOrdenados
+        .map((midiaId, idx) => ({ midiaId, idx }))
+        .filter(({ midiaId, idx }) => atuais[midiaId] !== idx);
+      const resultados = await Promise.all(
+        alterados.map(({ midiaId, idx }) =>
+          supabase
+            .from("lista_midia_status")
+            .update({ ordem_planejado: idx })
+            .match({ midia_id: midiaId, user_id: userId })
+        )
+      );
+      const erro = resultados.find((r) => r.error)?.error;
+      if (erro) throw new Error(erro.message);
+    },
+    ...mutationOptions,
+  });
+
+  // Admin define o status de outro usuário; mexe só em status/concluido_em, preservando episódio e observações dele
+  const definirStatusUsuarioMutation = useMutation({
+    mutationFn: async ({ midiaId, userId: alvoId, status }) => {
+      const anterior = midias.find((m) => m.id === midiaId)?.statusPorUsuario?.[alvoId];
+      const { error } = await supabase.from("lista_midia_status").upsert(
+        {
+          midia_id: midiaId,
+          user_id: alvoId,
+          status,
+          updated_at: new Date().toISOString(),
+          concluido_em: status === "concluido" ? anterior?.concluido_em || new Date().toISOString() : null,
+        },
+        { onConflict: "midia_id,user_id" }
+      );
       if (error) throw new Error(error.message);
     },
     ...mutationOptions,
@@ -139,5 +180,7 @@ export function useMidias() {
     deleteMidia: deleteMutation.mutate,
     createOrUpdateMidia: createOrUpdateMutation.mutateAsync,
     toggleVisivelApenasAdmin: toggleVisivelApenasAdminMutation.mutate,
+    ordenarPlanejados: ordenarPlanejadosMutation.mutate,
+    definirStatusUsuario: definirStatusUsuarioMutation.mutate,
   };
 }

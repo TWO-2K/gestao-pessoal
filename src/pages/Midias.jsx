@@ -4,12 +4,13 @@ import PageHeader from "@/components/PageHeader";
 import MidiaForm from "@/components/MidiaForm";
 import MidiaDetailSheet from "@/components/MidiaDetailSheet";
 import MidiaImportDialog from "@/components/MidiaImportDialog";
+import MidiaStatusUsuarioMenu from "@/components/MidiaStatusUsuarioMenu";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Clapperboard, Upload, Search, Sparkles, Check, X, ChevronLeft, ChevronRight, Clock, ListTodo, PlayCircle, CheckCircle2, PauseCircle, Lock, List, LayoutGrid } from "lucide-react";
+import { Plus, Clapperboard, Upload, Search, Sparkles, Check, X, ChevronLeft, ChevronRight, Clock, ListTodo, PlayCircle, CheckCircle2, PauseCircle, Lock, List, LayoutGrid, ArrowUp, ArrowDown, ChevronsUp } from "lucide-react";
 import { useMidias } from "@/hooks/useMidias";
 import { useFranquias } from "@/hooks/useFranquias";
 import { useUsuarios } from "@/hooks/useUsuarios";
@@ -85,12 +86,15 @@ export default function Midias() {
     });
   };
 
-  const { midias, isLoading, deleteMidia, createOrUpdateMidia, toggleVisivelApenasAdmin } = useMidias();
+  const { midias, isLoading, deleteMidia, createOrUpdateMidia, toggleVisivelApenasAdmin, ordenarPlanejados, definirStatusUsuario } = useMidias();
   const { franquias, createFranquia } = useFranquias();
   const { usuarios } = useUsuarios();
   const { viewedUserId } = useViewAs();
   const { usuario } = useUsuarioAtual();
   const isAdmin = usuario?.role === "admin";
+  // só admin pode definir o status de outro usuário direto da lista
+  const definirStatusDe = (midiaId, userId) =>
+    isAdmin ? (status) => definirStatusUsuario({ midiaId, userId, status }) : undefined;
 
   const outrosUsuarios = useMemo(
     () => usuarios.filter((u) => u.ativo && u.id !== viewedUserId),
@@ -258,16 +262,64 @@ export default function Midias() {
     }
   };
 
+  // Planejados de todos os tipos, na ordem de prioridade definida pelo usuário (sem ordem vai para o fim, A-Z)
+  const planejadosOrdenados = useMemo(
+    () =>
+      midias
+        .filter((m) => m.status === "planejado")
+        .sort((a, b) => {
+          const oa = a.ordem_planejado ?? Infinity;
+          const ob = b.ordem_planejado ?? Infinity;
+          if (oa !== ob) return oa - ob;
+          return a.titulo.localeCompare(b.titulo, "pt-BR");
+        }),
+    [midias]
+  );
+
   const gruposPainel = useMemo(() => {
     const porStatus = (status) =>
       escopoMetricas
         .filter((m) => m.status === status)
         .sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR"));
+    const visiveis = new Set(escopoMetricas.map((m) => m.id));
+    const concluidosRecentes = escopoMetricas
+      .filter((m) => m.status === "concluido")
+      .sort((a, b) => {
+        const dataA = a.concluido_em ? new Date(a.concluido_em).getTime() : 0;
+        const dataB = b.concluido_em ? new Date(b.concluido_em).getTime() : 0;
+        return dataB - dataA;
+      })
+      .slice(0, 5);
     return [
       { status: "assistindo", label: "Assistindo", icon: PlayCircle, itens: porStatus("assistindo") },
-      { status: "planejado", label: "Planejados", icon: ListTodo, itens: porStatus("planejado") },
+      { status: "concluido", label: "Últimos concluídos", icon: CheckCircle2, itens: concluidosRecentes },
+      { status: "planejado", label: "Planejados", icon: ListTodo, itens: planejadosOrdenados.filter((m) => visiveis.has(m.id)) },
     ];
-  }, [escopoMetricas]);
+  }, [escopoMetricas, planejadosOrdenados]);
+
+  // acao: "topo" | "cima" | "baixo" — move dentro da lista completa, respeitando o filtro de tipo visível
+  const moverPlanejado = (midiaId, acao) => {
+    const visiveis = new Set(escopoMetricas.map((m) => m.id));
+    const ids = planejadosOrdenados.map((m) => m.id);
+    const pos = ids.indexOf(midiaId);
+    if (pos === -1) return;
+    ids.splice(pos, 1);
+    let destino = 0;
+    if (acao === "cima") {
+      let i = pos - 1;
+      while (i >= 0 && !visiveis.has(ids[i])) i--;
+      destino = Math.max(i, 0);
+    } else if (acao === "baixo") {
+      let i = pos;
+      while (i < ids.length && !visiveis.has(ids[i])) i++;
+      destino = Math.min(i + 1, ids.length);
+    }
+    ids.splice(destino, 0, midiaId);
+    ordenarPlanejados(ids);
+  };
+
+  const formatarDataConcluido = (iso) =>
+    iso ? new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }) : null;
 
   return (
     <div>
@@ -481,13 +533,14 @@ export default function Midias() {
                     {outrosUsuarios.map((u) => {
                       const st = m.statusPorUsuario?.[u.id]?.status || "pendente";
                       return (
-                        <span
-                          key={u.id}
-                          title={`${u.nome}: ${STATUS_LABEL[st]}`}
-                          className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold uppercase ${STATUS_STYLE[st]}`}
-                        >
-                          {u.nome.trim().charAt(0)}
-                        </span>
+                        <MidiaStatusUsuarioMenu key={u.id} status={st} onChange={definirStatusDe(m.id, u.id)}>
+                          <span
+                            title={`${u.nome}: ${STATUS_LABEL[st]}`}
+                            className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold uppercase ${STATUS_STYLE[st]}`}
+                          >
+                            {u.nome.trim().charAt(0)}
+                          </span>
+                        </MidiaStatusUsuarioMenu>
                       );
                     })}
                   </div>
@@ -551,13 +604,14 @@ export default function Midias() {
                           {outrosUsuarios.map((u) => {
                             const st = m.statusPorUsuario?.[u.id]?.status || "pendente";
                             return (
-                              <span
-                                key={u.id}
-                                title={`${u.nome}: ${STATUS_LABEL[st]}`}
-                                className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold uppercase ${STATUS_STYLE[st]}`}
-                              >
-                                {u.nome.trim().charAt(0)}
-                              </span>
+                              <MidiaStatusUsuarioMenu key={u.id} status={st} onChange={definirStatusDe(m.id, u.id)}>
+                                <span
+                                  title={`${u.nome}: ${STATUS_LABEL[st]}`}
+                                  className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold uppercase ${STATUS_STYLE[st]}`}
+                                >
+                                  {u.nome.trim().charAt(0)}
+                                </span>
+                              </MidiaStatusUsuarioMenu>
                             );
                           })}
                         </div>
@@ -617,8 +671,8 @@ export default function Midias() {
                 <p className="px-5 py-4 text-xs text-ink-400">Nada por aqui.</p>
               ) : (
                 <ul className="px-2 pb-2 space-y-0.5">
-                  {g.itens.map((m) => (
-                    <li key={m.id}>
+                  {g.itens.map((m, idx) => (
+                    <li key={m.id} className="group relative">
                       <button
                         onClick={() => irPara(m)}
                         title={m.titulo}
@@ -631,9 +685,38 @@ export default function Midias() {
                             g.status === "assistindo" && !["filme", "especial"].includes(m.tipo) && m.episodio_atual != null
                               ? `Ep. ${m.episodio_atual}`
                               : null,
+                            g.status === "concluido" ? formatarDataConcluido(m.concluido_em) : null,
                           ].filter(Boolean).join(" · ")}
                         </p>
                       </button>
+                      {g.status === "planejado" && (
+                        <div className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 rounded-md bg-white/95 border border-ink-200 p-0.5 shadow-sm">
+                          <button
+                            onClick={() => moverPlanejado(m.id, "topo")}
+                            disabled={idx === 0}
+                            title="Prioridade (mover para o topo)"
+                            className="p-1 text-ink-400 hover:text-ink-900 disabled:opacity-30 disabled:hover:text-ink-400"
+                          >
+                            <ChevronsUp className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => moverPlanejado(m.id, "cima")}
+                            disabled={idx === 0}
+                            title="Subir"
+                            className="p-1 text-ink-400 hover:text-ink-900 disabled:opacity-30 disabled:hover:text-ink-400"
+                          >
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => moverPlanejado(m.id, "baixo")}
+                            disabled={idx === g.itens.length - 1}
+                            title="Descer"
+                            className="p-1 text-ink-400 hover:text-ink-900 disabled:opacity-30 disabled:hover:text-ink-400"
+                          >
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -690,6 +773,7 @@ export default function Midias() {
         onCreateFranquia={createFranquia}
         onSelectMidia={(midiaId) => irPara(midiaPorId[midiaId])}
         onAddRelatedBatch={handleAddRelatedBatch}
+        onSetStatusUsuario={isAdmin ? (userId, status) => definirStatusUsuario({ midiaId: selecionada.id, userId, status }) : undefined}
       />
 
       <Dialog open={open} onOpenChange={setOpen}>

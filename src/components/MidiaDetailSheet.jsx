@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MidiaForm from "@/components/MidiaForm";
+import MidiaStatusUsuarioMenu from "@/components/MidiaStatusUsuarioMenu";
 import GeneroSelect from "@/components/GeneroSelect";
 import { listaParaGenero } from "@/lib/generos";
 import { useUsuarios } from "@/hooks/useUsuarios";
@@ -52,6 +53,7 @@ export default function MidiaDetailSheet({
   onCreateFranquia,
   onSelectMidia,
   onAddRelatedBatch,
+  onSetStatusUsuario,
 }) {
   const { usuarios } = useUsuarios();
   const { viewedUserId } = useViewAs();
@@ -235,12 +237,15 @@ export default function MidiaDetailSheet({
                   {outrosUsuarios.map((u) => {
                     const st = midia.statusPorUsuario?.[u.id]?.status || "pendente";
                     return (
-                      <span
+                      <MidiaStatusUsuarioMenu
                         key={u.id}
-                        className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[st]}`}
+                        status={st}
+                        onChange={onSetStatusUsuario ? (status) => onSetStatusUsuario(u.id, status) : undefined}
                       >
-                        {u.nome}: {STATUS_LABEL[st]}
-                      </span>
+                        <span className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[st]}`}>
+                          {u.nome}: {STATUS_LABEL[st]}
+                        </span>
+                      </MidiaStatusUsuarioMenu>
                     );
                   })}
                 </div>
