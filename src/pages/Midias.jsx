@@ -5,6 +5,7 @@ import MidiaForm from "@/components/MidiaForm";
 import MidiaDetailSheet from "@/components/MidiaDetailSheet";
 import MidiaImportDialog from "@/components/MidiaImportDialog";
 import MidiaStatusUsuarioMenu from "@/components/MidiaStatusUsuarioMenu";
+import { rotuloStatus } from "@/lib/midiaStatus";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,13 +19,13 @@ import { useViewAs } from "@/lib/ViewAsContext";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 import { useToast } from "@/components/ui/use-toast";
 
-const TIPO_LABEL = { anime: "Anime", ova: "OVA", ona: "ONA", filme: "Filme", especial: "Especial", serie: "Série" };
+const TIPO_LABEL = { anime: "Anime", ova: "OVA", ona: "ONA", filme: "Filme", especial: "Especial", serie: "Série", game: "Game" };
 
-const TIPO_SLUGS = { animes: "anime", ovas: "ova", onas: "ona", filmes: "filme", especiais: "especial", series: "serie" };
+const TIPO_SLUGS = { animes: "anime", ovas: "ova", onas: "ona", filmes: "filme", especiais: "especial", series: "serie", games: "game" };
 
 const SLUG_POR_TIPO = Object.fromEntries(Object.entries(TIPO_SLUGS).map(([slug, tipo]) => [tipo, slug]));
 
-const TIPO_PLURAL = { anime: "Animes", ova: "OVAs", ona: "ONAs", filme: "Filmes", especial: "Especiais", serie: "Séries" };
+const TIPO_PLURAL = { anime: "Animes", ova: "OVAs", ona: "ONAs", filme: "Filmes", especial: "Especiais", serie: "Séries", game: "Games" };
 
 const STATUS_STYLE = {
   pendente: "bg-rust-100 text-rust-700",
@@ -549,22 +550,22 @@ export default function Midias() {
               <p className="mt-2 font-medium text-ink-900 truncate">{m.titulo}</p>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 text-xs text-ink-400">
                 <span>{TIPO_LABEL[m.tipo]}</span>
-                {!["filme", "especial"].includes(m.tipo) && m.episodio_atual != null && (
+                {!["filme", "especial", "game"].includes(m.tipo) && m.episodio_atual != null && (
                   <span>Ep. {m.episodio_atual}</span>
                 )}
               </div>
               <div className="flex items-center justify-between gap-2 mt-2.5">
                 <span className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[m.status]}`}>
-                  {STATUS_LABEL[m.status]}
+                  {rotuloStatus(m.status, m.tipo, STATUS_LABEL)}
                 </span>
                 {outrosUsuarios.length > 0 && (
                   <div className="flex flex-wrap items-center gap-1">
                     {outrosUsuarios.map((u) => {
                       const st = m.statusPorUsuario?.[u.id]?.status || "pendente";
                       return (
-                        <MidiaStatusUsuarioMenu key={u.id} status={st} onChange={definirStatusDe(m.id, u.id)}>
+                        <MidiaStatusUsuarioMenu key={u.id} status={st} tipo={m.tipo} onChange={definirStatusDe(m.id, u.id)}>
                           <span
-                            title={`${u.nome}: ${STATUS_LABEL[st]}`}
+                            title={`${u.nome}: ${rotuloStatus(st, m.tipo, STATUS_LABEL)}`}
                             className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold uppercase ${STATUS_STYLE[st]}`}
                           >
                             {u.nome.trim().charAt(0)}
@@ -620,11 +621,11 @@ export default function Midias() {
                     </td>
                     <td className="px-4 py-2.5 text-ink-500">{TIPO_LABEL[m.tipo]}</td>
                     <td className="px-4 py-2.5 text-ink-500 tabular-nums">
-                      {["filme", "especial"].includes(m.tipo) ? "-" : m.episodio_atual ?? "-"}
+                      {["filme", "especial", "game"].includes(m.tipo) ? "-" : m.episodio_atual ?? "-"}
                     </td>
                     <td className="px-4 py-2.5">
                       <span className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[m.status]}`}>
-                        {STATUS_LABEL[m.status]}
+                        {rotuloStatus(m.status, m.tipo, STATUS_LABEL)}
                       </span>
                     </td>
                     {outrosUsuarios.length > 0 && (
@@ -633,9 +634,9 @@ export default function Midias() {
                           {outrosUsuarios.map((u) => {
                             const st = m.statusPorUsuario?.[u.id]?.status || "pendente";
                             return (
-                              <MidiaStatusUsuarioMenu key={u.id} status={st} onChange={definirStatusDe(m.id, u.id)}>
+                              <MidiaStatusUsuarioMenu key={u.id} status={st} tipo={m.tipo} onChange={definirStatusDe(m.id, u.id)}>
                                 <span
-                                  title={`${u.nome}: ${STATUS_LABEL[st]}`}
+                                  title={`${u.nome}: ${rotuloStatus(st, m.tipo, STATUS_LABEL)}`}
                                   className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold uppercase ${STATUS_STYLE[st]}`}
                                 >
                                   {u.nome.trim().charAt(0)}
@@ -711,7 +712,7 @@ export default function Midias() {
                         <p className="text-[10px] uppercase tracking-wide text-ink-400">
                           {[
                             tipoEfetivo === "todos" ? TIPO_LABEL[m.tipo] : null,
-                            g.status === "assistindo" && !["filme", "especial"].includes(m.tipo) && m.episodio_atual != null
+                            g.status === "assistindo" && !["filme", "especial", "game"].includes(m.tipo) && m.episodio_atual != null
                               ? `Ep. ${m.episodio_atual}`
                               : null,
                             g.status === "concluido" ? formatarDataConcluido(m.concluido_em) : null,

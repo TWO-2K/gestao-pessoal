@@ -1,6 +1,7 @@
 import React from "react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Check } from "lucide-react";
+import { rotuloStatus } from "@/lib/midiaStatus";
 
 const STATUS_LABEL = {
   pendente: "Pendente",
@@ -12,7 +13,7 @@ const STATUS_LABEL = {
 
 // Envolve o selo de status de outro usuário; se `onChange` vier (admin), clicar abre um menu
 // para definir o status daquele usuário sem precisar trocar de visão.
-export default function MidiaStatusUsuarioMenu({ status, onChange, children }) {
+export default function MidiaStatusUsuarioMenu({ status, tipo, onChange, children }) {
   if (!onChange) return children;
   return (
     <DropdownMenu>
@@ -26,9 +27,9 @@ export default function MidiaStatusUsuarioMenu({ status, onChange, children }) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
-        {Object.entries(STATUS_LABEL).map(([value, label]) => (
+        {Object.keys(STATUS_LABEL).map((value) => (
           <DropdownMenuItem key={value} onSelect={() => value !== status && onChange(value)}>
-            <span className="flex-1">{label}</span>
+            <span className="flex-1">{rotuloStatus(value, tipo, STATUS_LABEL)}</span>
             {value === status && <Check className="h-3.5 w-3.5 ml-2" />}
           </DropdownMenuItem>
         ))}

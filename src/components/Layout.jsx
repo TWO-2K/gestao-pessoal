@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare, CalendarDays, Eye, ChevronDown, Clapperboard, Dumbbell, Scale, Target, ClipboardList, TrendingUp, Ruler, ListChecks, ChevronLeft, ChevronRight, PiggyBank } from "lucide-react";
+import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare, CalendarDays, Eye, ChevronDown, Clapperboard, Dumbbell, Scale, Target, ClipboardList, TrendingUp, Ruler, ListChecks, ChevronLeft, ChevronRight, PiggyBank, Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 import { useUsuarios } from "@/hooks/useUsuarios";
@@ -42,6 +42,7 @@ const navSections = [
       { to: "/midias/filmes", label: "Filmes", icon: Clapperboard },
       { to: "/midias/especiais", label: "Especiais", icon: Clapperboard },
       { to: "/midias/series", label: "Séries", icon: Clapperboard },
+      { to: "/midias/games", label: "Games", icon: Gamepad2 },
     ],
   },
   {

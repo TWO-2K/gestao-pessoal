@@ -13,7 +13,7 @@ export const COLUNAS_IMPORT = [
   "visivel_apenas_admin",
 ];
 
-export const TIPOS_VALIDOS = ["anime", "ova", "ona", "filme", "especial", "serie"];
+export const TIPOS_VALIDOS = ["anime", "ova", "ona", "filme", "especial", "serie", "game"];
 export const STATUS_VALIDOS = ["pendente", "planejado", "assistindo", "concluido", "pausado"];
 
 const LINHAS_EXEMPLO = [

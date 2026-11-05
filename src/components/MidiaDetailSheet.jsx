@@ -7,13 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MidiaForm from "@/components/MidiaForm";
 import MidiaStatusUsuarioMenu from "@/components/MidiaStatusUsuarioMenu";
+import { rotuloStatus } from "@/lib/midiaStatus";
 import GeneroSelect from "@/components/GeneroSelect";
 import { listaParaGenero } from "@/lib/generos";
 import { useUsuarios } from "@/hooks/useUsuarios";
 import { useViewAs } from "@/lib/ViewAsContext";
 import { Pencil, Trash2, Plus, Library, Clapperboard, PlayCircle, ChevronDown, Sparkles, Users } from "lucide-react";
 
-const TIPO_LABEL = { anime: "Anime", ova: "OVA", ona: "ONA", filme: "Filme", especial: "Especial", serie: "Série" };
+const TIPO_LABEL = { anime: "Anime", ova: "OVA", ona: "ONA", filme: "Filme", especial: "Especial", serie: "Série", game: "Game" };
 
 const TIPO_BADGE = {
   anime: "bg-sky-100 text-sky-700",
@@ -22,6 +23,7 @@ const TIPO_BADGE = {
   filme: "bg-gold-100 text-gold-700",
   especial: "bg-gold-100 text-gold-700",
   serie: "bg-rust-100 text-rust-700",
+  game: "bg-emerald-100 text-emerald-700",
 };
 
 const STATUS_STYLE = {
@@ -207,7 +209,7 @@ export default function MidiaDetailSheet({
               <div className="rounded-xl border border-ink-200 bg-white shadow-sm px-3 py-2.5">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-400 mb-1.5">Status</p>
                 <span className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[midia.status]}`}>
-                  {STATUS_LABEL[midia.status]}
+                  {rotuloStatus(midia.status, midia.tipo, STATUS_LABEL)}
                 </span>
                 {midia.status === "concluido" && midia.concluido_em && (
                   <p className="text-[11px] text-ink-400 mt-1.5">
@@ -217,7 +219,7 @@ export default function MidiaDetailSheet({
               </div>
               <div className="rounded-xl border border-ink-200 bg-white shadow-sm px-3 py-2.5">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-400 mb-1.5">Episódio</p>
-                {["filme", "especial"].includes(midia.tipo) ? (
+                {["filme", "especial", "game"].includes(midia.tipo) ? (
                   <p className="text-sm text-ink-400">—</p>
                 ) : (
                   <div className="flex items-center gap-1.5 text-sm text-ink-900 font-medium">
@@ -240,10 +242,11 @@ export default function MidiaDetailSheet({
                       <MidiaStatusUsuarioMenu
                         key={u.id}
                         status={st}
+                        tipo={midia.tipo}
                         onChange={onSetStatusUsuario ? (status) => onSetStatusUsuario(u.id, status) : undefined}
                       >
                         <span className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[st]}`}>
-                          {u.nome}: {STATUS_LABEL[st]}
+                          {u.nome}: {rotuloStatus(st, midia.tipo, STATUS_LABEL)}
                         </span>
                       </MidiaStatusUsuarioMenu>
                     );
@@ -312,7 +315,7 @@ export default function MidiaDetailSheet({
                         </SelectContent>
                       </Select>
                     </div>
-                    {!["filme", "especial"].includes(novoTipo) && (
+                    {!["filme", "especial", "game"].includes(novoTipo) && (
                       <div className="space-y-1.5">
                         <Label className="text-xs">Episódio</Label>
                         <Input
@@ -362,11 +365,11 @@ export default function MidiaDetailSheet({
                             >
                               <td className="px-3 py-2 text-ink-900 truncate max-w-[220px]">{filho.titulo}</td>
                               <td className="px-3 py-2 text-ink-500 tabular-nums w-16">
-                                {["filme", "especial"].includes(filho.tipo) ? "-" : `Ep ${filho.episodio_atual ?? "-"}`}
+                                {["filme", "especial", "game"].includes(filho.tipo) ? "-" : `Ep ${filho.episodio_atual ?? "-"}`}
                               </td>
                               <td className="px-3 py-2 w-28">
                                 <span className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[filho.status]}`}>
-                                  {STATUS_LABEL[filho.status]}
+                                  {rotuloStatus(filho.status, filho.tipo, STATUS_LABEL)}
                                 </span>
                               </td>
                             </tr>

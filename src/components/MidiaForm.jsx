@@ -1,3 +1,4 @@
+import { rotuloStatus } from "@/lib/midiaStatus";
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ const TIPOS = [
   { value: "filme", label: "Filme" },
   { value: "especial", label: "Especial" },
   { value: "serie", label: "Série (live-action)" },
+  { value: "game", label: "Game" },
 ];
 
 const STATUS = [
@@ -74,7 +76,7 @@ export default function MidiaForm({ midia, midias = [], defaults, onSaved, onCan
         id: midia?.id,
         ...form,
         titulo: form.titulo.trim(),
-        midia_pai_id: form.midia_pai_id === SEM_PAI ? "" : form.midia_pai_id,
+        midia_pai_id: form.tipo === "game" || form.midia_pai_id === SEM_PAI ? "" : form.midia_pai_id,
       });
     } catch (error) {
       toast({ variant: "destructive", title: "Erro ao salvar", description: error.message });
@@ -83,7 +85,7 @@ export default function MidiaForm({ midia, midias = [], defaults, onSaved, onCan
     }
   };
 
-  const mostraEpisodio = !["filme", "especial"].includes(form.tipo);
+  const mostraEpisodio = !["filme", "especial", "game"].includes(form.tipo);
 
   const opcoesPai = midias
     .filter((m) => m.id !== midia?.id && m.midia_pai_id !== midia?.id)
@@ -111,7 +113,7 @@ export default function MidiaForm({ midia, midias = [], defaults, onSaved, onCan
           <Select value={form.status} onValueChange={(v) => set("status", v)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {STATUS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+              {STATUS.map((s) => <SelectItem key={s.value} value={s.value}>{rotuloStatus(s.value, form.tipo, { [s.value]: s.label })}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -130,20 +132,22 @@ export default function MidiaForm({ midia, midias = [], defaults, onSaved, onCan
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>Faz parte de</Label>
-        <Select value={form.midia_pai_id} onValueChange={(v) => set("midia_pai_id", v)}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value={SEM_PAI}>Nenhum (item independente)</SelectItem>
-            {opcoesPai.map((m) => (
-              <SelectItem key={m.id} value={m.id}>
-                {m.titulo} ({TIPOS.find((t) => t.value === m.tipo)?.label})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {form.tipo !== "game" && (
+        <div className="space-y-2">
+          <Label>Faz parte de</Label>
+          <Select value={form.midia_pai_id} onValueChange={(v) => set("midia_pai_id", v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SEM_PAI}>Nenhum (item independente)</SelectItem>
+              {opcoesPai.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.titulo} ({TIPOS.find((t) => t.value === m.tipo)?.label})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label>Gênero</Label>
