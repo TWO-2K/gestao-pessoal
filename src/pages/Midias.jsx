@@ -16,6 +16,7 @@ import { useFranquias } from "@/hooks/useFranquias";
 import { useUsuarios } from "@/hooks/useUsuarios";
 import { useViewAs } from "@/lib/ViewAsContext";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
+import { useToast } from "@/components/ui/use-toast";
 
 const TIPO_LABEL = { anime: "Anime", ova: "OVA", ona: "ONA", filme: "Filme", especial: "Especial", serie: "Série" };
 
@@ -72,7 +73,9 @@ export default function Midias() {
   const tipoEfetivo = tipoFiltro === "todos" ? tipoFiltroLocal : tipoFiltro;
   const [selecionados, setSelecionados] = useState(new Set());
   const [statusEmMassa, setStatusEmMassa] = useState("");
-  const [aplicandoEmMassa, setAplicandoEmMassa] = useState(false);
+  // itens ainda sendo gravados em segundo plano (soma de todos os lotes em andamento)
+  const [restantesEmMassa, setRestantesEmMassa] = useState(0);
+  const { toast } = useToast();
   const [pagina, setPagina] = useState(1);
   const [viewMode, setViewMode] = useState("list");
   const ITENS_POR_PAGINA = 20;
@@ -148,7 +151,7 @@ export default function Midias() {
   );
 
   useEffect(() => {
-    setSelecionados(new Set());
+    // a seleção é mantida ao filtrar/pesquisar, para marcar itens de buscas diferentes
     setPagina(1);
   }, [tipoEfetivo, statusFiltro, busca, tipoFiltro, privacidadeFiltro]);
 
@@ -232,34 +235,54 @@ export default function Midias() {
   const todosSelecionados = filtradas.length > 0 && filtradas.every((m) => selecionados.has(m.id));
 
   const toggleTodos = () => {
-    setSelecionados(todosSelecionados ? new Set() : new Set(filtradas.map((m) => m.id)));
+    // mexe só nos itens da busca atual; o que foi marcado em outras buscas continua marcado
+    setSelecionados((prev) => {
+      const novo = new Set(prev);
+      for (const m of filtradas) {
+        if (todosSelecionados) novo.delete(m.id);
+        else novo.add(m.id);
+      }
+      return novo;
+    });
   };
 
-  const handleAplicarStatusEmMassa = async () => {
+  // Aplica em segundo plano: limpa a seleção na hora para o usuário seguir marcando outros itens
+  const handleAplicarStatusEmMassa = () => {
     if (!statusEmMassa || selecionados.size === 0) return;
-    setAplicandoEmMassa(true);
-    try {
-      for (const idItem of selecionados) {
-        const item = midiaPorId[idItem];
-        if (!item) continue;
-        await createOrUpdateMidia({
-          id: item.id,
-          titulo: item.titulo,
-          tipo: item.tipo,
-          status: statusEmMassa,
-          episodio_atual: item.episodio_atual ?? "",
-          ano: item.ano ?? "",
-          genero: item.genero || "",
-          observacoes: item.observacoes || "",
-          franquia_id: item.franquia_id || "",
-          midia_pai_id: item.midia_pai_id || "",
-        });
+    const itens = [...selecionados].map((idItem) => midiaPorId[idItem]).filter(Boolean);
+    const status = statusEmMassa;
+    setSelecionados(new Set());
+    setStatusEmMassa("");
+    setRestantesEmMassa((n) => n + itens.length);
+
+    (async () => {
+      let falhas = 0;
+      for (const item of itens) {
+        try {
+          await createOrUpdateMidia({
+            id: item.id,
+            titulo: item.titulo,
+            tipo: item.tipo,
+            status,
+            episodio_atual: item.episodio_atual ?? "",
+            ano: item.ano ?? "",
+            genero: item.genero || "",
+            observacoes: item.observacoes || "",
+            franquia_id: item.franquia_id || "",
+            midia_pai_id: item.midia_pai_id || "",
+          });
+        } catch {
+          falhas += 1;
+        } finally {
+          setRestantesEmMassa((n) => n - 1);
+        }
       }
-    } finally {
-      setAplicandoEmMassa(false);
-      setSelecionados(new Set());
-      setStatusEmMassa("");
-    }
+      toast(
+        falhas
+          ? { variant: "destructive", title: "Status aplicado com falhas", description: `${itens.length - falhas} de ${itens.length} itens atualizados.` }
+          : { title: "Status aplicado", description: `${itens.length} ${itens.length === 1 ? "item atualizado" : "itens atualizados"}.` }
+      );
+    })();
   };
 
   // Planejados de todos os tipos, na ordem de prioridade definida pelo usuário (sem ordem vai para o fim, A-Z)
@@ -352,13 +375,13 @@ export default function Midias() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-3">
-        <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
+        <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[320px] sm:max-w-xl">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
           <Input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Pesquisar por título..."
-            className="pl-8"
+            className="pl-9 h-10 text-base sm:text-sm"
           />
         </div>
         <div className="hidden sm:block sm:flex-1" />
@@ -438,6 +461,12 @@ export default function Midias() {
         </div>
       </div>
 
+      {restantesEmMassa > 0 && (
+        <div className="mb-3 rounded-xl border border-ink-200 bg-ink-50 px-3 py-2 text-sm text-ink-600">
+          Aplicando status em segundo plano… faltam {restantesEmMassa} {restantesEmMassa === 1 ? "item" : "itens"}.
+        </div>
+      )}
+
       {selecionados.size > 0 && (
         <div className="flex items-center gap-2 mb-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2">
           <span className="text-sm text-sky-800 font-medium">
@@ -457,9 +486,9 @@ export default function Midias() {
           <Button
             size="sm"
             onClick={handleAplicarStatusEmMassa}
-            disabled={!statusEmMassa || aplicandoEmMassa}
+            disabled={!statusEmMassa}
           >
-            {aplicandoEmMassa ? "Aplicando..." : "Aplicar"}
+            Aplicar
           </Button>
           <button
             onClick={() => setSelecionados(new Set())}
