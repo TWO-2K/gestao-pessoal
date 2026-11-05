@@ -156,6 +156,7 @@ function DetalheAtivo({ ativo, tom, podeExcluir, onClose, onEdit, onDelete, onTo
             <Resultado ativo={ativo} />
             {pctResultado != null && <span className="ml-1 text-xs text-ink-400">({pctResultado >= 0 ? "+" : ""}{pctResultado.toFixed(1).replace(".", ",")}%)</span>}
           </Info>
+          <Info rotulo="Proventos recebidos"><span className="tabular-nums text-forest-700">{formatCurrency(ativo.recebido || 0)}</span></Info>
           <Info rotulo="Hoje"><CotacaoHoje ativo={ativo} /></Info>
           <Info rotulo="Valor teto"><Teto ativo={ativo} alinhar="left" /></Info>
         </div>
@@ -234,6 +235,7 @@ export default function CarteiraTabela({ carteira, modo = "tabela", cores: cores
               <TableHead className="text-right">Teto</TableHead>
               {PRAZOS.map((p) => <TableHead key={p.campo} className="text-right">{p.rotulo}</TableHead>)}
               <TableHead className="text-right">Investido</TableHead>
+              <TableHead className="text-right">Proventos</TableHead>
               <TableHead className="text-right">Resultado</TableHead>
               <TableHead>Meta</TableHead>
             </TableRow>
@@ -256,6 +258,7 @@ export default function CarteiraTabela({ carteira, modo = "tabela", cores: cores
                   <TableCell key={p.campo} className="text-right"><Variacao atual={a.cotacao_atual} anterior={a[p.campo]} /></TableCell>
                 ))}
                 <TableCell className="text-right tabular-nums">{formatCurrency(a.investido)}</TableCell>
+                <TableCell className={cn("text-right tabular-nums", a.recebido > 0 ? "text-forest-700" : "text-ink-300")}>{a.recebido > 0 ? formatCurrency(a.recebido) : "—"}</TableCell>
                 <TableCell className="text-right"><Resultado ativo={a} /></TableCell>
                 <TableCell><Meta ativo={a} /></TableCell>
               </TableRow>
@@ -281,6 +284,7 @@ export default function CarteiraTabela({ carteira, modo = "tabela", cores: cores
               <div className="text-right">
                 <p className="font-semibold tabular-nums">{formatCurrency(a.investido)}</p>
                 <p className="text-xs"><Resultado ativo={a} /></p>
+                {a.recebido > 0 && <p className="text-xs text-forest-700 tabular-nums">Proventos {formatCurrency(a.recebido)}</p>}
               </div>
             </div>
 

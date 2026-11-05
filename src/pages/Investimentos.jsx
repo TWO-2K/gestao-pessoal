@@ -172,15 +172,20 @@ export default function Investimentos() {
   const fechar = () => setDialog(null);
   const salvar = (fn) => async (dados) => { await fn(dados); fechar(); };
 
-  const carteira = useMemo(
-    () => ativos.map((a) => {
+  const carteira = useMemo(() => {
+    // Soma dos proventos já recebidos (não previstos) por ativo
+    const recebidoPorAtivo = new Map();
+    proventos.forEach((pv) => {
+      if (aindaPrevisto(pv)) return;
+      recebidoPorAtivo.set(pv.ativo_id, (recebidoPorAtivo.get(pv.ativo_id) || 0) + Number(pv.valor));
+    });
+    return ativos.map((a) => {
       const p = posicoes.get(a.id) || { cotas: 0, investido: 0, precoMedio: 0, planejadoCotas: 0 };
       const valorAtual = a.cotacao_atual ? p.cotas * a.cotacao_atual : null;
       const pctMeta = a.meta_cotas > 0 ? Math.min(100, (p.cotas / a.meta_cotas) * 100) : null;
-      return { ...a, ...p, valorAtual, pctMeta };
-    }),
-    [ativos, posicoes]
-  );
+      return { ...a, ...p, valorAtual, pctMeta, recebido: recebidoPorAtivo.get(a.id) || 0 };
+    });
+  }, [ativos, posicoes, proventos]);
 
   const qtdInativos = carteira.filter((a) => a.inativo).length;
   // Inativos ficam numa visão separada; se o último for reativado, volta para a lista principal
