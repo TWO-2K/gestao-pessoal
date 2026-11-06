@@ -72,6 +72,8 @@ export default function Midias() {
   const [busca, setBusca] = useState("");
   const [tipoFiltroLocal, setTipoFiltroLocal] = useState("todos");
   const tipoEfetivo = tipoFiltro === "todos" ? tipoFiltroLocal : tipoFiltro;
+  const ehGame = tipoEfetivo === "game";
+  const rotulo = (status) => rotuloStatus(status, tipoEfetivo, STATUS_LABEL);
   const [selecionados, setSelecionados] = useState(new Set());
   const [statusEmMassa, setStatusEmMassa] = useState("");
   // itens ainda sendo gravados em segundo plano (soma de todos os lotes em andamento)
@@ -135,7 +137,7 @@ export default function Midias() {
   const filtradas = useMemo(
     () =>
       midias
-        .filter((m) => tipoEfetivo === "todos" || m.tipo === tipoEfetivo)
+        .filter((m) => tipoEfetivo === "todos" ? m.tipo !== "game" : m.tipo === tipoEfetivo)
         .filter((m) => statusFiltro === "todos" || m.status === statusFiltro)
         .filter((m) => !somenteNovidades || temNovidade.has(m.id))
         .filter((m) => privacidadeFiltro === "todos" || (privacidadeFiltro === "privados" ? m.visivel_apenas_admin : !m.visivel_apenas_admin))
@@ -152,6 +154,12 @@ export default function Midias() {
   );
 
   useEffect(() => {
+    // ao trocar de aba (animes, games...), os filtros da aba anterior não devem continuar valendo
+    setStatusFiltro("todos");
+    setSomenteNovidades(false);
+  }, [tipoSlug]);
+
+  useEffect(() => {
     // a seleção é mantida ao filtrar/pesquisar, para marcar itens de buscas diferentes
     setPagina(1);
   }, [tipoEfetivo, statusFiltro, busca, tipoFiltro, privacidadeFiltro]);
@@ -163,7 +171,7 @@ export default function Midias() {
   const titulo = tipoFiltro === "todos" ? "Minha Lista" : TIPO_PLURAL[tipoFiltro];
 
   const escopoMetricas = useMemo(
-    () => midias.filter((m) => tipoEfetivo === "todos" || m.tipo === tipoEfetivo),
+    () => midias.filter((m) => tipoEfetivo === "todos" ? m.tipo !== "game" : m.tipo === tipoEfetivo),
     [midias, tipoEfetivo]
   );
 
@@ -315,11 +323,11 @@ export default function Midias() {
       })
       .slice(0, 5);
     return [
-      { status: "assistindo", label: "Assistindo", icon: PlayCircle, itens: porStatus("assistindo") },
-      { status: "concluido", label: "Últimos concluídos", icon: CheckCircle2, itens: concluidosRecentes },
+      { status: "assistindo", label: rotuloStatus("assistindo", tipoEfetivo, STATUS_LABEL), icon: PlayCircle, itens: porStatus("assistindo") },
+      { status: "concluido", label: tipoEfetivo === "game" ? "Últimos zerados" : "Últimos concluídos", icon: CheckCircle2, itens: concluidosRecentes },
       { status: "planejado", label: "Planejados", icon: ListTodo, itens: planejadosOrdenados.filter((m) => visiveis.has(m.id)) },
     ];
-  }, [escopoMetricas, planejadosOrdenados]);
+  }, [escopoMetricas, planejadosOrdenados, tipoEfetivo]);
 
   // acao: "topo" | "cima" | "baixo" — move dentro da lista completa, respeitando o filtro de tipo visível
   const moverPlanejado = (midiaId, acao) => {
@@ -349,11 +357,11 @@ export default function Midias() {
     <div>
       <PageHeader
         title={titulo}
-        subtitle="Animes, séries e filmes que você está acompanhando"
+        subtitle={ehGame ? "Jogos que você está jogando ou quer jogar" : "Animes, séries e filmes que você está acompanhando"}
       />
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
-        {Object.entries(STATUS_LABEL).map(([status, label]) => {
+        {Object.keys(STATUS_LABEL).map((status) => {
           const Icone = STATUS_ICON[status];
           const ativo = statusFiltro === status;
           const estilo = STATUS_CARD_STYLE[status];
@@ -364,7 +372,7 @@ export default function Midias() {
               className={`text-left rounded-2xl border bg-white px-4 py-3 transition-colors ${estilo.ring} ${ativo ? "border-ink-900 ring-1 ring-ink-900" : "border-ink-200"}`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">{label}</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">{rotulo(status)}</span>
                 <Icone className={`h-4 w-4 ${estilo.icon}`} />
               </div>
               <p className="font-display text-2xl font-medium tracking-tight text-ink-900 mt-1.5 tabular-nums">
@@ -405,8 +413,8 @@ export default function Midias() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos os status</SelectItem>
-            {Object.entries(STATUS_LABEL).map(([value, label]) => (
-              <SelectItem key={value} value={value}>{label}</SelectItem>
+            {Object.keys(STATUS_LABEL).map((value) => (
+              <SelectItem key={value} value={value}>{rotulo(value)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -415,9 +423,9 @@ export default function Midias() {
           onClick={() => setStatusFiltro((s) => (s === "concluido" ? "todos" : "concluido"))}
           className={statusFiltro === "concluido" ? "" : "text-emerald-700 border-emerald-200"}
         >
-          <Check className="h-4 w-4 mr-1.5" /> Assistidos
+          <Check className="h-4 w-4 mr-1.5" /> {ehGame ? "Zerados" : "Assistidos"}
         </Button>
-        {temNovidade.size > 0 && (
+        {!ehGame && temNovidade.size > 0 && (
           <Button
             variant={somenteNovidades ? "default" : "outline"}
             onClick={() => setSomenteNovidades((v) => !v)}
@@ -479,8 +487,8 @@ export default function Midias() {
               <SelectValue placeholder="Mudar status para..." />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(STATUS_LABEL).map(([value, label]) => (
-                <SelectItem key={value} value={value}>{label}</SelectItem>
+              {Object.keys(STATUS_LABEL).map((value) => (
+                <SelectItem key={value} value={value}>{rotulo(value)}</SelectItem>
               ))}
             </SelectContent>
           </Select>
