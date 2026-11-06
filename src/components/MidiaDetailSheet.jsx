@@ -10,6 +10,7 @@ import MidiaStatusUsuarioMenu from "@/components/MidiaStatusUsuarioMenu";
 import { rotuloStatus } from "@/lib/midiaStatus";
 import GeneroSelect from "@/components/GeneroSelect";
 import { listaParaGenero } from "@/lib/generos";
+import { rotuloTemporada } from "@/lib/temporadas";
 import { useUsuarios } from "@/hooks/useUsuarios";
 import { useViewAs } from "@/lib/ViewAsContext";
 import { Pencil, Trash2, Plus, Library, Clapperboard, PlayCircle, ChevronDown, Sparkles, Users } from "lucide-react";
@@ -156,6 +157,7 @@ export default function MidiaDetailSheet({
                     {TIPO_LABEL[midia.tipo]}
                   </span>
                   {midia.ano && <span className="text-xs text-ink-400">{midia.ano}</span>}
+                  {midia.temporada && <span className="text-xs text-ink-400">· {rotuloTemporada(midia.temporada)}</span>}
                   {midia.genero && <span className="text-xs text-ink-400">· {midia.genero}</span>}
                 </div>
                 {(midia.franquia_id || pai) && (

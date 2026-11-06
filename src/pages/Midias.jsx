@@ -6,6 +6,8 @@ import MidiaDetailSheet from "@/components/MidiaDetailSheet";
 import MidiaImportDialog from "@/components/MidiaImportDialog";
 import MidiaStatusUsuarioMenu from "@/components/MidiaStatusUsuarioMenu";
 import { rotuloStatus } from "@/lib/midiaStatus";
+import TemporadaAnimes from "@/components/TemporadaAnimes";
+import { opcoesTemporada, rotuloTemporada } from "@/lib/temporadas";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -85,6 +87,15 @@ export default function Midias() {
   const [planejadosAberto, setPlanejadosAberto] = useState(() => {
     try { return localStorage.getItem("midias-planejados-aberto") !== "0"; } catch { return true; }
   });
+  const [secoesFechadas, setSecoesFechadas] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("midias-secoes-fechadas") || "[]"); } catch { return []; }
+  });
+  const toggleSecao = (chave) =>
+    setSecoesFechadas((atual) => {
+      const novo = atual.includes(chave) ? atual.filter((c) => c !== chave) : [...atual, chave];
+      try { localStorage.setItem("midias-secoes-fechadas", JSON.stringify(novo)); } catch { /* sem storage */ }
+      return novo;
+    });
   const togglePlanejados = () => {
     setPlanejadosAberto((prev) => {
       try { localStorage.setItem("midias-planejados-aberto", prev ? "0" : "1"); } catch { /* ignore */ }
@@ -133,6 +144,7 @@ export default function Midias() {
 
   const [somenteNovidades, setSomenteNovidades] = useState(false);
   const [privacidadeFiltro, setPrivacidadeFiltro] = useState("todos");
+  const [temporadaFiltro, setTemporadaFiltro] = useState("todas");
 
   const filtradas = useMemo(
     () =>
@@ -140,6 +152,7 @@ export default function Midias() {
         .filter((m) => tipoEfetivo === "todos" ? m.tipo !== "game" : m.tipo === tipoEfetivo)
         .filter((m) => statusFiltro === "todos" || m.status === statusFiltro)
         .filter((m) => !somenteNovidades || temNovidade.has(m.id))
+        .filter((m) => temporadaFiltro === "todas" || m.temporada === temporadaFiltro)
         .filter((m) => privacidadeFiltro === "todos" || (privacidadeFiltro === "privados" ? m.visivel_apenas_admin : !m.visivel_apenas_admin))
         .filter((m) => m.titulo.toLowerCase().includes(busca.trim().toLowerCase()))
         .sort((a, b) => {
@@ -150,19 +163,20 @@ export default function Midias() {
           }
           return a.titulo.localeCompare(b.titulo, "pt-BR");
         }),
-    [midias, tipoEfetivo, statusFiltro, busca, somenteNovidades, privacidadeFiltro, temNovidade]
+    [midias, tipoEfetivo, statusFiltro, busca, somenteNovidades, privacidadeFiltro, temporadaFiltro, temNovidade]
   );
 
   useEffect(() => {
     // ao trocar de aba (animes, games...), os filtros da aba anterior não devem continuar valendo
     setStatusFiltro("todos");
     setSomenteNovidades(false);
+    setTemporadaFiltro("todas");
   }, [tipoSlug]);
 
   useEffect(() => {
     // a seleção é mantida ao filtrar/pesquisar, para marcar itens de buscas diferentes
     setPagina(1);
-  }, [tipoEfetivo, statusFiltro, busca, tipoFiltro, privacidadeFiltro]);
+  }, [tipoEfetivo, statusFiltro, busca, tipoFiltro, privacidadeFiltro, temporadaFiltro]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / ITENS_POR_PAGINA));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -174,6 +188,13 @@ export default function Midias() {
     () => midias.filter((m) => tipoEfetivo === "todos" ? m.tipo !== "game" : m.tipo === tipoEfetivo),
     [midias, tipoEfetivo]
   );
+
+  // quantos itens cada temporada tem na aba atual (para destacar no filtro)
+  const contagemPorTemporada = useMemo(() => {
+    const c = {};
+    for (const m of escopoMetricas) if (m.temporada) c[m.temporada] = (c[m.temporada] || 0) + 1;
+    return c;
+  }, [escopoMetricas]);
 
   const contagemPorStatus = useMemo(() => {
     const map = Object.fromEntries(Object.keys(STATUS_LABEL).map((s) => [s, 0]));
@@ -322,10 +343,13 @@ export default function Midias() {
         return dataB - dataA;
       })
       .slice(0, 5);
+    // midias já vem da mais nova para a mais antiga (created_at desc)
+    const adicionadosRecentes = escopoMetricas.slice(0, 10);
     return [
       { status: "assistindo", label: rotuloStatus("assistindo", tipoEfetivo, STATUS_LABEL), icon: PlayCircle, itens: porStatus("assistindo") },
-      { status: "concluido", label: tipoEfetivo === "game" ? "Últimos zerados" : "Últimos concluídos", icon: CheckCircle2, itens: concluidosRecentes },
       { status: "planejado", label: "Planejados", icon: ListTodo, itens: planejadosOrdenados.filter((m) => visiveis.has(m.id)) },
+      { status: "adicionado", label: "Últimos adicionados", icon: Sparkles, itens: adicionadosRecentes },
+      { status: "concluido", label: tipoEfetivo === "game" ? "Últimos zerados" : "Últimos concluídos", icon: CheckCircle2, itens: concluidosRecentes },
     ];
   }, [escopoMetricas, planejadosOrdenados, tipoEfetivo]);
 
@@ -359,6 +383,8 @@ export default function Midias() {
         title={titulo}
         subtitle={ehGame ? "Jogos que você está jogando ou quer jogar" : "Animes, séries e filmes que você está acompanhando"}
       />
+
+      {!ehGame && <TemporadaAnimes midias={midias} />}
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
         {Object.keys(STATUS_LABEL).map((status) => {
@@ -418,6 +444,26 @@ export default function Midias() {
             ))}
           </SelectContent>
         </Select>
+        {!ehGame && (
+          <Select value={temporadaFiltro} onValueChange={setTemporadaFiltro}>
+            <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-[180px]">
+              <SelectValue placeholder="Temporada" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as temporadas</SelectItem>
+              {opcoesTemporada().map((o) => {
+                const qtd = contagemPorTemporada[o.value] || 0;
+                return (
+                  <SelectItem key={o.value} value={o.value}>
+                    <span className={qtd ? "font-semibold" : "text-ink-400"}>
+                      {o.label}{qtd > 0 && ` (${qtd})`}
+                    </span>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        )}
         <Button
           variant={statusFiltro === "concluido" ? "default" : "outline"}
           onClick={() => setStatusFiltro((s) => (s === "concluido" ? "todos" : "concluido"))}
@@ -558,6 +604,7 @@ export default function Midias() {
               <p className="mt-2 font-medium text-ink-900 truncate">{m.titulo}</p>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 text-xs text-ink-400">
                 <span>{TIPO_LABEL[m.tipo]}</span>
+                {m.temporada && <span>· {rotuloTemporada(m.temporada)}</span>}
                 {!["filme", "especial", "game"].includes(m.tipo) && m.episodio_atual != null && (
                   <span>Ep. {m.episodio_atual}</span>
                 )}
@@ -627,7 +674,7 @@ export default function Midias() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-ink-500">{TIPO_LABEL[m.tipo]}</td>
+                    <td className="px-4 py-2.5 text-ink-500">{TIPO_LABEL[m.tipo]}{m.temporada ? ` · ${rotuloTemporada(m.temporada)}` : ""}</td>
                     <td className="px-4 py-2.5 text-ink-500 tabular-nums">
                       {["filme", "especial", "game"].includes(m.tipo) ? "-" : m.episodio_atual ?? "-"}
                     </td>
@@ -696,16 +743,21 @@ export default function Midias() {
         <div className="scroll-fino absolute inset-0 overflow-y-auto rounded-2xl pb-2">
           {gruposPainel.map((g) => (
             <section key={g.status}>
-              <div className="flex items-center justify-between px-5 py-4 mb-1 border-b border-ink-100">
+              <button
+                onClick={() => toggleSecao(g.status)}
+                aria-expanded={!secoesFechadas.includes(g.status)}
+                className="flex w-full items-center justify-between px-5 py-4 mb-1 border-b border-ink-100 hover:bg-ink-50 transition-colors"
+              >
                 <div className="flex items-center gap-2">
+                  <ChevronRight className={`h-3.5 w-3.5 text-ink-400 transition-transform ${secoesFechadas.includes(g.status) ? "" : "rotate-90"}`} />
                   <g.icon className="h-4 w-4 text-ink-400" />
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">{g.label}</span>
                 </div>
                 <span className="rounded-full bg-ink-100 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-ink-500">
                   {g.itens.length}
                 </span>
-              </div>
-              {g.itens.length === 0 ? (
+              </button>
+              {secoesFechadas.includes(g.status) ? null : g.itens.length === 0 ? (
                 <p className="px-5 py-4 text-xs text-ink-400">Nada por aqui.</p>
               ) : (
                 <ul className="px-2 pb-2 space-y-0.5">
@@ -720,6 +772,7 @@ export default function Midias() {
                         <p className="text-[10px] uppercase tracking-wide text-ink-400">
                           {[
                             tipoEfetivo === "todos" ? TIPO_LABEL[m.tipo] : null,
+                            g.status === "adicionado" ? formatarDataConcluido(m.created_at) : null,
                             g.status === "assistindo" && !["filme", "especial", "game"].includes(m.tipo) && m.episodio_atual != null
                               ? `Ep. ${m.episodio_atual}`
                               : null,

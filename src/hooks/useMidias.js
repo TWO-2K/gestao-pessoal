@@ -137,6 +137,8 @@ export function useMidias() {
         franquia_id: form.franquia_id || null,
         midia_pai_id: form.midia_pai_id || null,
       };
+      // quem não informa temporada (ex.: mudança de status em massa) não deve apagar a que já existe
+      if (form.temporada !== undefined) catalogoPayload.temporada = form.temporada || null;
       if (form.visivel_apenas_admin !== undefined) {
         catalogoPayload.visivel_apenas_admin = !!form.visivel_apenas_admin;
       }

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/ui/use-toast";
 import GeneroSelect from "@/components/GeneroSelect";
 import { generoParaLista, listaParaGenero } from "@/lib/generos";
+import { TIPOS_COM_TEMPORADA, opcoesTemporada } from "@/lib/temporadas";
 
 const TIPOS = [
   { value: "anime", label: "Anime" },
@@ -34,6 +35,7 @@ const EMPTY = {
   episodio_atual: "",
   ano: "",
   genero: "",
+  temporada: "",
   observacoes: "",
   franquia_id: "",
   midia_pai_id: "",
@@ -55,6 +57,7 @@ export default function MidiaForm({ midia, midias = [], defaults, onSaved, onCan
         episodio_atual: midia.episodio_atual ?? "",
         ano: midia.ano ?? "",
         genero: midia.genero || "",
+        temporada: midia.temporada || "",
         observacoes: midia.observacoes || "",
         franquia_id: midia.franquia_id || "",
         midia_pai_id: midia.midia_pai_id || SEM_PAI,
@@ -76,6 +79,7 @@ export default function MidiaForm({ midia, midias = [], defaults, onSaved, onCan
         id: midia?.id,
         ...form,
         titulo: form.titulo.trim(),
+        temporada: TIPOS_COM_TEMPORADA.includes(form.tipo) ? form.temporada : "",
         midia_pai_id: form.tipo === "game" || form.midia_pai_id === SEM_PAI ? "" : form.midia_pai_id,
       });
     } catch (error) {
@@ -131,6 +135,19 @@ export default function MidiaForm({ midia, midias = [], defaults, onSaved, onCan
           <Input id="ano" type="number" min="1900" value={form.ano} onChange={(e) => set("ano", e.target.value)} />
         </div>
       </div>
+
+      {TIPOS_COM_TEMPORADA.includes(form.tipo) && (
+        <div className="space-y-2">
+          <Label>Temporada de lançamento</Label>
+          <Select value={form.temporada || SEM_PAI} onValueChange={(v) => set("temporada", v === SEM_PAI ? "" : v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SEM_PAI}>Não informada</SelectItem>
+              {opcoesTemporada().map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {form.tipo !== "game" && (
         <div className="space-y-2">
