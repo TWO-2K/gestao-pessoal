@@ -135,7 +135,7 @@ export default function Midias() {
     for (const m of midias) {
       if (m.status !== "concluido") continue;
       const filhos = filhosPorPaiId[m.id] || [];
-      if (filhos.some((f) => f.status === "planejado" || f.status === "assistindo")) {
+      if (filhos.some((f) => f.status !== "concluido")) {
         set.add(m.id);
       }
     }
