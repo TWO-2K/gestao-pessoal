@@ -33,6 +33,7 @@ const EMPTY = {
   tipo: "anime",
   status: "planejado",
   episodio_atual: "",
+  episodios: "",
   ano: "",
   genero: "",
   temporada: "",
@@ -55,6 +56,7 @@ export default function MidiaForm({ midia, midias = [], defaults, onSaved, onCan
         tipo: midia.tipo || "anime",
         status: midia.status || "planejado",
         episodio_atual: midia.episodio_atual ?? "",
+        episodios: midia.episodios ?? "",
         ano: midia.ano ?? "",
         genero: midia.genero || "",
         temporada: midia.temporada || "",
@@ -79,6 +81,7 @@ export default function MidiaForm({ midia, midias = [], defaults, onSaved, onCan
         id: midia?.id,
         ...form,
         titulo: form.titulo.trim(),
+        episodios: mostraEpisodio ? form.episodios : "",
         temporada: TIPOS_COM_TEMPORADA.includes(form.tipo) ? form.temporada : "",
         midia_pai_id: form.tipo === "game" || form.midia_pai_id === SEM_PAI ? "" : form.midia_pai_id,
       });
@@ -128,6 +131,12 @@ export default function MidiaForm({ midia, midias = [], defaults, onSaved, onCan
           <div className="space-y-2">
             <Label htmlFor="episodio_atual">Episódio</Label>
             <Input id="episodio_atual" type="number" min="0" value={form.episodio_atual} onChange={(e) => set("episodio_atual", e.target.value)} />
+          </div>
+        )}
+        {mostraEpisodio && (
+          <div className="space-y-2">
+            <Label htmlFor="episodios">Total de episódios</Label>
+            <Input id="episodios" type="number" min="1" value={form.episodios} onChange={(e) => set("episodios", e.target.value)} />
           </div>
         )}
         <div className="space-y-2">

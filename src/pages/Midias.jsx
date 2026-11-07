@@ -8,6 +8,7 @@ import MidiaStatusUsuarioMenu from "@/components/MidiaStatusUsuarioMenu";
 import { rotuloStatus } from "@/lib/midiaStatus";
 import TemporadaAnimes from "@/components/TemporadaAnimes";
 import { opcoesTemporada, rotuloTemporada } from "@/lib/temporadas";
+import { rotuloEpisodios } from "@/lib/episodios";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -601,12 +602,12 @@ export default function Midias() {
                   )}
                 </div>
               </div>
-              <p className="mt-2 font-medium text-ink-900 truncate">{m.titulo}</p>
+              <p className="mt-2 font-medium text-ink-900 break-words">{m.titulo}</p>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 text-xs text-ink-400">
                 <span>{TIPO_LABEL[m.tipo]}</span>
                 {m.temporada && <span>· {rotuloTemporada(m.temporada)}</span>}
-                {!["filme", "especial", "game"].includes(m.tipo) && m.episodio_atual != null && (
-                  <span>Ep. {m.episodio_atual}</span>
+                {!["filme", "especial", "game"].includes(m.tipo) && rotuloEpisodios(m) && (
+                  <span>{rotuloEpisodios(m)}</span>
                 )}
               </div>
               <div className="flex items-center justify-between gap-2 mt-2.5">
@@ -661,9 +662,9 @@ export default function Midias() {
                     <td className="px-4 py-2.5" onClick={(e) => toggleSelecionado(m.id, e)}>
                       <Checkbox checked={selecionados.has(m.id)} onCheckedChange={() => {}} />
                     </td>
-                    <td className="px-4 py-2.5 text-ink-900 max-w-[280px]">
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate">{m.titulo}</span>
+                    <td className="px-4 py-2.5 text-ink-900 max-w-[360px]">
+                      <div className="flex items-start gap-1.5">
+                        <span className="break-words">{m.titulo}</span>
                         {temNovidade.has(m.id) && (
                           <span
                             title="Tem temporada/relacionado novo desde que você concluiu"
@@ -676,7 +677,7 @@ export default function Midias() {
                     </td>
                     <td className="px-4 py-2.5 text-ink-500">{TIPO_LABEL[m.tipo]}{m.temporada ? ` · ${rotuloTemporada(m.temporada)}` : ""}</td>
                     <td className="px-4 py-2.5 text-ink-500 tabular-nums">
-                      {["filme", "especial", "game"].includes(m.tipo) ? "-" : m.episodio_atual ?? "-"}
+                      {["filme", "especial", "game"].includes(m.tipo) ? "-" : m.episodio_atual != null || m.episodios != null ? `${m.episodio_atual ?? 0}${m.episodios != null ? `/${m.episodios}` : ""}` : "-"}
                     </td>
                     <td className="px-4 py-2.5">
                       <span className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[m.status]}`}>
@@ -768,13 +769,13 @@ export default function Midias() {
                         title={m.titulo}
                         className="w-full rounded-lg px-2.5 py-2 text-left text-ink-900 hover:bg-ink-50 transition-colors"
                       >
-                        <p className="text-sm leading-snug truncate">{m.titulo}</p>
+                        <p className="text-sm leading-snug break-words">{m.titulo}</p>
                         <p className="text-[10px] uppercase tracking-wide text-ink-400">
                           {[
                             tipoEfetivo === "todos" ? TIPO_LABEL[m.tipo] : null,
                             g.status === "adicionado" ? formatarDataConcluido(m.created_at) : null,
                             g.status === "assistindo" && !["filme", "especial", "game"].includes(m.tipo) && m.episodio_atual != null
-                              ? `Ep. ${m.episodio_atual}`
+                              ? rotuloEpisodios(m)
                               : null,
                             g.status === "concluido" ? formatarDataConcluido(m.concluido_em) : null,
                           ].filter(Boolean).join(" · ")}

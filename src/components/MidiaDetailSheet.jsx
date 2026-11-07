@@ -226,7 +226,7 @@ export default function MidiaDetailSheet({
                 ) : (
                   <div className="flex items-center gap-1.5 text-sm text-ink-900 font-medium">
                     <PlayCircle className="h-3.5 w-3.5 text-ink-400" />
-                    Ep {midia.episodio_atual ?? "-"}
+                    Ep {midia.episodio_atual ?? 0}{midia.episodios != null ? `/${midia.episodios}` : ""}
                   </div>
                 )}
               </div>
@@ -367,7 +367,7 @@ export default function MidiaDetailSheet({
                             >
                               <td className="px-3 py-2 text-ink-900 truncate max-w-[220px]">{filho.titulo}</td>
                               <td className="px-3 py-2 text-ink-500 tabular-nums w-16">
-                                {["filme", "especial", "game"].includes(filho.tipo) ? "-" : `Ep ${filho.episodio_atual ?? "-"}`}
+                                {["filme", "especial", "game"].includes(filho.tipo) ? "-" : `Ep ${filho.episodio_atual ?? 0}${filho.episodios != null ? `/${filho.episodios}` : ""}`}
                               </td>
                               <td className="px-3 py-2 w-28">
                                 <span className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[filho.status]}`}>

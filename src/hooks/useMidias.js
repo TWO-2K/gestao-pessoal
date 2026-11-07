@@ -139,6 +139,8 @@ export function useMidias() {
       };
       // quem não informa temporada (ex.: mudança de status em massa) não deve apagar a que já existe
       if (form.temporada !== undefined) catalogoPayload.temporada = form.temporada || null;
+      // idem para o total de episódios
+      if (form.episodios !== undefined) catalogoPayload.episodios = form.episodios === "" || form.episodios === null ? null : Number(form.episodios);
       if (form.visivel_apenas_admin !== undefined) {
         catalogoPayload.visivel_apenas_admin = !!form.visivel_apenas_admin;
       }
