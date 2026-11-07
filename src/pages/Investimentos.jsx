@@ -392,20 +392,20 @@ export default function Investimentos() {
                       return (
                         <div
                           key={ap.id}
-                          className={`group flex items-center gap-2 sm:gap-3 rounded-2xl border border-l-4 bg-white even:bg-ink-50/70 px-3 sm:px-4 py-3 ${planejado ? "border-dashed border-ink-300" : "border-ink-200"}`}
+                          className={`group flex items-center gap-2 sm:gap-3 rounded-2xl border border-l-4 px-3 sm:px-4 py-3 ${planejado ? "border-dashed border-gold-500 bg-gold-500/25 ring-1 ring-gold-500/40" : "border-ink-200 bg-white even:bg-ink-50/70"}`}
                           style={{ borderLeftColor: cor.barra }}
                         >
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold" style={{ color: cor.texto }}>
                               {ativoMap[ap.ativo_id]?.ticker || "—"}
                               <Chip className={venda ? "bg-rust-50 text-rust-600" : "bg-forest-50 text-forest-600"}>{venda ? "venda" : "compra"}</Chip>
-                              {planejado && <Chip className="bg-gold-500/15 text-gold-700">planejado</Chip>}
+                              {planejado && <Chip className="bg-gold-500 text-white font-bold uppercase tracking-wide"><Clock className="inline h-3 w-3 mr-0.5 -mt-0.5" />planejado</Chip>}
                             </p>
                             <p className="text-xs text-ink-400 mt-0.5">
                               {formatDate(ap.data)} · {fmtNum(ap.quantidade)} × {formatCurrency(ap.preco)}
                             </p>
                           </div>
-                          <p className={`font-semibold tabular-nums ${venda ? "text-rust-600" : planejado ? "text-ink-400" : ""}`}>
+                          <p className={`font-semibold tabular-nums ${venda ? "text-rust-600" : planejado ? "text-gold-600 italic font-bold" : ""}`}>
                             {venda ? "−" : ""}{formatCurrency(ap.quantidade * ap.preco)}
                           </p>
                           <Acoes

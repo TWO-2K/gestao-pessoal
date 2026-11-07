@@ -1,4 +1,4 @@
--- Seed: animes da temporada Outono 2024 (temporada '2024-4').
+  -- Seed: animes da temporada Outono 2024 (temporada '2024-4').
 -- Rode DEPOIS da migration 20260918000000_lista_midias_temporada.sql. Idempotente (não duplica por tipo + título).
 -- Cada linha: título, tipo, título do item pai (ou null). O pai é resolvido pelo título exato (tipo do pai na 3ª coluna).
 -- Vínculos extras no final: Kami no Tou (= Tower of God) e Shangri-La Frontier S1 ficam sob seus pais.
