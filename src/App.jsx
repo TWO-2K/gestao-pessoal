@@ -12,6 +12,8 @@ import Dashboard from '@/pages/Dashboard';
 import Relatorios from '@/pages/Relatorios';
 import ContasPagar from '@/pages/ContasPagar';
 import Gastos from '@/pages/Gastos';
+import Compras from '@/pages/Compras';
+import Produtos from '@/pages/Produtos';
 import DividasReceber from '@/pages/DividasReceber';
 import Categorias from '@/pages/Categorias';
 import ContasPagamento from '@/pages/ContasPagamento';
@@ -48,6 +50,8 @@ function App() {
                 <Route path="/relatorios" element={<Relatorios />} />
                 <Route path="/contas" element={<ContasPagar />} />
                 <Route path="/gastos" element={<Gastos />} />
+                <Route path="/compras" element={<Compras />} />
+                <Route path="/produtos" element={<Produtos />} />
                 <Route path="/receber" element={<DividasReceber />} />
                 <Route path="/investimentos" element={<Investimentos />} />
                 <Route path="/categorias" element={<Categorias />} />

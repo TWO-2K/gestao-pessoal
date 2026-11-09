@@ -15,6 +15,14 @@ export const TIPOS_PROVENTO = [
   { value: "rendimento", label: "Rendimento" },
 ];
 
+// Situação do ativo: em uso (opera), em observação (pretende comprar; cotação 1x/dia) ou inativo (encerrado)
+export const STATUS_ATIVO = [
+  { value: "em_uso", label: "Em uso", ajuda: "Você opera este ativo. Cotação atualizada de hora em hora." },
+  { value: "observacao", label: "Em observação", ajuda: "Sem posição agora, mas pretende comprar. Cotação atualizada 1 vez por dia." },
+  { value: "inativo", label: "Inativo", ajuda: "Encerrado. Sai da carteira e não recebe cotação." },
+];
+export const statusLabel = (v) => STATUS_ATIVO.find((s) => s.value === v)?.label || "Em uso";
+
 export const normalizarTicker = (t) => String(t || "").replace(/<.*$/, "").trim().toUpperCase();
 
 export function inferirTipoAtivo(ticker) {

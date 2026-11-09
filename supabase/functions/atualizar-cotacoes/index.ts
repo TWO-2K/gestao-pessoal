@@ -34,16 +34,22 @@ Deno.serve(async (req) => {
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
   const { data: ativos, error } = await admin
     .from("invest_ativos")
-    .select("id, ticker")
-    .eq("inativo", false);
+    .select("id, ticker, status, cotacao_atualizada_em")
+    .in("status", ["em_uso", "observacao"]);
   if (error) return json({ error: error.message }, 500);
+
+  // Ativos em observação só são consultados 1 vez por dia (economiza cota da brapi).
+  const hoje = new Date().toISOString().slice(0, 10);
+  const pendentes = (ativos ?? []).filter(
+    (a) => a.status === "em_uso" || !a.cotacao_atualizada_em || a.cotacao_atualizada_em.slice(0, 10) !== hoje,
+  );
 
   // Uma consulta por ticker: o plano gratuito aceita 1 ticker por vez.
   const cache = new Map<string, Record<string, number | null> | null>();
   let atualizados = 0;
   const naoEncontrados: string[] = [];
 
-  for (const ativo of ativos ?? []) {
+  for (const ativo of pendentes) {
     if (!cache.has(ativo.ticker)) {
       const res = await fetch(
         `https://brapi.dev/api/v2/stocks/historical?symbols=${ativo.ticker}&range=3mo&interval=1d`,

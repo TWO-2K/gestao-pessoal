@@ -140,7 +140,8 @@ function DetalheAtivo({ ativo, tom, podeExcluir, onClose, onEdit, onDelete, onTo
             <span className="h-6 w-1 rounded-full" style={{ backgroundColor: tom.barra }} />
             <span style={{ color: tom.texto }}>{ativo.ticker}</span>
             <span className="rounded bg-ink-100 px-1.5 py-0.5 text-[10px] font-medium text-ink-500">{tipoLabel(ativo.tipo)}</span>
-            {ativo.inativo && <span className="rounded bg-gold-500/15 px-1.5 py-0.5 text-[10px] font-medium text-gold-700">inativo</span>}
+            {ativo.status === "inativo" && <span className="rounded bg-gold-500/15 px-1.5 py-0.5 text-[10px] font-medium text-gold-700">inativo</span>}
+            {ativo.status === "observacao" && <span className="rounded bg-ink-100 px-1.5 py-0.5 text-[10px] font-medium text-ink-500">em observação</span>}
           </DialogTitle>
           <DialogDescription>
             {ativo.nome || "Posição na carteira"}{ativo.frequencia_pagamento ? ` · paga ${ativo.frequencia_pagamento}x/ano` : ""}
@@ -183,8 +184,8 @@ function DetalheAtivo({ ativo, tom, podeExcluir, onClose, onEdit, onDelete, onTo
 
         <DialogFooter className="gap-2 sm:gap-2">
           <Button variant="outline" onClick={() => onToggleInativo(ativo)}>
-            {ativo.inativo ? <Power className="mr-1.5 h-4 w-4" /> : <PowerOff className="mr-1.5 h-4 w-4" />}
-            {ativo.inativo ? "Reativar" : "Desativar"}
+            {ativo.status === "inativo" ? <Power className="mr-1.5 h-4 w-4" /> : <PowerOff className="mr-1.5 h-4 w-4" />}
+            {ativo.status === "inativo" ? "Reativar" : "Desativar"}
           </Button>
           <Button
             variant="outline"
@@ -242,7 +243,7 @@ export default function CarteiraTabela({ carteira, modo = "tabela", cores: cores
           </TableHeader>
           <TableBody>
             {carteira.map((a) => (
-              <TableRow key={a.id} onClick={() => setSelecionadoId(a.id)} className={cn("cursor-pointer even:bg-ink-50/70 hover:bg-ink-100/70", a.inativo && "opacity-50")}>
+              <TableRow key={a.id} onClick={() => setSelecionadoId(a.id)} className={cn("cursor-pointer even:bg-ink-50/70 hover:bg-ink-100/70", a.status === "inativo" && "opacity-50")}>
                 <TableCell>
                   <div className="flex items-center gap-2"><span className="h-6 w-1 rounded-full" style={{ backgroundColor: tomAtivo(a).barra }} /><p className="font-semibold" style={{ color: tomAtivo(a).texto }}>{a.ticker}</p></div>
                   <p className="text-[10px] text-ink-400">
@@ -270,7 +271,7 @@ export default function CarteiraTabela({ carteira, modo = "tabela", cores: cores
       {/* Cartões: sempre no mobile; no desktop só no modo "cards" */}
       <div className={modo === "cards" ? "grid gap-3 sm:grid-cols-2 xl:grid-cols-3" : "md:hidden space-y-2.5"}>
         {carteira.map((a) => (
-          <div key={a.id} onClick={() => setSelecionadoId(a.id)} className={cn("cursor-pointer rounded-2xl border border-ink-200 border-l-4 bg-white even:bg-ink-50/70 px-4 py-3.5", a.inativo && "opacity-50")} style={{ borderLeftColor: tomAtivo(a).barra }}>
+          <div key={a.id} onClick={() => setSelecionadoId(a.id)} className={cn("cursor-pointer rounded-2xl border border-ink-200 border-l-4 bg-white even:bg-ink-50/70 px-4 py-3.5", a.status === "inativo" && "opacity-50")} style={{ borderLeftColor: tomAtivo(a).barra }}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-semibold" style={{ color: tomAtivo(a).texto }}>

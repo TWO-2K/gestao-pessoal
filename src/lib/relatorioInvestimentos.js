@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { TIPOS_ATIVO, aindaPrevisto } from "@/lib/investimentos";
+import { TIPOS_ATIVO, aindaPrevisto, statusLabel } from "@/lib/investimentos";
 
 const MOEDA = '"R$" #,##0.00';
 const PERCENTUAL = '0.0"%"';
@@ -46,7 +46,7 @@ export function baixarRelatorioInvestimentos({ carteira, aportes, proventos, ati
       return {
         Ativo: a.ticker,
         Tipo: tipoLabel(a.tipo),
-        Situação: a.inativo ? "Inativo" : "Em uso",
+        Situação: statusLabel(a.status),
         Cotas: a.cotas,
         "Preço médio": a.precoMedio,
         Investido: a.investido,

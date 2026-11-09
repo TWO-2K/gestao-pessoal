@@ -126,7 +126,7 @@ export default function Investimentos() {
   const [visaoGrafico, setVisaoGrafico] = useState("mes");
   const [dialog, setDialog] = useState(null); // { tipo: 'ativo'|'aporte'|'provento', item }
   const [importOpen, setImportOpen] = useState(false);
-  const [mostrarInativos, setMostrarInativos] = useState(false);
+  const [grupoCarteira, setGrupoCarteira] = useState("em_uso");
   const [modo, setModo] = useState(() => {
     try { return localStorage.getItem("investimentos_modo") === "cards" ? "cards" : "tabela"; } catch { return "tabela"; }
   });
@@ -144,7 +144,7 @@ export default function Investimentos() {
     if (!token) { setTokenOpen(true); return; }
     setAtualizando(true);
     try {
-      const emUso = ativos.filter((a) => !a.inativo);
+      const emUso = ativos.filter((a) => a.status !== "inativo");
       const { cotacoes, naoEncontrados } = await buscarCotacoes(emUso.map((a) => a.ticker), token);
       await inv.atualizarCotacoes({ cotacoes });
       toast({
@@ -159,7 +159,7 @@ export default function Investimentos() {
   };
 
   const ultimaCotacao = useMemo(() => {
-    const datas = ativos.filter((a) => !a.inativo && a.cotacao_atualizada_em).map((a) => new Date(a.cotacao_atualizada_em));
+    const datas = ativos.filter((a) => a.status !== "inativo" && a.cotacao_atualizada_em).map((a) => new Date(a.cotacao_atualizada_em));
     if (!datas.length) return null;
     return new Date(Math.max(...datas)).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }).replace(",", "");
   }, [ativos]);
@@ -187,22 +187,27 @@ export default function Investimentos() {
     });
   }, [ativos, posicoes, proventos]);
 
-  const qtdInativos = carteira.filter((a) => a.inativo).length;
-  // Inativos ficam numa visão separada; se o último for reativado, volta para a lista principal
-  const verInativos = mostrarInativos && qtdInativos > 0;
+  const qtdPorStatus = (s) => carteira.filter((a) => a.status === s).length;
+  // Observação e inativos ficam em visões separadas; se o grupo esvaziar, volta para "Em uso"
+  const gruposCarteira = [
+    ["em_uso", `Em uso (${qtdPorStatus("em_uso")})`],
+    ...(qtdPorStatus("observacao") > 0 ? [["observacao", `Em observação (${qtdPorStatus("observacao")})`]] : []),
+    ...(qtdPorStatus("inativo") > 0 ? [["inativo", `Inativos (${qtdPorStatus("inativo")})`]] : []),
+  ];
+  const grupoAtivo = gruposCarteira.some(([v]) => v === grupoCarteira) ? grupoCarteira : "em_uso";
   // Metas em andamento primeiro, concluídas por último (dentro de cada grupo, ordem alfabética)
   const carteiraVisivel = useMemo(
     () => carteira
-      .filter((a) => Boolean(a.inativo) === verInativos)
+      .filter((a) => a.status === grupoAtivo)
       .sort((a, b) => Number(a.pctMeta >= 100) - Number(b.pctMeta >= 100)),
-    [carteira, verInativos]
+    [carteira, grupoAtivo]
   );
-  // Nos formulários só aparecem ativos em uso (mais o já escolhido, ao editar um registro antigo)
-  const ativosEmUso = (atual) => ativos.filter((a) => !a.inativo || a.id === atual);
+  // Nos formulários aparecem ativos em uso e em observação (mais o já escolhido, ao editar um registro antigo)
+  const ativosEmUso = (atual) => ativos.filter((a) => a.status !== "inativo" || a.id === atual);
 
   // Totais do resumo: só ativos em uso
   const totais = useMemo(() => {
-    const emUso = carteira.filter((a) => !a.inativo);
+    const emUso = carteira.filter((a) => a.status === "em_uso");
     const idsEmUso = new Set(emUso.map((a) => a.id));
     const investido = emUso.reduce((s, a) => s + a.investido, 0);
     const valorAtual = emUso.reduce((s, a) => s + (a.valorAtual ?? a.investido), 0);
@@ -333,13 +338,13 @@ export default function Investimentos() {
 
           <TabsContent value="carteira">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              {qtdInativos > 0 ? (
+              {gruposCarteira.length > 1 ? (
                 <div className="inline-flex rounded-lg bg-ink-100 p-0.5 text-xs font-medium">
-                  {[[false, `Em uso (${carteira.length - qtdInativos})`], [true, `Inativos (${qtdInativos})`]].map(([valor, rotulo]) => (
+                  {gruposCarteira.map(([valor, rotulo]) => (
                     <button
-                      key={String(valor)}
-                      onClick={() => setMostrarInativos(valor)}
-                      className={`rounded-md px-3 py-1.5 transition-colors ${verInativos === valor ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:text-ink-900"}`}
+                      key={valor}
+                      onClick={() => setGrupoCarteira(valor)}
+                      className={`rounded-md px-3 py-1.5 transition-colors ${grupoAtivo === valor ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:text-ink-900"}`}
                     >
                       {rotulo}
                     </button>
@@ -359,13 +364,13 @@ export default function Investimentos() {
               </div>
             </div>
             {carteiraVisivel.length === 0 ? (
-              <Vazio>{carteira.length === 0 ? "Nenhum ativo. Cadastre um ou importe sua planilha." : "Todos os ativos estão inativos."}</Vazio>
+              <Vazio>{carteira.length === 0 ? "Nenhum ativo. Cadastre um ou importe sua planilha." : "Nenhum ativo neste grupo."}</Vazio>
             ) : (
               <CarteiraTabela
                 carteira={carteiraVisivel}
                 cores={paleta}
                 modo={modo}
-                onToggleInativo={(a) => inv.salvarAtivo({ id: a.id, inativo: !a.inativo })}
+                onToggleInativo={(a) => inv.salvarAtivo({ id: a.id, status: a.status === "inativo" ? "em_uso" : "inativo" })}
                 onEdit={(a) => setDialog({ tipo: "ativo", item: a })}
                 podeExcluir={podeExcluirAtivo}
                 onDelete={(a) => setExclusao({ titulo: `Excluir ${a.ticker}?`, texto: "O ativo não tem lançamentos e será removido da carteira.", executar: () => inv.removerAtivo(a.id) })}
