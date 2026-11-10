@@ -3,11 +3,32 @@
 // dos ativos em uso na brapi.dev e grava em invest_ativos. O token fica no secret
 // BRAPI_TOKEN do projeto, nunca no código.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import webpush from "npm:web-push@3";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = Deno.env.get("CRON_SECRET")!;
 const BRAPI_TOKEN = Deno.env.get("BRAPI_TOKEN")!;
+const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY")!;
+const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY")!;
+const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT")!;
+
+webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+
+// deno-lint-ignore no-explicit-any
+async function enviarPush(admin: any, userId: string, title: string, body: string) {
+  const { data: subs } = await admin.from("push_subscriptions").select("id, endpoint, p256dh, auth").eq("user_id", userId);
+  const payload = JSON.stringify({ title, body, data: { url: "/investimentos" } });
+  await Promise.allSettled(
+    (subs ?? []).map((sub: { id: string; endpoint: string; p256dh: string; auth: string }) =>
+      webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload).catch(async (err) => {
+        if (err?.statusCode === 404 || err?.statusCode === 410) await admin.from("push_subscriptions").delete().eq("id", sub.id);
+      }),
+    ),
+  );
+}
+
+const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const PRAZOS_DIAS: Record<string, number> = { cotacao_7d: 7, cotacao_30d: 30, cotacao_90d: 90 };
 
@@ -34,7 +55,7 @@ Deno.serve(async (req) => {
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
   const { data: ativos, error } = await admin
     .from("invest_ativos")
-    .select("id, ticker, status, cotacao_atualizada_em")
+    .select("id, user_id, ticker, status, cotacao_atualizada_em, preco_teto, teto_notificado")
     .in("status", ["em_uso", "observacao"]);
   if (error) return json({ error: error.message }, 500);
 
@@ -48,6 +69,7 @@ Deno.serve(async (req) => {
   const cache = new Map<string, Record<string, number | null> | null>();
   let atualizados = 0;
   const naoEncontrados: string[] = [];
+  const avisados: string[] = [];
 
   for (const ativo of pendentes) {
     if (!cache.has(ativo.ticker)) {
@@ -76,10 +98,21 @@ Deno.serve(async (req) => {
       naoEncontrados.push(ativo.ticker);
       continue;
     }
-    const { error: erroUpdate } = await admin.from("invest_ativos").update({ ...linha, cotacao_atualizada_em: new Date().toISOString() }).eq("id", ativo.id);
+    // Aviso de teto: só quando a cotação cruza para baixo do teto (e rearma quando sobe acima).
+    const cotacao = linha.cotacao_atual as number;
+    const abaixo = ativo.preco_teto > 0 && cotacao <= ativo.preco_teto;
+    const deveAvisar = abaixo && !ativo.teto_notificado;
+    const { error: erroUpdate } = await admin
+      .from("invest_ativos")
+      .update({ ...linha, cotacao_atualizada_em: new Date().toISOString(), teto_notificado: abaixo })
+      .eq("id", ativo.id);
     if (erroUpdate) return json({ error: erroUpdate.message, atualizados }, 500);
     atualizados++;
+    if (deveAvisar) {
+      await enviarPush(admin, ativo.user_id, `${ativo.ticker} abaixo do teto`, `Cotação ${brl(cotacao)} (teto ${brl(ativo.preco_teto)}). Hora de avaliar o aporte.`);
+      avisados.push(ativo.ticker);
+    }
   }
 
-  return json({ atualizados, naoEncontrados });
+  return json({ atualizados, naoEncontrados, avisados });
 });

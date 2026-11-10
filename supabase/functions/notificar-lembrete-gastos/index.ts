@@ -43,6 +43,14 @@ Deno.serve(async (req) => {
     .select("id, user_id, endpoint, p256dh, auth");
   if (subsError) return json({ error: subsError.message }, 500);
 
+  // Quem desligou o lembrete nas preferências não recebe (sem linha = recebe).
+  const { data: desligados, error: prefError } = await admin
+    .from("preferencias_notificacao")
+    .select("user_id")
+    .eq("lembrete_gastos", false);
+  if (prefError) return json({ error: prefError.message }, 500);
+  const optOut = new Set((desligados ?? []).map((p) => p.user_id));
+
   const payload = JSON.stringify({
     title: "Seus gastos estão em dia?",
     body: "Confira se lançou todos os gastos de hoje para manter tudo atualizado.",
@@ -54,6 +62,7 @@ Deno.serve(async (req) => {
   const erros: { host: string; status?: number; detalhe: string }[] = [];
 
   for (const sub of subscriptions ?? []) {
+    if (optOut.has(sub.user_id)) continue;
     try {
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
