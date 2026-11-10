@@ -45,6 +45,18 @@ export const frequenciaLabel = (v) => {
   return FREQUENCIAS.find((f) => f.value === k)?.label || v || "";
 };
 
+// Data do próximo pagamento: soma 12/porAno meses à data (ISO), mantendo o dia (limitado ao fim do mês)
+export function proximaDataProvento(dataIso, frequencia) {
+  const f = FREQUENCIAS.find((x) => x.value === normalizarFrequencia(frequencia));
+  if (!f) return null;
+  const [a, m, d] = dataIso.split("-").map(Number);
+  const idx = (a * 12 + (m - 1)) + 12 / f.porAno;
+  const ano = Math.floor(idx / 12);
+  const mes = idx % 12;
+  const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+  return `${ano}-${String(mes + 1).padStart(2, "0")}-${String(Math.min(d, ultimoDia)).padStart(2, "0")}`;
+}
+
 export const normalizarTicker = (t) => String(t || "").replace(/<.*$/, "").trim().toUpperCase();
 
 export function inferirTipoAtivo(ticker) {

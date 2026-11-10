@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
 import { useViewAs } from "@/lib/ViewAsContext";
 import { supabase } from "@/lib/supabaseClient";
-import { calcularPosicoes } from "@/lib/investimentos";
+import { calcularPosicoes, proximaDataProvento } from "@/lib/investimentos";
 
 export function useInvestimentos() {
   const queryClient = useQueryClient();
@@ -50,7 +50,23 @@ export function useInvestimentos() {
   const removerAtivo = useMutation({ mutationFn: remover("invest_ativos"), ...options });
   const salvarAporte = useMutation({ mutationFn: salvar("invest_aportes"), ...options });
   const removerAporte = useMutation({ mutationFn: remover("invest_aportes"), ...options });
-  const salvarProvento = useMutation({ mutationFn: salvar("invest_proventos"), ...options });
+  // Ao marcar um provento como recebido, cria o previsto do próximo período (conforme a frequência do ativo),
+  // com o mesmo valor, se ainda não houver provento desse ativo naquele mês.
+  const salvarProventoEReplicar = async ({ id, ...form }) => {
+    const anterior = id ? proventos.find((p) => p.id === id) : null;
+    await salvar("invest_proventos")({ id, ...form });
+    const atual = { ...anterior, ...form };
+    if (atual.status !== "recebido" || anterior?.status === "recebido") return;
+    const proxima = proximaDataProvento(atual.data, ativoMap[atual.ativo_id]?.frequencia_pagamento);
+    if (!proxima) return;
+    const mes = proxima.slice(0, 7);
+    if (proventos.some((p) => p.ativo_id === atual.ativo_id && p.data.slice(0, 7) === mes)) return;
+    const { error } = await supabase.from("invest_proventos").insert({
+      user_id: targetUserId(), ativo_id: atual.ativo_id, data: proxima, tipo: atual.tipo, valor: atual.valor, status: "previsto",
+    });
+    if (error) throw new Error(error.message);
+  };
+  const salvarProvento = useMutation({ mutationFn: salvarProventoEReplicar, ...options });
   const removerProvento = useMutation({ mutationFn: remover("invest_proventos"), ...options });
 
   const atualizarCotacoes = useMutation({
