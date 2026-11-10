@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { dataLocalHoje } from "@/lib/format";
-import { TIPOS_ATIVO, TIPOS_PROVENTO, STATUS_ATIVO, normalizarTicker, inferirTipoAtivo } from "@/lib/investimentos";
+import { TIPOS_ATIVO, TIPOS_PROVENTO, STATUS_ATIVO, FREQUENCIAS, normalizarFrequencia, normalizarTicker, inferirTipoAtivo } from "@/lib/investimentos";
 
 const numOuNull = (v) => (v === "" || v == null ? null : parseFloat(v));
 
@@ -61,7 +61,7 @@ export function AtivoForm({ ativo, onSaved, onCancel }) {
       cotacao_atual: ativo?.cotacao_atual ?? "",
       preco_teto: ativo?.preco_teto ?? "",
       status: ativo?.status || "em_uso",
-      frequencia_pagamento: ativo?.frequencia_pagamento || "",
+      frequencia_pagamento: normalizarFrequencia(ativo?.frequencia_pagamento) || "",
     },
     onSaved
   );
@@ -118,8 +118,14 @@ export function AtivoForm({ ativo, onSaved, onCancel }) {
           <Input id="teto" type="number" step="0.01" value={form.preco_teto} onChange={(e) => set("preco_teto", e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="freq">Pagamentos/ano</Label>
-          <Input id="freq" value={form.frequencia_pagamento} onChange={(e) => set("frequencia_pagamento", e.target.value)} placeholder="12x" />
+          <Label>Frequência de pagamento</Label>
+          <Select value={form.frequencia_pagamento || "nenhuma"} onValueChange={(v) => set("frequencia_pagamento", v === "nenhuma" ? "" : v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="nenhuma">Não informada</SelectItem>
+              {FREQUENCIAS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div className="space-y-2">

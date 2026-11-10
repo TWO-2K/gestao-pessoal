@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/format";
-import { TIPOS_ATIVO } from "@/lib/investimentos";
+import { TIPOS_ATIVO, frequenciaLabel } from "@/lib/investimentos";
 import { cn } from "@/lib/utils";
 
 const PRAZOS = [
@@ -144,7 +144,7 @@ function DetalheAtivo({ ativo, tom, podeExcluir, onClose, onEdit, onDelete, onTo
             {ativo.status === "observacao" && <span className="rounded bg-ink-100 px-1.5 py-0.5 text-[10px] font-medium text-ink-500">em observação</span>}
           </DialogTitle>
           <DialogDescription>
-            {ativo.nome || "Posição na carteira"}{ativo.frequencia_pagamento ? ` · paga ${ativo.frequencia_pagamento}x/ano` : ""}
+            {ativo.nome || "Posição na carteira"}{ativo.frequencia_pagamento ? ` · pagamento ${frequenciaLabel(ativo.frequencia_pagamento).toLowerCase()}` : ""}
           </DialogDescription>
         </DialogHeader>
 
@@ -247,7 +247,7 @@ export default function CarteiraTabela({ carteira, modo = "tabela", cores: cores
                 <TableCell>
                   <div className="flex items-center gap-2"><span className="h-6 w-1 rounded-full" style={{ backgroundColor: tomAtivo(a).barra }} /><p className="font-semibold" style={{ color: tomAtivo(a).texto }}>{a.ticker}</p></div>
                   <p className="text-[10px] text-ink-400">
-                    {tipoLabel(a.tipo)}{a.frequencia_pagamento ? ` · ${a.frequencia_pagamento}/ano` : ""}
+                    {tipoLabel(a.tipo)}{a.frequencia_pagamento ? ` · ${frequenciaLabel(a.frequencia_pagamento)}` : ""}
                   </p>                </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {fmtNum(a.cotas)}

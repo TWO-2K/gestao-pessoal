@@ -23,6 +23,28 @@ export const STATUS_ATIVO = [
 ];
 export const statusLabel = (v) => STATUS_ATIVO.find((s) => s.value === v)?.label || "Em uso";
 
+// Frequência de pagamento dos proventos (guardada como o valor, ex.: "trimestral")
+export const FREQUENCIAS = [
+  { value: "mensal", label: "Mensal", porAno: 12 },
+  { value: "bimestral", label: "Bimestral", porAno: 6 },
+  { value: "trimestral", label: "Trimestral", porAno: 4 },
+  { value: "semestral", label: "Semestral", porAno: 2 },
+  { value: "anual", label: "Anual", porAno: 1 },
+];
+// Aceita o valor novo ("mensal") ou o formato antigo/da planilha ("12x", "4") e devolve o valor novo
+export function normalizarFrequencia(v) {
+  const s = String(v ?? "").trim().toLowerCase();
+  if (!s) return null;
+  const direto = FREQUENCIAS.find((f) => f.value === s || f.label.toLowerCase() === s);
+  if (direto) return direto.value;
+  const n = parseInt(s, 10);
+  return FREQUENCIAS.find((f) => f.porAno === n)?.value ?? null;
+}
+export const frequenciaLabel = (v) => {
+  const k = normalizarFrequencia(v);
+  return FREQUENCIAS.find((f) => f.value === k)?.label || v || "";
+};
+
 export const normalizarTicker = (t) => String(t || "").replace(/<.*$/, "").trim().toUpperCase();
 
 export function inferirTipoAtivo(ticker) {
@@ -131,7 +153,7 @@ export async function lerPlanilhaInvestimentos(file) {
     a.meta_cotas = num(r[6]);
     a.cotacao_atual = num(r[9]);
     a.preco_teto = num(r[19]);
-    if (typeof r[16] === "string" && r[16].trim()) a.frequencia_pagamento = r[16].trim();
+    if (typeof r[16] === "string" && r[16].trim()) a.frequencia_pagamento = normalizarFrequencia(r[16]) || r[16].trim();
   });
 
   // Aportes: data só aparece na 1ª linha do dia; as seguintes herdam a de cima
