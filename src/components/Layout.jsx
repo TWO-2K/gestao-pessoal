@@ -1,65 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, LogOut, Users, MoreHorizontal, BarChart3, CheckSquare, CalendarDays, Eye, ChevronDown, Clapperboard, Dumbbell, Scale, Target, ClipboardList, TrendingUp, Ruler, ListChecks, ChevronLeft, ChevronRight, PiggyBank, Gamepad2, ShoppingCart, PackageSearch } from "lucide-react";
+import { LogOut, Users, MoreHorizontal, Eye, ChevronDown, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 import { useUsuarios } from "@/hooks/useUsuarios";
 import { useViewAs } from "@/lib/ViewAsContext";
+import { useLayoutPreferencia } from "@/hooks/useLayoutPreferencia";
+import { navSections } from "@/lib/navSections";
 import { supabase } from "@/lib/supabaseClient";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import IosInstallHint from "@/components/IosInstallHint";
 import AdminUserSwitcher from "@/components/AdminUserSwitcher";
-
-const navSections = [
-  {
-    section: "Financeiro",
-    items: [
-      { to: "/", label: "Painel", icon: LayoutDashboard },
-      { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
-      { to: "/contas", label: "Contas a Pagar", icon: ArrowUpCircle },
-      { to: "/gastos", label: "Gastos", icon: Receipt },
-      { to: "/compras", label: "Compras", icon: ShoppingCart },
-      { to: "/produtos", label: "Produtos", icon: PackageSearch },
-      { to: "/receber", label: "A Receber", icon: ArrowDownCircle },
-      { to: "/investimentos", label: "Investimentos", icon: PiggyBank },
-      { to: "/categorias", label: "Categorias", icon: Tag },
-      { to: "/contas-pagamento", label: "Contas/Cartões", icon: CreditCard },
-    ],
-  },
-  {
-    section: "Planner",
-    items: [
-      { to: "/planner", label: "Quadro", icon: CheckSquare },
-      { to: "/calendario", label: "Calendário", icon: CalendarDays },
-      { to: "/eventos-futuros", label: "Eventos futuros", icon: ListChecks },
-    ],
-  },
-  {
-    section: "Lista",
-    items: [
-      { to: "/midias", label: "Visão geral", icon: Clapperboard },
-      { to: "/midias/animes", label: "Animes", icon: Clapperboard },
-      { to: "/midias/ovas", label: "OVAs", icon: Clapperboard },
-      { to: "/midias/onas", label: "ONAs", icon: Clapperboard },
-      { to: "/midias/filmes", label: "Filmes", icon: Clapperboard },
-      { to: "/midias/especiais", label: "Especiais", icon: Clapperboard },
-      { to: "/midias/series", label: "Séries", icon: Clapperboard },
-      { to: "/midias/games", label: "Games", icon: Gamepad2 },
-    ],
-  },
-  {
-    section: "Academia",
-    items: [
-      { to: "/academia/hoje", label: "Treino do dia", icon: ListChecks },
-      { to: "/academia", label: "Histórico", icon: Dumbbell },
-      { to: "/academia/planos", label: "Planos", icon: ClipboardList },
-      { to: "/academia/evolucao", label: "Evolução", icon: TrendingUp },
-      { to: "/academia/peso", label: "Peso Corporal", icon: Scale },
-      { to: "/academia/medidas", label: "Medidas", icon: Ruler },
-      { to: "/academia/metas", label: "Metas", icon: Target },
-    ],
-  },
-];
 
 // No mobile só os itens de uso mais frequente cabem na barra; o resto vai no menu "Mais".
 const flatNav = navSections.flatMap((s) => s.items);
@@ -72,6 +23,7 @@ export default function Layout() {
   const { usuario } = useUsuarioAtual();
   const { usuarios } = useUsuarios();
   const { isViewingOther, viewedUserId } = useViewAs();
+  const { setLayout } = useLayoutPreferencia();
   const isAdmin = usuario?.role === "admin";
   const viewedUsuario = usuarios.find((u) => u.id === viewedUserId);
   const sectionsWithAdmin = useMemo(
@@ -193,7 +145,18 @@ export default function Layout() {
           </div>
         )}
 
-        <div className="flex-shrink-0 border-t border-ink-50/10 pt-4 mt-2">
+        <div className="flex-shrink-0 border-t border-ink-50/10 pt-4 mt-2 space-y-1">
+          <button
+            onClick={() => setLayout("orbita")}
+            title={collapsed ? "Experimentar novo layout" : undefined}
+            className={cn(
+              "w-full flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium text-ink-50/60 hover:bg-ink-50/5 hover:text-gold-400 transition-colors",
+              collapsed ? "justify-center px-0" : "px-3"
+            )}
+          >
+            <Sparkles className="h-[18px] w-[18px]" />
+            {!collapsed && "Experimentar novo layout"}
+          </button>
           <button
             onClick={handleLogout}
             title={collapsed ? "Sair" : undefined}
@@ -291,6 +254,13 @@ export default function Layout() {
               <AdminUserSwitcher variant="light" />
             </div>
           )}
+          <button
+            onClick={() => { setMoreOpen(false); setLayout("orbita"); }}
+            className="w-full mb-3 flex items-center justify-center gap-2 rounded-xl border border-ink-200 px-3 py-3 text-sm font-medium text-ink-600"
+          >
+            <Sparkles className="h-4 w-4" />
+            Experimentar novo layout
+          </button>
           <button
             onClick={() => { setMoreOpen(false); handleLogout(); }}
             className="w-full flex items-center justify-center gap-2 rounded-xl border border-rust-200 px-3 py-3 text-sm font-medium text-rust-600"

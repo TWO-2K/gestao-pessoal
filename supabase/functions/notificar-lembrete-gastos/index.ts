@@ -57,6 +57,22 @@ Deno.serve(async (req) => {
     data: { url: "/gastos" },
   });
 
+  // Notificação in-app (sino do layout Órbita) para cada usuário com push ativo e lembrete ligado.
+  const usuariosNotificar = [
+    ...new Set((subscriptions ?? []).map((s) => s.user_id).filter((id) => !optOut.has(id))),
+  ];
+  if (usuariosNotificar.length) {
+    await admin.from("notificacoes_app").insert(
+      usuariosNotificar.map((user_id) => ({
+        user_id,
+        tipo: "lembrete_gastos",
+        titulo: "Seus gastos estão em dia?",
+        mensagem: "Confira se lançou todos os gastos de hoje.",
+        link: "/gastos",
+      }))
+    );
+  }
+
   let enviados = 0;
   let falhados = 0;
   const erros: { host: string; status?: number; detalhe: string }[] = [];

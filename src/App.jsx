@@ -6,9 +6,10 @@ import { ViewAsProvider } from '@/lib/ViewAsContext'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import ScrollToTop from './components/ScrollToTop';
-import Layout from '@/components/Layout';
+import { LayoutSwitch, HomeRoute } from '@/components/LayoutSwitch';
 import { ProtectedRoute, PublicOnlyRoute, AdminRoute } from '@/components/ProtectedRoute';
 import Dashboard from '@/pages/Dashboard';
+import Atividades from '@/pages/Atividades';
 import Relatorios from '@/pages/Relatorios';
 import ContasPagar from '@/pages/ContasPagar';
 import Gastos from '@/pages/Gastos';
@@ -45,8 +46,10 @@ function App() {
           <ScrollToTop />
           <Routes>
             <Route element={<ProtectedRoute />}>
-              <Route element={<Layout />}>
-                <Route path="/" element={<Dashboard />} />
+              <Route element={<LayoutSwitch />}>
+                <Route path="/" element={<HomeRoute />} />
+                <Route path="/resumo" element={<Dashboard />} />
+                <Route path="/atividades" element={<Atividades />} />
                 <Route path="/relatorios" element={<Relatorios />} />
                 <Route path="/contas" element={<ContasPagar />} />
                 <Route path="/gastos" element={<Gastos />} />

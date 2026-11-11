@@ -82,6 +82,17 @@ Deno.serve(async (req) => {
       continue;
     }
 
+    const titulo = tipo === "d0" ? "Conta vence hoje" : "Conta vence amanhã";
+
+    // Notificação in-app (sino do layout Órbita), independente de push ativo.
+    await admin.from("notificacoes_app").insert({
+      user_id: conta.user_id,
+      tipo: "vencimento",
+      titulo,
+      mensagem: `${conta.descricao} — R$ ${Number(conta.valor).toFixed(2)}`,
+      link: "/contas",
+    });
+
     const { data: subscriptions, error: subsError } = await admin
       .from("push_subscriptions")
       .select("id, endpoint, p256dh, auth")
@@ -93,7 +104,6 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    const titulo = tipo === "d0" ? "Conta vence hoje" : "Conta vence amanhã";
     const payload = JSON.stringify({
       title: titulo,
       body: `${conta.descricao} — R$ ${Number(conta.valor).toFixed(2)}`,

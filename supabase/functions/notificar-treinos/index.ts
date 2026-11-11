@@ -79,6 +79,15 @@ Deno.serve(async (req) => {
       continue;
     }
 
+    // Notificação in-app (sino do layout Órbita), independente de push ativo.
+    await admin.from("notificacoes_app").insert({
+      user_id: plano.user_id,
+      tipo: "treino",
+      titulo: "Dia de treino!",
+      mensagem: `Hoje é dia de "${plano.nome}".`,
+      link: "/academia/hoje",
+    });
+
     const { data: subscriptions, error: subsError } = await admin
       .from("push_subscriptions")
       .select("id, endpoint, p256dh, auth")
