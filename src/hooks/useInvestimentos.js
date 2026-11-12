@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { dataLocalHoje } from "@/lib/format";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
 import { useViewAs } from "@/lib/ViewAsContext";
@@ -67,6 +68,43 @@ export function useInvestimentos() {
     if (error) throw new Error(error.message);
   };
   const salvarProvento = useMutation({ mutationFn: salvarProventoEReplicar, ...options });
+
+  // Provento que chegou na data vira "recebido" sozinho e gera o previsto seguinte.
+  // Pega só o último provento de cada ativo e só cria se o próximo cair no futuro, para nunca inventar
+  // pagamentos passados. Só roda na conta do próprio usuário (não ao visualizar a de outra pessoa).
+  const replicados = useRef(new Set());
+  const baixando = useRef(false);
+  useEffect(() => {
+    const meuId = session?.user?.id;
+    if (!data || !meuId || viewedUserId !== meuId) return;
+    const hoje = dataLocalHoje();
+    // Previstos cuja data chegou viram "recebido" de verdade no banco
+    const vencidos = proventos.filter((p) => p.status === "previsto" && p.data <= hoje).map((p) => p.id);
+    if (vencidos.length && !baixando.current) {
+      baixando.current = true;
+      supabase.from("invest_proventos").update({ status: "recebido" }).in("id", vencidos).then(({ error }) => {
+        baixando.current = false;
+        if (!error) queryClient.invalidateQueries({ queryKey: ["investimentos"] });
+      });
+    }
+    const novos = [];
+    for (const a of ativos) {
+      if (a.status === "inativo") continue;
+      const ultimo = proventos.filter((p) => p.ativo_id === a.id).reduce((m, p) => (!m || p.data > m.data ? p : m), null);
+      if (!ultimo || ultimo.data > hoje) continue; // sem provento, ou o último ainda é futuro
+      const proxima = proximaDataProvento(ultimo.data, a.frequencia_pagamento);
+      if (!proxima || proxima <= hoje) continue;
+      const chave = `${a.id}|${proxima.slice(0, 7)}`;
+      if (replicados.current.has(chave)) continue;
+      replicados.current.add(chave);
+      novos.push({ user_id: meuId, ativo_id: a.id, data: proxima, tipo: ultimo.tipo, valor: ultimo.valor, status: "previsto" });
+    }
+    if (!novos.length) return;
+    supabase.from("invest_proventos").insert(novos).then(({ error }) => {
+      if (error) novos.forEach((n) => replicados.current.delete(`${n.ativo_id}|${n.data.slice(0, 7)}`));
+      else queryClient.invalidateQueries({ queryKey: ["investimentos"] });
+    });
+  }, [data, ativos, proventos, session, viewedUserId, queryClient]);
   const removerProvento = useMutation({ mutationFn: remover("invest_proventos"), ...options });
 
   const atualizarCotacoes = useMutation({
