@@ -54,6 +54,7 @@ export default function GastoForm({ gasto, categorias, contasPagamento, onSaved,
     e.preventDefault();
     const valor = parseFloat(form.valor);
     if (!form.descricao || !valor || valor <= 0) return;
+    if (!form.categoria_id || !form.conta_pagamento_id) return;
 
     setSaving(true);
     try {
@@ -87,8 +88,8 @@ export default function GastoForm({ gasto, categorias, contasPagamento, onSaved,
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Categoria</Label>
-          <Select value={form.categoria_id} onValueChange={(v) => set("categoria_id", v)}>
+          <Label>Categoria *</Label>
+          <Select value={form.categoria_id} onValueChange={(v) => set("categoria_id", v)} required>
             <SelectTrigger>
               <SelectValue placeholder="Selecione uma categoria" />
             </SelectTrigger>
@@ -100,8 +101,8 @@ export default function GastoForm({ gasto, categorias, contasPagamento, onSaved,
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Conta/Cartão</Label>
-          <Select value={form.conta_pagamento_id} onValueChange={(v) => set("conta_pagamento_id", v)}>
+          <Label>Conta/Cartão *</Label>
+          <Select value={form.conta_pagamento_id} onValueChange={(v) => set("conta_pagamento_id", v)} required>
             <SelectTrigger>
               <SelectValue placeholder="De onde saiu?" />
             </SelectTrigger>
@@ -158,7 +159,7 @@ export default function GastoForm({ gasto, categorias, contasPagamento, onSaved,
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="ghost" onClick={onCancel}>Cancelar</Button>
-        <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+        <Button type="submit" disabled={saving || !form.categoria_id || !form.conta_pagamento_id}>{saving ? "Salvando..." : "Salvar"}</Button>
       </div>
     </form>
   );
