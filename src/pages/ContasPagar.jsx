@@ -4,11 +4,12 @@ import ContaForm from "@/components/ContaForm";
 import ReparcelarForm from "@/components/ReparcelarForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, ArrowUpCircle, Check, Repeat, AlertTriangle, Clock, CheckCircle2, XCircle, Bell, BellOff, Layers, CalendarClock } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUpCircle, Check, Repeat, AlertTriangle, Clock, CheckCircle2, XCircle, Bell, BellOff, Layers, CalendarClock, ArrowLeftRight, Undo2 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import MonthFilter, { isInMonth } from "@/components/MonthFilter";
 import { useContas } from "@/hooks/useContas";
+import { useUsuarios } from "@/hooks/useUsuarios";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
 import LembreteGastosToggle from "@/components/LembreteGastosToggle";
 
@@ -35,6 +36,7 @@ export default function ContasPagar() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [reparcelando, setReparcelando] = useState(null);
+  const [transferindo, setTransferindo] = useState(null);
   const [filtro, setFiltro] = useState("pendente");
   const [mes, setMes] = useState(() => {
     const now = new Date();
@@ -43,17 +45,29 @@ export default function ContasPagar() {
 
   const {
     contas,
+    contasTransferidasPorMim,
     categorias,
     contasPagamento,
     isLoading,
+    viewedUserId,
     deleteConta,
     toggleStatusConta,
     createOrUpdateConta,
     reparcelarConta,
     adiarParcela,
+    transferirConta,
     catMap,
     contaPagamentoMap,
   } = useContas();
+
+  const { usuarios } = useUsuarios();
+  const usuarioMap = useMemo(() => Object.fromEntries(usuarios.map((u) => [u.id, u.nome])), [usuarios]);
+  const outrosUsuarios = useMemo(() => usuarios.filter((u) => u.id !== viewedUserId && u.ativo), [usuarios, viewedUserId]);
+
+  const handleTransferir = (transferidoParaUserId) => {
+    transferirConta({ id: transferindo.id, transferidoParaUserId });
+    setTransferindo(null);
+  };
 
   const handleSaved = async (formData) => {
     const payload = { ...formData, valor: parseFloat(formData.valor) };
@@ -100,6 +114,42 @@ export default function ContasPagar() {
         <PushNotificationToggle />
         <LembreteGastosToggle />
       </div>
+
+      {contasTransferidasPorMim.length > 0 && (
+        <div className="mb-6 rounded-xl border border-ink-200 bg-ink-50 p-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-ink-400 mb-2">Transferidas por você</p>
+          <div className="space-y-2">
+            {contasTransferidasPorMim.map((conta) => (
+              <div key={conta.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="truncate text-ink-600">
+                  {conta.descricao} <span className="text-ink-400">→ {usuarioMap[conta.transferido_para_user_id] || "outro usuário"}</span>
+                </span>
+                <div className="flex-shrink-0 flex items-center gap-2">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      conta.status === "pago" ? "bg-forest-100 text-forest-700" : "bg-ink-100 text-ink-500"
+                    }`}
+                  >
+                    {conta.status === "pago" ? "Paga" : "Pendente"}
+                  </span>
+                  {conta.status === "pago" ? (
+                    <span className="text-xs text-ink-400" title="Já foi pago por quem recebeu a transferência">
+                      Já paga
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => transferirConta({ id: conta.id, transferidoParaUserId: null })}
+                      className="flex items-center gap-1 text-xs font-medium text-ink-500 hover:text-ink-900"
+                    >
+                      <Undo2 className="h-3.5 w-3.5" /> Cancelar
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <div className="flex gap-1 bg-ink-100 p-1 rounded-xl">
@@ -175,6 +225,11 @@ export default function ContasPagar() {
                           {conta.parcela_numero}/{conta.total_parcelas}
                         </span>
                       )}
+                      {conta.user_id !== viewedUserId && (
+                        <span className="flex-shrink-0 flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                          <ArrowLeftRight className="h-3 w-3" /> Transferida de {usuarioMap[conta.user_id] || "outro usuário"}
+                        </span>
+                      )}
                     </div>
                     <p className={cn("flex-shrink-0 font-mono font-semibold tabular-nums", pago && "text-ink-400")}>{formatCurrency(conta.valor)}</p>
                   </div>
@@ -234,6 +289,16 @@ export default function ContasPagar() {
                       <CalendarClock className="h-4 w-4" />
                     </button>
                   )}
+                  {conta.user_id === viewedUserId && outrosUsuarios.length > 0 && (
+                    <button onClick={() => setTransferindo(conta)} title="Transferir para outro usuário pagar" className="p-2 text-ink-400 hover:text-ink-900">
+                      <ArrowLeftRight className="h-4 w-4" />
+                    </button>
+                  )}
+                  {conta.user_id !== viewedUserId && conta.status !== "pago" && (
+                    <button onClick={() => transferirConta({ id: conta.id, transferidoParaUserId: null })} title="Devolver para quem transferiu" className="p-2 text-ink-400 hover:text-ink-900">
+                      <Undo2 className="h-4 w-4" />
+                    </button>
+                  )}
                   <button onClick={() => deleteConta(conta.id)} className="p-2 text-ink-400 hover:text-rust-600">
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -257,6 +322,26 @@ export default function ContasPagar() {
           {grupoReparcelando.length > 0 && (
             <ReparcelarForm grupo={grupoReparcelando} onSaved={handleReparcelado} onCancel={() => setReparcelando(null)} />
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(transferindo)} onOpenChange={(v) => !v && setTransferindo(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Transferir conta</DialogTitle></DialogHeader>
+          <p className="text-sm text-ink-500 mb-3">
+            Quem vai pagar <span className="font-medium text-ink-900">{transferindo?.descricao}</span> esse mês? A conta continua sendo sua nos meses seguintes.
+          </p>
+          <div className="space-y-1.5">
+            {outrosUsuarios.map((u) => (
+              <button
+                key={u.id}
+                onClick={() => handleTransferir(u.id)}
+                className="w-full text-left rounded-lg border border-ink-200 px-3 py-2 text-sm hover:bg-ink-50"
+              >
+                {u.nome}
+              </button>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -28,7 +28,7 @@ export function useContas() {
     queryKey: ["contas", "categorias", viewedUserId],
     queryFn: async () => {
       const [contasRes, categoriasRes, contasPagamentoRes] = await Promise.all([
-        supabase.from('contas_pagar').select('*, notificacoes_enviadas(tipo, status, enviado_em)').eq('user_id', viewedUserId).order('vencimento', { ascending: true }),
+        supabase.from('contas_pagar').select('*, notificacoes_enviadas(tipo, status, enviado_em)').or(`user_id.eq.${viewedUserId},transferido_para_user_id.eq.${viewedUserId}`).order('vencimento', { ascending: true }),
         supabase.from('categorias').select('*').eq('user_id', viewedUserId),
         supabase.from('contas_pagamento').select('*').eq('user_id', viewedUserId),
       ]);
@@ -203,7 +203,6 @@ export function useContas() {
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (conta) => {
-      const targetUserId = viewedUserId || session?.user?.id;
       const isPaying = conta.status === "pendente";
 
       if (isPaying && conta.recorrente) {
@@ -235,10 +234,11 @@ export function useContas() {
             vencimento: proximoVencimentoStr,
             status: "pendente",
             recorrente: true,
+            user_id: conta.user_id,
+            transferido_para_user_id: null,
           };
 
-          const payload = targetUserId ? { ...novaContaRecorrente, user_id: targetUserId } : novaContaRecorrente;
-          const { error: createError } = await supabase.from('contas_pagar').insert([payload]);
+          const { error: createError } = await supabase.from('contas_pagar').insert([novaContaRecorrente]);
           if (createError) throw createError;
         }
 
@@ -250,6 +250,18 @@ export function useContas() {
       const newStatus = isPaying ? "pago" : "pendente";
       const { error } = await supabase.from('contas_pagar').update({ status: newStatus }).match({ id: conta.id });
       if (error) throw error;
+    },
+    ...mutationOptions,
+  });
+
+  const transferirContaMutation = useMutation({
+    mutationFn: async ({ id, transferidoParaUserId }) => {
+      const { error } = await supabase
+        .from('contas_pagar')
+        .update({ transferido_para_user_id: transferidoParaUserId })
+        .match({ id })
+        .neq('status', 'pago');
+      if (error) throw new Error(error.message);
     },
     ...mutationOptions,
   });
@@ -266,25 +278,40 @@ export function useContas() {
   const catMap = useMemo(() => Object.fromEntries(categorias.map((c) => [c.id, c])), [categorias]);
   const contaPagamentoMap = useMemo(() => Object.fromEntries(contasPagamento.map((c) => [c.id, c])), [contasPagamento]);
 
+  // Uma conta transferida deixa de contar como gasto/pendência de quem a
+  // criou (user_id) e passa a contar de quem recebeu (transferido_para_user_id)
+  // só naquela ocorrência — a série recorrente continua sendo do dono original.
+  const contasEfetivas = useMemo(
+    () => contas.filter((c) => (c.transferido_para_user_id || c.user_id) === viewedUserId),
+    [contas, viewedUserId]
+  );
+  const contasTransferidasPorMim = useMemo(
+    () => contas.filter((c) => c.user_id === viewedUserId && c.transferido_para_user_id && c.transferido_para_user_id !== viewedUserId),
+    [contas, viewedUserId]
+  );
+
   const contasComProximoGerado = useMemo(() => {
-    const chaves = new Set(contas.map((c) => `${c.descricao}|${c.vencimento}`));
-    return contas.map((conta) => {
+    const chaves = new Set(contasEfetivas.map((c) => `${c.descricao}|${c.vencimento}`));
+    return contasEfetivas.map((conta) => {
       if (!conta.recorrente || conta.status !== "pago") return conta;
       const proximoVencimento = addMonths(conta.vencimento, 1);
       return { ...conta, proximoGerado: chaves.has(`${conta.descricao}|${proximoVencimento}`) };
     });
-  }, [contas]);
+  }, [contasEfetivas]);
 
   return {
     contas: contasComProximoGerado,
+    contasTransferidasPorMim,
     categorias,
     contasPagamento,
     isLoading,
+    viewedUserId,
     deleteConta: deleteMutation.mutate,
     toggleStatusConta: toggleStatusMutation.mutate,
     adiarParcela: adiarParcelaMutation.mutate,
     createOrUpdateConta: createOrUpdateMutation.mutateAsync,
     reparcelarConta: reparcelarMutation.mutateAsync,
+    transferirConta: transferirContaMutation.mutate,
     catMap,
     contaPagamentoMap,
   };
