@@ -63,6 +63,7 @@ export default function ContasPagar() {
   const { usuarios } = useUsuarios();
   const usuarioMap = useMemo(() => Object.fromEntries(usuarios.map((u) => [u.id, u.nome])), [usuarios]);
   const outrosUsuarios = useMemo(() => usuarios.filter((u) => u.id !== viewedUserId && u.ativo), [usuarios, viewedUserId]);
+  const podeTransferir = usuarios.find((u) => u.id === viewedUserId)?.pode_transferir_contas ?? false;
 
   const handleTransferir = (transferidoParaUserId) => {
     transferirConta({ id: transferindo.id, transferidoParaUserId });
@@ -289,7 +290,7 @@ export default function ContasPagar() {
                       <CalendarClock className="h-4 w-4" />
                     </button>
                   )}
-                  {conta.user_id === viewedUserId && outrosUsuarios.length > 0 && (
+                  {conta.user_id === viewedUserId && outrosUsuarios.length > 0 && podeTransferir && (
                     <button onClick={() => setTransferindo(conta)} title="Transferir para outro usuário pagar" className="p-2 text-ink-400 hover:text-ink-900">
                       <ArrowLeftRight className="h-4 w-4" />
                     </button>

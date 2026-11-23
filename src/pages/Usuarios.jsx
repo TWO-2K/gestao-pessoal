@@ -12,7 +12,7 @@ import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 export default function Usuarios() {
   const [open, setOpen] = useState(false);
   const [editando, setEditando] = useState(null);
-  const { usuarios, isLoading, toggleAtivo, criarUsuario, editarUsuario } = useUsuarios();
+  const { usuarios, isLoading, toggleAtivo, togglePodeTransferir, criarUsuario, editarUsuario } = useUsuarios();
   const { usuario: usuarioAtual } = useUsuarioAtual();
 
   const handleSaved = async (form) => {
@@ -69,14 +69,24 @@ export default function Usuarios() {
                   </div>
                   <p className="text-xs text-ink-400 font-mono">{u.email}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-ink-400">{u.ativo ? "Ativo" : "Inativo"}</span>
-                  <Switch
-                    checked={u.ativo}
-                    disabled={isSelf}
-                    title={isSelf ? "Você não pode inativar a própria conta" : undefined}
-                    onCheckedChange={() => toggleAtivo(u)}
-                  />
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-ink-400">Transferir contas</span>
+                    <Switch
+                      checked={u.pode_transferir_contas}
+                      title="Permite que este usuário transfira contas a pagar para outro usuário"
+                      onCheckedChange={() => togglePodeTransferir(u)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-ink-400">{u.ativo ? "Ativo" : "Inativo"}</span>
+                    <Switch
+                      checked={u.ativo}
+                      disabled={isSelf}
+                      title={isSelf ? "Você não pode inativar a própria conta" : undefined}
+                      onCheckedChange={() => toggleAtivo(u)}
+                    />
+                  </div>
                   <Button variant="ghost" size="icon" onClick={() => openEditar(u)}>
                     <Pencil className="h-4 w-4" />
                   </Button>

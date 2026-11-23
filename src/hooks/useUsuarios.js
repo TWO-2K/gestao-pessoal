@@ -33,6 +33,17 @@ export function useUsuarios() {
     ...mutationOptions,
   });
 
+  const togglePodeTransferirMutation = useMutation({
+    mutationFn: async (usuario) => {
+      const { error } = await supabase
+        .from("usuarios")
+        .update({ pode_transferir_contas: !usuario.pode_transferir_contas })
+        .match({ id: usuario.id });
+      if (error) throw new Error(error.message);
+    },
+    ...mutationOptions,
+  });
+
   const criarUsuarioMutation = useMutation({
     mutationFn: async (form) => {
       const { data, error } = await supabase.functions.invoke("criar-usuario", {
@@ -59,6 +70,7 @@ export function useUsuarios() {
     usuarios,
     isLoading,
     toggleAtivo: toggleAtivoMutation.mutate,
+    togglePodeTransferir: togglePodeTransferirMutation.mutate,
     criarUsuario: criarUsuarioMutation.mutateAsync,
     editarUsuario: editarUsuarioMutation.mutateAsync,
   };
