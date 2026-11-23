@@ -6,13 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Receipt, Layers } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import MonthFilter, { isInMonth } from "@/components/MonthFilter";
 import { useGastos } from "@/hooks/useGastos";
+
+const TABS = [
+  { key: "todos", label: "Todos" },
+  { key: "a_vista", label: "À vista" },
+  { key: "cartao_credito", label: "Cartão de crédito" },
+];
 
 export default function Gastos() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [reparcelando, setReparcelando] = useState(null);
+  const [filtro, setFiltro] = useState("todos");
   const [mes, setMes] = useState(() => {
     const now = new Date();
     return { month: now.getMonth(), year: now.getFullYear() };
@@ -49,8 +57,12 @@ export default function Gastos() {
 
   const filtrados = useMemo(() => gastos.filter((g) => {
     if (mes && !isInMonth(g.data, mes.month, mes.year)) return false;
+    if (filtro !== "todos") {
+      const tipo = contaPagamentoMap[g.conta_pagamento_id]?.tipo || "a_vista";
+      if (tipo !== filtro) return false;
+    }
     return true;
-  }), [gastos, mes]);
+  }), [gastos, mes, filtro, contaPagamentoMap]);
 
   return (
     <div>
@@ -65,6 +77,20 @@ export default function Gastos() {
       />
 
       <div className="flex flex-wrap items-center gap-2 mb-6">
+        <div className="flex gap-1 bg-ink-100 p-1 rounded-xl">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setFiltro(t.key)}
+              className={cn(
+                "px-4 py-1.5 text-sm font-medium rounded-lg transition-colors",
+                filtro === t.key ? "bg-white text-ink-900 shadow-sm" : "text-ink-500"
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
         <MonthFilter value={mes} onChange={setMes} />
       </div>
 

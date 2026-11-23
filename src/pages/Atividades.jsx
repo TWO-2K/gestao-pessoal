@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import PageHeader from "@/components/PageHeader";
 import { useAtividades } from "@/hooks/useAtividades";
+import { useUsuarios } from "@/hooks/useUsuarios";
 import { formatarQuando } from "@/components/orbita/PaineisInferiores";
 
 const rotuloModulo = {
@@ -13,6 +14,13 @@ const rotuloModulo = {
 
 export default function Atividades() {
   const { atividades, isLoading } = useAtividades(100);
+  const { usuarios } = useUsuarios();
+
+  const nomeUsuario = useMemo(() => {
+    const porId = {};
+    usuarios.forEach((u) => { porId[u.id] = u.nome || u.email; });
+    return porId;
+  }, [usuarios]);
 
   return (
     <div>
@@ -31,6 +39,7 @@ export default function Atividades() {
                 {rotuloModulo[a.modulo] || a.modulo}
               </span>
               <span className="min-w-0 flex-1 truncate">{a.descricao}</span>
+              <span className="w-32 shrink-0 truncate text-xs text-ink-400">{nomeUsuario[a.user_id] || "—"}</span>
               <span className="shrink-0 text-xs text-ink-400">{formatarQuando(a.created_at)}</span>
             </li>
           ))}

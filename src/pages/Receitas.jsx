@@ -75,9 +75,12 @@ export default function Receitas() {
 
   const totalGastoDoMes = useMemo(() => {
     if (!mes) return 0;
+    // Gastos lançados no cartão só debitam de fato quando a fatura é paga, por
+    // isso respeitam ehAVista. Já uma conta a pagar com status "pago" já é a
+    // saída de dinheiro em si, independente de qual conta/cartão foi usado.
     const gastosDoMes = gastos.filter((g) => isInMonth(g.data, mes.month, mes.year) && ehAVista(g.conta_pagamento_id));
     const contasPagasDoMes = contas.filter(
-      (c) => c.status === "pago" && isInMonth(c.vencimento, mes.month, mes.year) && ehAVista(c.conta_pagamento_id)
+      (c) => c.status === "pago" && isInMonth(c.vencimento, mes.month, mes.year)
     );
     return (
       gastosDoMes.reduce((sum, g) => sum + Number(g.valor), 0) +
