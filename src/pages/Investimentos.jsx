@@ -22,7 +22,8 @@ const fmtNum = (n) => Number(n).toLocaleString("pt-BR", { maximumFractionDigits:
 const mesAtual = () => { const n = new Date(); return { month: n.getMonth(), year: n.getFullYear() }; };
 const MESES_CURTOS = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
 // Rótulo acima da barra no estilo da B3: "R$ 2,0 mil" a partir de mil, senão o valor cheio
-const rotuloValor = (v) => (v <= 0 ? "" : v >= 1000 ? `R$ ${(v / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mil` : formatCurrency(v));
+// Compacto para caber em cima de cada barra: "2,0 mil" ou "799" (valor exato fica no tooltip)
+const rotuloValor = (v) => (v <= 0 ? "" : v >= 1000 ? `${(v / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mil` : Math.round(v).toLocaleString("pt-BR"));
 // Só o que existe no mês: sem previsto mostra apenas o valor recebido, sem nome do mês
 const TooltipProventos = ({ payload }) => {
   const itens = (payload || []).filter((i) => i.value > 0);
@@ -61,7 +62,7 @@ function Resumo({ itens }) {
       {itens.map(([rotulo, valor, tom]) => (
         <div key={rotulo} className={`col-span-1 last:col-span-2 md:last:col-span-1 rounded-2xl border border-ink-200 border-t-4 bg-white px-4 py-3 ${tom.borda}`}>
           <p className="text-xs text-ink-400">{rotulo}</p>
-          <p className={`text-lg font-semibold tabular-nums mt-0.5 ${tom.texto}`}>{valor}</p>
+          <p className={`text-base sm:text-lg font-semibold tabular-nums mt-0.5 break-words ${tom.texto}`}>{valor}</p>
         </div>
       ))}
     </div>
@@ -70,7 +71,8 @@ function Resumo({ itens }) {
 
 const nomeMes = (chave) => {
   const [ano, mes] = chave.split("-");
-  return new Date(Number(ano), Number(mes) - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const texto = new Date(Number(ano), Number(mes) - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
 };
 
 // Agrupa registros (já ordenados por data desc) por mês, com o subtotal de cada grupo
@@ -89,14 +91,14 @@ function agruparPorMes(registros, valorDe) {
 function CabecalhoMes({ chave, total, rotuloTotal }) {
   return (
     <div className="flex items-baseline justify-between px-1 pt-2">
-      <h3 className="text-sm font-semibold capitalize text-ink-900">{nomeMes(chave)}</h3>
+      <h3 className="text-sm font-semibold text-ink-900">{nomeMes(chave)}</h3>
       <span className="text-xs text-ink-400">{rotuloTotal} <b className="text-ink-700">{formatCurrency(total)}</b></span>
     </div>
   );
 }
 
 function Chip({ className, children }) {
-  return <span className={`ml-2 rounded px-1.5 py-0.5 text-[10px] font-medium ${className}`}>{children}</span>;
+  return <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium sm:ml-0.5 ${className}`}>{children}</span>;
 }
 
 function Vazio({ children }) {
@@ -270,9 +272,14 @@ export default function Investimentos() {
 
   // Ao abrir (ou trocar a visão), o gráfico rolável começa nos meses mais recentes
   const rolagemGrafico = useRef(null);
+  // ref em função: roda assim que o gráfico monta, mesmo que ele apareça depois do carregamento
+  const fimDoGrafico = (el) => {
+    rolagemGrafico.current = el;
+    if (el) requestAnimationFrame(() => { el.scrollLeft = el.scrollWidth; });
+  };
   useEffect(() => {
     const el = rolagemGrafico.current;
-    if (el) el.scrollLeft = el.scrollWidth;
+    if (el) requestAnimationFrame(() => { el.scrollLeft = el.scrollWidth; });
   }, [aba, visaoGrafico, proventosPorMes.length]);
 
   const acaoPrincipal = {
@@ -397,11 +404,11 @@ export default function Investimentos() {
                       return (
                         <div
                           key={ap.id}
-                          className={`group flex items-center gap-2 sm:gap-3 rounded-2xl border border-l-4 px-3 sm:px-4 py-3 ${planejado ? "border-dashed border-gold-500 bg-gold-500/25 ring-1 ring-gold-500/40" : "border-ink-200 bg-white even:bg-ink-50/70"}`}
+                          className={`group flex flex-wrap items-center gap-x-2 gap-y-2 sm:gap-x-3 rounded-2xl border border-l-4 px-3 sm:px-4 py-3 ${planejado ? "border-dashed border-gold-500 bg-gold-500/25 ring-1 ring-gold-500/40" : "border-ink-200 bg-white even:bg-ink-50/70"}`}
                           style={{ borderLeftColor: cor.barra }}
                         >
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold" style={{ color: cor.texto }}>
+                          <div className="flex-1 min-w-0 basis-0 sm:basis-auto">
+                            <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 font-semibold" style={{ color: cor.texto }}>
                               {ativoMap[ap.ativo_id]?.ticker || "—"}
                               <Chip className={venda ? "bg-rust-50 text-rust-600" : "bg-forest-50 text-forest-600"}>{venda ? "venda" : "compra"}</Chip>
                               {planejado && <Chip className="bg-gold-500 text-white font-bold uppercase tracking-wide"><Clock className="inline h-3 w-3 mr-0.5 -mt-0.5" />planejado</Chip>}
@@ -410,7 +417,7 @@ export default function Investimentos() {
                               {formatDate(ap.data)} · {fmtNum(ap.quantidade)} × {formatCurrency(ap.preco)}
                             </p>
                           </div>
-                          <p className={`font-semibold tabular-nums ${venda ? "text-rust-600" : planejado ? "text-gold-600 italic font-bold" : ""}`}>
+                          <p className={`shrink-0 whitespace-nowrap font-semibold tabular-nums ${venda ? "text-rust-600" : planejado ? "text-gold-600 italic font-bold" : ""}`}>
                             {venda ? "−" : ""}{formatCurrency(ap.quantidade * ap.preco)}
                           </p>
                           <Acoes
@@ -446,8 +453,8 @@ export default function Investimentos() {
                   </span>
                 </div>
                 {/* No mobile o gráfico rola na horizontal em vez de espremer os rótulos */}
-                <div ref={rolagemGrafico} className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
-                <div className="h-56 min-w-[520px]">
+                <div ref={fimDoGrafico} className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+                <div className="h-56 min-w-[560px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={proventosPorMes}
@@ -493,20 +500,20 @@ export default function Investimentos() {
                       return (
                         <div
                           key={pv.id}
-                          className={`group flex items-center gap-2 sm:gap-3 rounded-2xl border border-l-4 border-ink-200 px-3 sm:px-4 py-3 ${previsto ? "border-dashed bg-gold-500/5" : "bg-white even:bg-ink-50/70"}`}
+                          className={`group flex flex-wrap items-center gap-x-2 gap-y-2 sm:gap-x-3 rounded-2xl border border-l-4 border-ink-200 px-3 sm:px-4 py-3 ${previsto ? "border-dashed bg-gold-500/5" : "bg-white even:bg-ink-50/70"}`}
                           style={{ borderLeftColor: cor.barra }}
                         >
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold" style={{ color: cor.texto }}>
+                          <div className="flex-1 min-w-0 basis-0 sm:basis-auto">
+                            <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 font-semibold" style={{ color: cor.texto }}>
                               {ativoMap[pv.ativo_id]?.ticker || "—"}
                               <Chip className="bg-ink-100 text-ink-500 capitalize">{pv.tipo}</Chip>
                               {previsto && <Chip className="bg-gold-500/15 text-gold-600">Previsto</Chip>}
                             </p>
                             <p className="text-xs text-ink-400 mt-0.5">{formatDate(pv.data)}</p>
                           </div>
-                          <p className={`font-semibold tabular-nums ${previsto ? "text-gold-600" : "text-forest-600"}`}>{previsto ? "≈ " : ""}+{formatCurrency(pv.valor)}</p>
+                          <p className={`shrink-0 whitespace-nowrap font-semibold tabular-nums ${previsto ? "text-gold-600" : "text-forest-600"}`}>{previsto ? "≈ " : ""}+{formatCurrency(pv.valor)}</p>
                           {previsto && (
-                            <Button size="sm" variant="outline" onClick={() => inv.salvarProvento({ id: pv.id, status: "recebido" })}>
+                            <Button size="sm" variant="outline" className="max-sm:order-last max-sm:basis-full" onClick={() => inv.salvarProvento({ id: pv.id, status: "recebido" })}>
                               Recebido
                             </Button>
                           )}

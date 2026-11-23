@@ -25,7 +25,7 @@ export default function MonthFilter({ value, onChange }) {
   const isAll = value === null;
 
   return (
-    <div className="flex items-center gap-1 bg-ink-100 p-1 rounded-xl">
+    <div className="flex items-center gap-1 bg-ink-100 p-1 rounded-xl max-sm:w-full">
       <button
         onClick={() => shift(-1)}
         className="p-1.5 rounded-lg text-ink-500 hover:bg-ink-50 hover:text-ink-900 transition-colors"
@@ -35,7 +35,7 @@ export default function MonthFilter({ value, onChange }) {
       <button
         onClick={() => onChange(isAll ? { month: now.getMonth(), year: now.getFullYear() } : null)}
         className={cn(
-          "px-3 py-1.5 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 min-w-[140px] justify-center",
+          "px-3 py-1.5 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 min-w-[140px] max-sm:flex-1 justify-center",
           isAll ? "text-ink-500" : "bg-white text-ink-900 shadow-sm"
         )}
       >
