@@ -16,22 +16,9 @@ export function useUsuarios() {
     },
   });
 
-  // Quais usuários já têm algum dado real cadastrado (ignora categorias/contas
-  // de pagamento/produtos, que vêm do seed padrão) — usado para bloquear a
-  // exclusão desses usuários na tela. Só admins conseguem chamar essa RPC.
-  const { data: usuariosComDados = [] } = useQuery({
-    queryKey: ["usuarios-com-dados"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("usuarios_com_dados");
-      if (error) return [];
-      return data.map((row) => row.user_id);
-    },
-  });
-
   const mutationOptions = {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
-      queryClient.invalidateQueries({ queryKey: ["usuarios-com-dados"] });
     },
   };
 
@@ -68,24 +55,11 @@ export function useUsuarios() {
     ...mutationOptions,
   });
 
-  const excluirUsuarioMutation = useMutation({
-    mutationFn: async (id) => {
-      const { data, error } = await supabase.functions.invoke("deletar-usuario", {
-        body: { id },
-      });
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
-    },
-    ...mutationOptions,
-  });
-
   return {
     usuarios,
-    usuariosComDados,
     isLoading,
     toggleAtivo: toggleAtivoMutation.mutate,
     criarUsuario: criarUsuarioMutation.mutateAsync,
     editarUsuario: editarUsuarioMutation.mutateAsync,
-    excluirUsuario: excluirUsuarioMutation.mutateAsync,
   };
 }
