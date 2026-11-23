@@ -64,7 +64,7 @@ export default function OrbitaHome() {
       <WelcomeBanner nome={usuario?.nome} />
 
       <div
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:[grid-template-columns:repeat(var(--n),minmax(0,1fr))]"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:[grid-template-columns:repeat(var(--n),minmax(0,1fr))]"
         style={{ "--n": visiveis.length }}
       >
         {visiveis.map((m) => (
@@ -72,7 +72,7 @@ export default function OrbitaHome() {
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1.1fr_1.1fr_0.8fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.1fr_1.1fr_0.8fr]">
         <AtividadesRecentes />
         <DestaquePanel />
         <ResumoDoDia saldo={dados.saldo} tarefas={dados.tarefasHoje} eventos={dados.eventosHoje} isLoading={carregando} />
