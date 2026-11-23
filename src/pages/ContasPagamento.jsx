@@ -50,7 +50,7 @@ export default function ContasPagamento() {
                 <span className="h-9 w-9 rounded-full" style={{ backgroundColor: c.cor }} />
                 <div>
                   <span className="font-medium">{c.nome}</span>
-                  {c.icone && <p className="text-xs text-ink-400">{c.icone}</p>}
+                  <p className="text-xs text-ink-400">{c.tipo === "cartao_credito" ? "Cartão de crédito" : "À vista"}</p>
                 </div>
               </div>
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

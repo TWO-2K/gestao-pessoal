@@ -1,4 +1,4 @@
-import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, Users, BarChart3, CheckSquare, CalendarDays, Clapperboard, Dumbbell, Scale, Target, ClipboardList, TrendingUp, Ruler, ListChecks, PiggyBank, Gamepad2, ShoppingCart, PackageSearch, Activity } from "lucide-react";
+import { LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Receipt, Tag, CreditCard, Users, BarChart3, CheckSquare, CalendarDays, Clapperboard, Dumbbell, Scale, Target, ClipboardList, TrendingUp, Ruler, ListChecks, PiggyBank, Gamepad2, ShoppingCart, PackageSearch, Activity, Wallet } from "lucide-react";
 
 // Navegação compartilhada entre o layout clássico (sidebar) e o Órbita (faixa do módulo).
 export const navSections = [
@@ -8,6 +8,7 @@ export const navSections = [
       { to: "/", label: "Painel", icon: LayoutDashboard },
       { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
       { to: "/contas", label: "Contas a Pagar", icon: ArrowUpCircle },
+      { to: "/receitas", label: "Receitas", icon: Wallet },
       { to: "/gastos", label: "Gastos", icon: Receipt },
       { to: "/compras", label: "Compras", icon: ShoppingCart },
       { to: "/produtos", label: "Produtos", icon: PackageSearch },

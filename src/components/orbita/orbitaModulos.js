@@ -14,6 +14,7 @@ export const modulosOrbita = [
     atalhos: [
       { label: "Resumo Financeiro", to: "/resumo", icon: BarChart3 },
       { label: "Contas a Pagar", to: "/contas", icon: ArrowUpCircle },
+      { label: "Receitas", to: "/receitas", icon: Wallet },
       { label: "Contas a Receber", to: "/receber", icon: ArrowDownCircle },
       { label: "Relatórios", to: "/relatorios", icon: FileText },
     ],
