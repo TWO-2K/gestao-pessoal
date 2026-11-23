@@ -1,4 +1,4 @@
-import { Wallet, ListChecks, CalendarClock, Dumbbell, Settings2, BarChart3, ArrowUpCircle, ArrowDownCircle, Clapperboard, Gamepad2, CheckSquare, CalendarDays, Trophy, History, TrendingUp, Target, Users, Activity, FileText, Sun } from "lucide-react";
+import { Wallet, ListChecks, CalendarClock, Dumbbell, Settings2, ArrowUpCircle, ArrowDownCircle, Clapperboard, Gamepad2, CheckSquare, CalendarDays, Trophy, History, TrendingUp, Target, Users, Activity, TrendingDown, Sun } from "lucide-react";
 
 // Configuração declarativa dos cards do painel. `adminOnly` respeita o role do usuário;
 // todas as rotas já existem em App.jsx (a de /atividades e /resumo são adicionadas junto).
@@ -12,11 +12,11 @@ export const modulosOrbita = [
     cta: "Acessar Financeiro",
     cor: { acento: "#22c55e", fundo: "linear-gradient(165deg, rgba(22,163,74,0.42), rgba(5,46,22,0.5) 70%)", borda: "rgba(34,197,94,0.6)", glow: "rgba(34,197,94,0.28)" },
     atalhos: [
-      { label: "Resumo Financeiro", to: "/resumo", icon: BarChart3 },
+      { label: "Gastos", to: "/gastos", icon: TrendingDown },
       { label: "Contas a Pagar", to: "/contas", icon: ArrowUpCircle },
       { label: "Receitas", to: "/receitas", icon: Wallet },
       { label: "Contas a Receber", to: "/receber", icon: ArrowDownCircle },
-      { label: "Relatórios", to: "/relatorios", icon: FileText },
+      { label: "Investimentos", to: "/investimentos", icon: TrendingUp },
     ],
   },
   {
@@ -30,6 +30,7 @@ export const modulosOrbita = [
     atalhos: [
       { label: "Visão geral", to: "/midias", icon: ListChecks },
       { label: "Animes", to: "/midias/animes", icon: Clapperboard },
+      { label: "Séries", to: "/midias/series", icon: Clapperboard },
       { label: "Filmes", to: "/midias/filmes", icon: Clapperboard },
       { label: "Games", to: "/midias/games", icon: Gamepad2 },
     ],
@@ -60,6 +61,7 @@ export const modulosOrbita = [
     atalhos: [
       { label: "Treino do dia", to: "/academia/hoje", icon: Dumbbell },
       { label: "Histórico", to: "/academia", icon: History },
+      { label: "Planos", to: "/academia/planos", icon: ListChecks },
       { label: "Evolução", to: "/academia/evolucao", icon: TrendingUp },
       { label: "Metas", to: "/academia/metas", icon: Trophy },
     ],
