@@ -87,11 +87,19 @@ export default function ContasPagar() {
     return contas.filter((c) => c.parcelamento_id === reparcelando.parcelamento_id);
   }, [contas, reparcelando]);
 
-  const filtradas = useMemo(() => contas.filter((c) => {
+  // Contas transferidas por mim continuam "fantasma" na lista do mês delas
+  // (não contam no meu total, quem decide o status é quem recebeu), em vez de
+  // ficarem empilhadas numa caixa à parte que só cresce.
+  const todasParaExibir = useMemo(() => {
+    const fantasmas = contasTransferidasPorMim.map((c) => ({ ...c, fantasma: true }));
+    return [...contas, ...fantasmas].sort((a, b) => a.vencimento.localeCompare(b.vencimento));
+  }, [contas, contasTransferidasPorMim]);
+
+  const filtradas = useMemo(() => todasParaExibir.filter((c) => {
     if ((filtro !== "todas" && c.status !== filtro) ||
         (mes && !isInMonth(c.vencimento, mes.month, mes.year))) return false;
     return true;
-  }), [contas, filtro, mes]);
+  }), [todasParaExibir, filtro, mes]);
 
   const tabs = [
     { key: "todas", label: "Todas" },
@@ -115,42 +123,6 @@ export default function ContasPagar() {
         <PushNotificationToggle />
         <LembreteGastosToggle />
       </div>
-
-      {contasTransferidasPorMim.length > 0 && (
-        <div className="mb-6 rounded-xl border border-ink-200 bg-ink-50 p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-ink-400 mb-2">Transferidas por você</p>
-          <div className="space-y-2">
-            {contasTransferidasPorMim.map((conta) => (
-              <div key={conta.id} className="flex items-center justify-between gap-3 text-sm">
-                <span className="truncate text-ink-600">
-                  {conta.descricao} <span className="text-ink-400">→ {usuarioMap[conta.transferido_para_user_id] || "outro usuário"}</span>
-                </span>
-                <div className="flex-shrink-0 flex items-center gap-2">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      conta.status === "pago" ? "bg-forest-100 text-forest-700" : "bg-ink-100 text-ink-500"
-                    }`}
-                  >
-                    {conta.status === "pago" ? "Paga" : "Pendente"}
-                  </span>
-                  {conta.status === "pago" ? (
-                    <span className="text-xs text-ink-400" title="Já foi pago por quem recebeu a transferência">
-                      Já paga
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => transferirConta({ id: conta.id, transferidoParaUserId: null })}
-                      className="flex items-center gap-1 text-xs font-medium text-ink-500 hover:text-ink-900"
-                    >
-                      <Undo2 className="h-3.5 w-3.5" /> Cancelar
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <div className="flex gap-1 bg-ink-100 p-1 rounded-xl">
@@ -187,6 +159,38 @@ export default function ContasPagar() {
             const vencida = dias !== null && dias < 0;
             const prestesAVencer = dias !== null && dias >= 0 && dias <= DIAS_AVISO_VENCIMENTO;
             const notificacao = ultimaNotificacao(conta);
+            if (conta.fantasma) {
+              return (
+                <div
+                  key={conta.id}
+                  className="flex items-start gap-3 rounded-2xl border border-dashed border-ink-200 bg-ink-50/50 px-4 py-3.5 opacity-70"
+                >
+                  <div className="h-9 w-9 flex-shrink-0 rounded-full border-2 border-dashed border-ink-300 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className={cn("font-medium truncate text-ink-500", pago && "line-through")}>{conta.descricao}</p>
+                        <span className="flex-shrink-0 flex items-center gap-1 rounded-full bg-ink-100 px-1.5 py-0.5 text-[10px] font-medium text-ink-500">
+                          <ArrowLeftRight className="h-3 w-3" /> {pago ? "Paga por" : "Transferida para"} {usuarioMap[conta.transferido_para_user_id] || "outro usuário"}
+                        </span>
+                      </div>
+                      <p className="flex-shrink-0 font-mono font-semibold tabular-nums text-ink-400">{formatCurrency(conta.valor)}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-ink-400">
+                      <span>Vence {formatDate(conta.vencimento)}</span>
+                      {!pago && (
+                        <button
+                          onClick={() => transferirConta({ id: conta.id, transferidoParaUserId: null })}
+                          className="flex items-center gap-1 font-medium text-ink-500 hover:text-ink-900"
+                        >
+                          <Undo2 className="h-3.5 w-3.5" /> Cancelar transferência
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
             return (
               <div
                 key={conta.id}

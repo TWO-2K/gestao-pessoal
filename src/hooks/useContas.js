@@ -210,18 +210,14 @@ export function useContas() {
         proximoVencimento.setMonth(proximoVencimento.getMonth() + 1);
         const proximoVencimentoStr = proximoVencimento.toISOString().slice(0, 10);
 
-        const { data: existentes, error: checkError } = await supabase
-          .from('contas_pagar')
-          .select('id')
-          .match({
-            descricao: conta.descricao,
-            vencimento: proximoVencimentoStr,
-            user_id: conta.user_id,
-          })
-          .limit(1);
+        const { data: jaExiste, error: checkError } = await supabase.rpc('existe_proxima_ocorrencia', {
+          p_user_id: conta.user_id,
+          p_descricao: conta.descricao,
+          p_vencimento: proximoVencimentoStr,
+        });
         if (checkError) throw checkError;
 
-        if (!existentes || existentes.length === 0) {
+        if (!jaExiste) {
           const {
             id: _id,
             notificacoes_enviadas: _notificacoesEnviadas,
