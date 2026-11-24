@@ -44,6 +44,17 @@ export function useUsuarios() {
     ...mutationOptions,
   });
 
+  const toggleParticipaListaCompartilhadaMutation = useMutation({
+    mutationFn: async (usuario) => {
+      const { error } = await supabase
+        .from("usuarios")
+        .update({ participa_lista_compartilhada: !usuario.participa_lista_compartilhada })
+        .match({ id: usuario.id });
+      if (error) throw new Error(error.message);
+    },
+    ...mutationOptions,
+  });
+
   const criarUsuarioMutation = useMutation({
     mutationFn: async (form) => {
       const { data, error } = await supabase.functions.invoke("criar-usuario", {
@@ -71,6 +82,7 @@ export function useUsuarios() {
     isLoading,
     toggleAtivo: toggleAtivoMutation.mutate,
     togglePodeTransferir: togglePodeTransferirMutation.mutate,
+    toggleParticipaListaCompartilhada: toggleParticipaListaCompartilhadaMutation.mutate,
     criarUsuario: criarUsuarioMutation.mutateAsync,
     editarUsuario: editarUsuarioMutation.mutateAsync,
   };

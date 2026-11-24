@@ -115,7 +115,7 @@ export default function Midias() {
     isAdmin ? (status) => definirStatusUsuario({ midiaId, userId, status }) : undefined;
 
   const outrosUsuarios = useMemo(
-    () => usuarios.filter((u) => u.ativo && u.id !== viewedUserId),
+    () => usuarios.filter((u) => u.ativo && u.id !== viewedUserId && u.participa_lista_compartilhada !== false),
     [usuarios, viewedUserId]
   );
 

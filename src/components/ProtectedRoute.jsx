@@ -21,6 +21,15 @@ export function AdminRoute() {
   return <Outlet />;
 }
 
+export function ListaCompartilhadaRoute() {
+  const { usuario, isLoading } = useUsuarioAtual();
+
+  if (isLoading) return <LoadingScreen />;
+  if (usuario?.participa_lista_compartilhada === false) return <Navigate to="/" replace />;
+
+  return <Outlet />;
+}
+
 export function ProtectedRoute() {
   const { user, isLoading } = useAuth();
 

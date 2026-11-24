@@ -12,7 +12,7 @@ import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 export default function Usuarios() {
   const [open, setOpen] = useState(false);
   const [editando, setEditando] = useState(null);
-  const { usuarios, isLoading, toggleAtivo, togglePodeTransferir, criarUsuario, editarUsuario } = useUsuarios();
+  const { usuarios, isLoading, toggleAtivo, togglePodeTransferir, toggleParticipaListaCompartilhada, criarUsuario, editarUsuario } = useUsuarios();
   const { usuario: usuarioAtual } = useUsuarioAtual();
 
   const handleSaved = async (form) => {
@@ -76,6 +76,14 @@ export default function Usuarios() {
                       checked={u.pode_transferir_contas}
                       title="Permite que este usuário transfira contas a pagar para outro usuário"
                       onCheckedChange={() => togglePodeTransferir(u)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-ink-400">Lista compartilhada</span>
+                    <Switch
+                      checked={u.participa_lista_compartilhada}
+                      title="Permite que este usuário veja e participe da Lista compartilhada (animes, filmes, séries e games)"
+                      onCheckedChange={() => toggleParticipaListaCompartilhada(u)}
                     />
                   </div>
                   <div className="flex items-center gap-2">

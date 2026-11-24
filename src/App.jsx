@@ -7,7 +7,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import PageNotFound from './lib/PageNotFound';
 import ScrollToTop from './components/ScrollToTop';
 import { LayoutSwitch, HomeRoute } from '@/components/LayoutSwitch';
-import { ProtectedRoute, PublicOnlyRoute, AdminRoute } from '@/components/ProtectedRoute';
+import { ProtectedRoute, PublicOnlyRoute, AdminRoute, ListaCompartilhadaRoute } from '@/components/ProtectedRoute';
 import Dashboard from '@/pages/Dashboard';
 import Atividades from '@/pages/Atividades';
 import Relatorios from '@/pages/Relatorios';
@@ -65,9 +65,11 @@ function App() {
                 <Route path="/calendario" element={<Tarefas />} />
                 <Route path="/tarefas" element={<Navigate to="/calendario" replace />} />
                 <Route path="/eventos-futuros" element={<EventosFuturos />} />
-                <Route path="/midias" element={<Midias />} />
-                <Route path="/midias/:tipoSlug" element={<Midias />} />
-                <Route path="/midias/:tipoSlug/:id" element={<Midias />} />
+                <Route element={<ListaCompartilhadaRoute />}>
+                  <Route path="/midias" element={<Midias />} />
+                  <Route path="/midias/:tipoSlug" element={<Midias />} />
+                  <Route path="/midias/:tipoSlug/:id" element={<Midias />} />
+                </Route>
                 <Route path="/academia" element={<Treinos />} />
                 <Route path="/academia/hoje" element={<TreinoHoje />} />
                 <Route path="/academia/planos" element={<PlanosAcademia />} />

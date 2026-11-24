@@ -12,11 +12,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import IosInstallHint from "@/components/IosInstallHint";
 import AdminUserSwitcher from "@/components/AdminUserSwitcher";
 
-// No mobile só os itens de uso mais frequente cabem na barra; o resto vai no menu "Mais".
-const flatNav = navSections.flatMap((s) => s.items);
-const mobilePrimaryNav = flatNav.slice(0, 4);
-const mobileMoreNav = flatNav.slice(4);
-
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -26,13 +21,24 @@ export default function Layout() {
   const { setLayout } = useLayoutPreferencia();
   const isAdmin = usuario?.role === "admin";
   const viewedUsuario = usuarios.find((u) => u.id === viewedUserId);
+  const baseSections = useMemo(
+    () =>
+      usuario?.participa_lista_compartilhada === false
+        ? navSections.filter((s) => s.section !== "Lista")
+        : navSections,
+    [usuario?.participa_lista_compartilhada]
+  );
   const sectionsWithAdmin = useMemo(
     () =>
       isAdmin
-        ? [...navSections, { section: "Administração", items: [{ to: "/usuarios", label: "Usuários", icon: Users }] }]
-        : navSections,
-    [isAdmin]
+        ? [...baseSections, { section: "Administração", items: [{ to: "/usuarios", label: "Usuários", icon: Users }] }]
+        : baseSections,
+    [isAdmin, baseSections]
   );
+  // No mobile só os itens de uso mais frequente cabem na barra; o resto vai no menu "Mais".
+  const flatNav = useMemo(() => baseSections.flatMap((s) => s.items), [baseSections]);
+  const mobilePrimaryNav = flatNav.slice(0, 4);
+  const mobileMoreNav = flatNav.slice(4);
   const moreNavItems = isAdmin
     ? [...mobileMoreNav, { to: "/usuarios", label: "Usuários", icon: Users }]
     : mobileMoreNav;
