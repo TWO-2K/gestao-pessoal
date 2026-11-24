@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import IosInstallHint from "@/components/IosInstallHint";
 import AdminUserSwitcher from "@/components/AdminUserSwitcher";
+import PwaInstallButton from "@/components/PwaInstallButton";
 
 // No mobile só os itens de uso mais frequente cabem na barra; o resto vai no menu "Mais".
 const flatNav = navSections.flatMap((s) => s.items);
@@ -146,6 +147,7 @@ export default function Layout() {
         )}
 
         <div className="flex-shrink-0 border-t border-ink-50/10 pt-4 mt-2 space-y-1">
+          <PwaInstallButton collapsed={collapsed} />
           <button
             onClick={() => setLayout("orbita")}
             title={collapsed ? "Experimentar novo layout" : undefined}
@@ -254,6 +256,11 @@ export default function Layout() {
               <AdminUserSwitcher variant="light" />
             </div>
           )}
+          <PwaInstallButton
+            variant="light"
+            onInstalled={() => setMoreOpen(false)}
+            className="mb-3 justify-center rounded-xl border border-ink-200 py-3"
+          />
           <button
             onClick={() => { setMoreOpen(false); setLayout("orbita"); }}
             className="w-full mb-3 flex items-center justify-center gap-2 rounded-xl border border-ink-200 px-3 py-3 text-sm font-medium text-ink-600"

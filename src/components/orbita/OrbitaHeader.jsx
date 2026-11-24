@@ -1,10 +1,11 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, ChevronDown, LayoutPanelLeft, LogOut, Moon, Sun } from "lucide-react";
+import { Bell, ChevronDown, Download, LayoutPanelLeft, LogOut, Moon, Sun } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
 import { useNotificacoesApp } from "@/hooks/useNotificacoesApp";
 import { useLayoutPreferencia } from "@/hooks/useLayoutPreferencia";
+import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { supabase } from "@/lib/supabaseClient";
 import AdminUserSwitcher from "@/components/AdminUserSwitcher";
 import { formatarQuando } from "@/components/orbita/PaineisInferiores";
@@ -20,6 +21,7 @@ export default function OrbitaHeader({ claro, onToggleTema }) {
   const { usuario } = useUsuarioAtual();
   const { setLayout } = useLayoutPreferencia();
   const { notificacoes, naoLidas, marcarLidas, marcarTodasLidas } = useNotificacoesApp();
+  const { canInstall, install } = usePwaInstall();
   const isAdmin = usuario?.role === "admin";
 
   const handleLogout = async () => {
@@ -92,6 +94,12 @@ export default function OrbitaHeader({ claro, onToggleTema }) {
         <button className={botao} style={botaoStyle} onClick={onToggleTema} aria-label={claro ? "Tema escuro" : "Tema claro"}>
           {claro ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
         </button>
+
+        {canInstall && (
+          <button className={botao} style={botaoStyle} onClick={install} aria-label="Instalar app" title="Instalar app">
+            <Download className="h-5 w-5" />
+          </button>
+        )}
 
         <Popover>
           <PopoverTrigger asChild>

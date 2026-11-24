@@ -10,7 +10,7 @@ export function useUsuarioAtual() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("usuarios")
-        .select("id, nome, email, role, ativo, participa_lista_compartilhada")
+        .select("id, nome, email, role, ativo, participa_lista_compartilhada, senha_provisoria")
         .eq("id", user.id)
         .maybeSingle();
       if (error) throw new Error(error.message);

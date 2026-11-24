@@ -1,5 +1,5 @@
 import React from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { useUsuarioAtual } from "@/hooks/useUsuarioAtual";
@@ -23,6 +23,8 @@ export function AdminRoute() {
 
 export function ProtectedRoute() {
   const { user, isLoading } = useAuth();
+  const { usuario, isLoading: usuarioLoading } = useUsuarioAtual();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -33,6 +35,12 @@ export function ProtectedRoute() {
   }
 
   if (!user) return <Navigate to="/login" replace />;
+
+  if (usuarioLoading) return <LoadingScreen />;
+
+  if (usuario?.senha_provisoria && location.pathname !== "/trocar-senha") {
+    return <Navigate to="/trocar-senha" replace />;
+  }
 
   return <Outlet />;
 }

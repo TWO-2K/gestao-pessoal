@@ -33,9 +33,7 @@ import EvolucaoAcademia from '@/pages/EvolucaoAcademia';
 import MedidasCorporais from '@/pages/MedidasCorporais';
 import Usuarios from '@/pages/Usuarios';
 import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
+import TrocarSenha from '@/pages/TrocarSenha';
 // Add page imports here
 
 function App() {
@@ -47,6 +45,7 @@ function App() {
           <ScrollToTop />
           <Routes>
             <Route element={<ProtectedRoute />}>
+              <Route path="/trocar-senha" element={<TrocarSenha />} />
               <Route element={<LayoutSwitch />}>
                 <Route path="/" element={<HomeRoute />} />
                 <Route path="/resumo" element={<Dashboard />} />
@@ -83,11 +82,7 @@ function App() {
 
             <Route element={<PublicOnlyRoute />}>
               <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
             </Route>
-            {/* Reset password must stay reachable even with a session active (recovery link flow) */}
-            <Route path="/reset-password" element={<ResetPassword />} />
 
             <Route path="*" element={<PageNotFound />} />
           </Routes>

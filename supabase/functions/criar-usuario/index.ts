@@ -78,6 +78,7 @@ Deno.serve(async (req) => {
     email,
     role,
     ativo: true,
+    senha_provisoria: true,
   });
 
   if (insertError) {

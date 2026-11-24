@@ -58,6 +58,11 @@ export default function UsuarioForm({ usuario, onSaved, onCancel }) {
           placeholder={isEditing ? "Deixe em branco para manter a atual" : undefined}
           required={!isEditing}
         />
+        <p className="text-xs text-ink-400">
+          {isEditing
+            ? "Se preenchida, o usuário precisará trocar essa senha no próximo acesso."
+            : "O usuário precisará trocar essa senha no primeiro acesso."}
+        </p>
       </div>
       <div className="space-y-2">
         <Label>Papel</Label>

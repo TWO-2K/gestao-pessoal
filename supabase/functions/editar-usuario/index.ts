@@ -70,9 +70,14 @@ Deno.serve(async (req) => {
     return json({ error: authUpdateError.message }, 400);
   }
 
+  // Quando o admin define uma senha nova pro usuário, ela é provisória até ele
+  // mesmo trocar no próximo acesso.
+  const usuariosUpdate: { nome: string; email: string; role: string; senha_provisoria?: boolean } = { nome, email, role };
+  if (senha) usuariosUpdate.senha_provisoria = true;
+
   const { error: updateError } = await adminClient
     .from("usuarios")
-    .update({ nome, email, role })
+    .update(usuariosUpdate)
     .eq("id", id);
 
   if (updateError) {
