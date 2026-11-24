@@ -228,7 +228,7 @@ export default function Layout() {
       </nav>
 
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent side="bottom" className="md:hidden rounded-t-2xl">
+        <SheetContent side="bottom" className="md:hidden rounded-t-2xl pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           <SheetHeader>
             <SheetTitle>Mais opções</SheetTitle>
           </SheetHeader>
