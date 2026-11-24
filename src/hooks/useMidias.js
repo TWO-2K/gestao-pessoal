@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useViewAs } from "@/lib/ViewAsContext";
+import { useUsuarios } from "@/hooks/useUsuarios";
 import { supabase } from "@/lib/supabaseClient";
 import { semAcento } from "@/lib/text";
 
@@ -23,7 +24,10 @@ async function buscarTodasLinhas(query) {
 export function useMidias() {
   const queryClient = useQueryClient();
   const { viewedUserId } = useViewAs();
+  const { usuarios } = useUsuarios();
   const userId = viewedUserId;
+  // quem não participa do catálogo compartilhado tem sua própria Lista, independente das outras
+  const participaCompartilhada = usuarios.find((u) => u.id === userId)?.participa_lista_compartilhada !== false;
 
   const { data: midias = [], isLoading } = useQuery({
     queryKey: ["midias-catalogo", userId],
@@ -150,7 +154,8 @@ export function useMidias() {
         const { error } = await supabase.from("lista_midias_catalogo").update(catalogoPayload).match({ id: catalogoId });
         if (error) throw new Error(error.message);
       } else {
-        const { data, error } = await supabase.from("lista_midias_catalogo").insert(catalogoPayload).select().single();
+        const payload = participaCompartilhada ? catalogoPayload : { ...catalogoPayload, user_id: userId };
+        const { data, error } = await supabase.from("lista_midias_catalogo").insert(payload).select().single();
         if (error) throw new Error(error.message);
         catalogoId = data.id;
       }

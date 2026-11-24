@@ -28,10 +28,6 @@ export default function OrbitaShell() {
   const { isViewingOther, viewedUserId } = useViewAs();
   const isAdmin = usuario?.role === "admin";
   const viewedUsuario = usuarios.find((u) => u.id === viewedUserId);
-  const secoesVisiveis = useMemo(
-    () => (usuario?.participa_lista_compartilhada === false ? secoes.filter((s) => s.section !== "Lista") : secoes),
-    [usuario?.participa_lista_compartilhada]
-  );
 
   const [claro, setClaro] = useState(() => {
     try { return localStorage.getItem(TEMA_KEY) === "claro"; } catch { return false; }
@@ -44,9 +40,9 @@ export default function OrbitaShell() {
   };
 
   const secaoAtual = useMemo(() => {
-    const todas = isAdmin ? [...secoesVisiveis, adminSection] : secoesVisiveis;
+    const todas = isAdmin ? [...secoes, adminSection] : secoes;
     return todas.find((s) => s.items.some((i) => ativoEm(i, pathname)));
-  }, [pathname, isAdmin, secoesVisiveis]);
+  }, [pathname, isAdmin]);
 
   const isHome = pathname === "/";
   const largo = ["/midias", "/investimentos"].some((p) => pathname.startsWith(p));

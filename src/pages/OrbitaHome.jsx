@@ -57,9 +57,7 @@ export default function OrbitaHome() {
     admin: `${usuarios.length} usuários`,
   };
 
-  const visiveis = modulosOrbita.filter(
-    (m) => (!m.adminOnly || isAdmin) && (m.id !== "lista" || usuario?.participa_lista_compartilhada !== false)
-  );
+  const visiveis = modulosOrbita.filter((m) => !m.adminOnly || isAdmin);
 
   return (
     <div className="space-y-5">
